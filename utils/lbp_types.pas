@@ -331,10 +331,6 @@ constructor lbp_exception.Create( const iMessage:  String;
 // ************************************************************************
 
 procedure lbp_exception.DumpCallStack();
-   var
-      I: Integer;
-      Frames: PPointer;
-      Report: string;
    begin
       writeln( STDERR, 'Program exception! ' + LineEnding +
                '   Exception class: ' + ClassName + LineEnding +
