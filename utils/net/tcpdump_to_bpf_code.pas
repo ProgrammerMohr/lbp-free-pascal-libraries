@@ -1,3 +1,28 @@
+// This is a duplicate of bpf_to_pascal - delete it from the repository!!!
+
+{* ***************************************************************************
+
+Copyright (c) 2017 by Lloyd B. Park
+
+Duplicate of bpf_to_pascal
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 2 of the License, or 
+    (at your option) any later version.
+
+
+    This program is distributed in the hope that it will be useful,but 
+    WITHOUT ANY WARRANTY; without even the implied warranty of 
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public 
+    License along with this program.  If not, see 
+    <http://www.gnu.org/licenses/>.
+
+*************************************************************************** *}
+
 program tcpdump_to_bpf_code;
 // Reads the results of a tcpdump tcpdump -dd command such as this one:
 //      tcpdump -n -s 1522 -ddd port bootpc and ether dst '00:0c:29:24:15:75'
