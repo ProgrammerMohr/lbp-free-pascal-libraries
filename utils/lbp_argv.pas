@@ -34,6 +34,9 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 
 *************************************************************************** *}
 
+{$WARNING - Consider creating lbp_user_vars as a base unit for INI and ARGV processing.}
+
+
 // A unit to parse command line parameters
 //
 // Programs should use InsertUsage() and InsertParam() to populate the top
