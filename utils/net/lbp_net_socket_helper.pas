@@ -38,7 +38,7 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 //    broken.  This attempts to fill the gap until the production
 //    FreePascal code is fixed.
 
-{$ERROR  Socket helper may not be needed now!  Check the newest code!}
+{$WARNING  Socket helper may not be needed now!  Check the newest code!}
 
 unit lbp_net_socket_helper;
 

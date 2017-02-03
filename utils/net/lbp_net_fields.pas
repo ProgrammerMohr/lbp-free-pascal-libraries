@@ -1389,6 +1389,7 @@ function tVarWord32Array.GetStrValue(): string;
 procedure tVarWord32Array.SetStrValue( iValue: string);
    var
       TempStr:   string;
+      Temp:      word32;
       StrI:      word16;
       StrStart:  word16;
       StrLen:    word16;
@@ -1410,12 +1411,15 @@ procedure tVarWord32Array.SetStrValue( iValue: string);
          end;
 
          TempStr:= Copy( iValue, StrStart, StrI - StrStart);
-         val( TempStr, Value[ ValueI], ErrorCode);
+         Temp:= Value[ ValueI];
+         val( TempStr, Temp, ErrorCode);
          if( ErrorCode > 0) then begin
             raise NetFieldException.Create(
                   'tVarWord32Array.SetStrValue():  Invalid ordinal value (' +
                      TempStr + ')!');
          end; // if Error
+         Value[ ValueI]:= Temp;
+         inc( ValueI);
       end; // while
    end; // SetStrValue();
 
