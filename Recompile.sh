@@ -18,54 +18,12 @@ SourceDirs='
    sql/mysqllib4
    sql
    homeschool
-   lloyd/amey_photo_transfer
    lloyd/compiler
-   lloyd/home_firewall
-   lloyd/isis
-   lloyd/xbmc_remote
-   netserv/apps/XvncStarter
-   netserv/apps/arp-scan
-   netserv/apps/bandwidth-db
-   netserv/apps/bash-login-shell
-   netserv/apps/cd-devel
-   netserv/apps/cisco_config
-   netserv/apps/cvs-move-root
-   netserv/apps/dns-add
-   netserv/apps/download-db
-   netserv/apps/ipdb-copy-rights
-   netserv/apps/openvpn-doorkeeper
-   netserv/apps/osc-process-bpb-list
-   netserv/apps/proxy-cgi
-   netserv/apps/proxy-url-rewrite
-   netserv/apps/proxy-user-list
-   netserv/apps/rancid-looking-glass
-   netserv/apps/ssh-url-handler
-   netserv/apps/string_to_unix_time
-   netserv/apps/tivoli-backup
-   netserv/apps/xcolor-to-apple
-   netserv/dhcp
-   netserv/dns/compare
-   netserv/infoblox
-   netserv/infoblox/import
-   netserv/infoblox/report
-   netserv/ipdb2
-   netserv/ipdb2/exports
-   netserv/ipdb2/exports/infoblox_import
-   netserv/ipdb2/exports/isc_dhcp_config_out
-   netserv/ipdb2/imports
-   netserv/ipdb2/imports/arp-last-seen
-   netserv/ipdb2/imports/prune_admin_rights
-   netserv/ipdb2/moves
-   netserv/ipdb2/reports
-   netserv/ipdb2/reports/admins
-   netserv/ipdb2/reports/billing
-   netserv/ipdb2/reports/inventory
-   netserv/ipdbsync
-   netserv/ipdbsync/reports
-   netserv/parature
-   secserv
-   secserv/authbridge
-   timothy/launch_control
+   apps/cvs-move-root
+   apps/ssh-url-handler
+   apps/string_to_unix_time
+   apps/xcolor-to-apple
+   dhcp
 '
 
 
@@ -75,9 +33,8 @@ SourceDirs='
 # *************************************************************************
 
 AllowedBaseDirs='
-   programming/code/pascal
-   programming/pascal
-   /opt/programming/pascal
+   programming/pascal/lbp/
+   /opt/programming/pascal/lbp/
 '
 
 
