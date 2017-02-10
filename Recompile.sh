@@ -10,18 +10,15 @@
 
 SourceDirs='
    utils
-   utils/linux
    utils/net
    utils/tests
    ldap
-   sql/mysqllib
-   sql/mysqllib4
    sql
    homeschool
    lloyd/compiler
    apps/cvs-move-root
    apps/ssh-url-handler
-   apps/string_to_unix_time
+   apps/string-to-unix-time
    apps/xcolor-to-apple
    dhcp
 '
