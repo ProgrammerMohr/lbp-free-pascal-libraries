@@ -58,8 +58,8 @@ var
 function  OutputAvailable(): boolean;
 procedure SetOutputFileParam( Required: boolean = true;   // must have an output file
                               UseO:     boolean = false;  // Add '-o' as an aliase paramater
-                              AsOption: boolean = false); // Add the parameter in its own section
-
+                              AsOption: boolean = false;  // Add the parameter in its own section
+                              DoOpen: boolean = true);   // Open the OutputFile
 
 
 // ************************************************************************
@@ -73,7 +73,7 @@ var
    Opened:      boolean = false;
    Available:   boolean = false;
    IsRequired:  boolean = true;   // Set this to false if the Output file is optional
-
+   DoNotOpen:   boolean = false;
 
 // ************************************************************************
 // * OutputAvailable() Returns true if the output file is available
@@ -96,10 +96,12 @@ function OutputAvailable(): boolean;
 
 procedure SetOutputFileParam( Required: boolean;
                               UseO:     boolean;
-                              AsOption: boolean);
+                              AsOption: boolean;
+                              DoOpen:   boolean);
    var
      Usage: string = 'The output file name.';
    begin
+      DoNotOpen:= not DoOpen;
       IsRequired:= Required;
       if( Required) then begin
          Usage:= 'The output file name.  This parameter is required.';
@@ -141,11 +143,13 @@ procedure ParseArgv();
       if( lbp_types.show_init) then writeln( 'lbp_output_file.ParseArgV:  begin');
 
       if( ParamSet( 'output-file')) then begin
-         FileName:= GetParam( 'output-file');
-         assign( OutputFile, FileName);
-         rewrite( OutputFile);
-         Opened:= true;
-         Available:= true;
+         if( not DoNotOpen) then begin
+            FileName:= GetParam( 'output-file');
+            assign( OutputFile, FileName);
+            rewrite( OutputFile);
+            Opened:= true;
+            Available:= true;
+         end;
       end else if( IsRequired) then begin
          raise lbp_exception.Create( 'No output file was specified!');
       end else begin

@@ -65,8 +65,8 @@ function  IsATTY( Handle: longint): boolean;
 function  InputAvailable(): boolean;
 procedure SetInputFileParam( Required: boolean = true;  // must have an input file or pipe
                              UseF: boolean = false;     // Add '-f' as an aliase paramater
-                             AsOption: boolean = false); // Add the parameter in its own section
-
+                             AsOption: boolean = false; // Add the parameter in its own section
+                             DoOpen: boolean = true);   // Open the InputFile
 
 
 // ************************************************************************
@@ -80,7 +80,7 @@ var
    Opened:      boolean = false;
    Available:   boolean = false;
    IsRequired:  boolean = true;   // Set this to false if the Input file is optional
-
+   DoNotOpen:   boolean = false;
 
 // ************************************************************************
 // * IsATTY() - Returns true if the passed file handle is a terminal as
@@ -117,10 +117,12 @@ function InputAvailable(): boolean;
 
 procedure SetInputFileParam( Required: boolean;
                              UseF:     boolean;
-                             AsOption: boolean);
+                             AsOption: boolean;
+                             DoOpen:   boolean);
    var
      Usage: string = 'The input file name.';
    begin
+      DoNotOpen:= not DoOpen;
       IsRequired:= Required;
       if( Required) then begin
          Usage:= 'The input file name.  This parameter or a pipe' +
@@ -131,8 +133,10 @@ procedure SetInputFileParam( Required: boolean;
       if( AsOption) then begin
          AddUsage( '   ========== Input File library ==========');
 {$ifdef UNIX}
-         AddUsage( '      Allows the user to pass an input file name to the program or to read');
-         AddUsage( '      its input from a command line pipe.');
+        if( DoOpen) then begin
+           AddUsage( '      Allows the user to pass an input file name to the program or to read');
+           AddUsage( '      its input from a command line pipe.');
+        end;
 {$else}
          AddUsage( '      Allows the user to pass an input file name to the program');
 {$endif}
@@ -168,13 +172,15 @@ procedure ParseArgv();
       if( lbp_types.show_init) then writeln( 'lbp_input_file.ParseArgV:  begin');
 
       if( ParamSet( 'input-file')) then begin
-         FileName:= GetParam( 'input-file');
-         assign( InputFile, FileName);
-         reset( InputFile);
-         Opened:= true;
-         Available:= true;
+         if( not DoNotOpen) then begin
+            FileName:= GetParam( 'input-file');
+            assign( InputFile, FileName);
+            reset( InputFile);
+            Opened:= true;
+            Available:= true;
+         end;
 {$ifdef UNIX}
-      end else if( not( IsATTY( 0))) then begin
+      end else if( (not IsATTY( 0)) and (not DoNotOpen)) then begin
          InputFile:= Input;
          Available:= true;
 {$endif}
