@@ -64,8 +64,8 @@ function  IsATTY( Handle: longint): boolean;
 {$endif}
 function  InputAvailable(): boolean;
 procedure SetInputFileParam( Required: boolean = true;  // must have an input file or pipe
-                             UseF: boolean = false;     // Add '-f' as an aliase paramater
-                             AsOption: boolean = false; // Add the parameter in its own section
+                             UseF: boolean = true;     // Add '-f' as an aliase paramater
+                             AsOption: boolean = true; // Add the parameter in its own section
                              DoOpen: boolean = true);   // Open the InputFile
 
 

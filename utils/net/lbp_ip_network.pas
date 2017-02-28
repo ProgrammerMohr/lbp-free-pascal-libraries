@@ -55,17 +55,22 @@ uses
 type
    tNetworkInfo = class
       private
-         MyIPAddr:     word32;
-         MyNetMask:    word32;
-         MyZoneCount:  integer;
-         MyZoneIndex:  word;
-         MyZoneInc:    word32;   // How much to increment the Network Number for the next DNS Zone.
-         MyZonePrefix: word32;
-         MyPrefix:     word;
-         MyGateway:    word32;
-         MyComment:    string;
-         MyVLAN:       string;
-         MyVLANID:     word;
+         MyIPAddr:         word32;
+         MyNetMask:        word32;
+         MyZoneCount:      integer;
+         MyZoneIndex:      word;
+         MyZoneInc:        word32;   // How much to increment the Network Number for the next DNS Zone.
+         MyZonePrefix:     word32;
+         MyPrefix:         word;
+         MyGateway:        word32;
+         MyComment:        string;
+         MyVLAN:           string;
+         MyVLANID:         word;
+         MyL2OutVLan:      string;
+         MyL2OutVlanId:    word;
+         MyEsxiVlan:       string;   // VMware VLAN/Network Name
+         MyPaloZone:       string;
+         MyPaloL2OutVlan:  string;
          function  GetNetNum(): word32;
          procedure SetNetMask( const W: word32);
          procedure SetPrefix( const W: word);
@@ -86,6 +91,8 @@ type
          function  GetZoneIndex():    word;
          function  GetVLANIDStr(): string;
          procedure SetVLANIDStr( const V: string);
+         function  GetL2OutVlanIdStr(): string;
+         procedure SetL2OutVlanIdStr( const V: string);
          function  GetZoneCIDR( Index: word): string;
       public
          AuxData:    tObject;
@@ -97,25 +104,32 @@ type
          function    Contains( iCIDR:   string): boolean;
          function    FirstZoneCIDR(): string;
          function    NextZoneCIDR():  string;
-         property IPAddr:       word32  read MyIPAddr        write MyIPAddr;
-         property IPAddrStr:    string  read GetIPAddrStr    write SetIPAddrStr;
-         property NetNum:       word32  read GetNetNum;
-         property NetMask:      word32  read MyNetMask       write SetNetMask;
-         property Gateway:      word32  read MyGateway       write MyGateway;
-         property Prefix:       word    read MyPrefix        write SetPrefix;
-         property Broadcast:    word32  read GetBroadcast;
-         property NetNumStr:    string  read GetNetNumStr;
-         property NetMaskStr:   string  read GetNetMaskStr   write SetNetMaskStr;
-         property GatewayStr:   string  read GetGatewayStr   write SetGatewayStr;
-         property PrefixStr:    string  read GetPrefixStr    write SetPrefixStr;
-         property BroadcastStr: string  read GetBroadcastStr;
-         property CIDR:         string  read GetFullStr      write SetFullStr;
-         property Comment:      string  read MyComment       write MyComment;
-         property VLAN:         string  read MyVLAN          write MyVLAN;
-         property VLANID:       word    read MyVLANID        write MyVLANID;
-         property VLANIDStr:    string  read GetVLANIDStr    write SetVLANIDStr;
-         property ZoneCount:    integer read GetZoneCount;
-         property ZoneIndex:    word    read GetZoneIndex;
+         property IPAddr:         word32  read MyIPAddr         write MyIPAddr;
+         property IPAddrStr:      string  read GetIPAddrStr     write SetIPAddrStr;
+         property NetNum:         word32  read GetNetNum;
+         property NetMask:        word32  read MyNetMask        write SetNetMask;
+         property Gateway:        word32  read MyGateway        write MyGateway;
+         property Prefix:         word    read MyPrefix         write SetPrefix;
+         property Broadcast:      word32  read GetBroadcast;
+         property NetNumStr:      string  read GetNetNumStr;
+         property NetMaskStr:     string  read GetNetMaskStr    write SetNetMaskStr;
+         property GatewayStr:     string  read GetGatewayStr    write SetGatewayStr;
+         property PrefixStr:      string  read GetPrefixStr     write SetPrefixStr;
+         property BroadcastStr:   string  read GetBroadcastStr;
+         property CIDR:           string  read GetFullStr       write SetFullStr;
+         property Comment:        string  read MyComment        write MyComment;
+         property VLAN:           string  read MyVLAN           write MyVLAN;
+         property VLANID:         word    read MyVLANID         write MyVLANID;
+         property L2OutVLan:      string  read MyL2OutVlan      write MyL2OutVlan;
+         property L2OutVLanId:    string  read MyL2OutVlanId    write MyL2OutVlanId;
+         property L2OutVLanIdStr: string  read MyL2OutVlanIdStr write MyL2OutVlanId;
+         property Esxi:           string  read MyVLAN           write MyVLAN;
+         property VLAN:           string  read MyVLAN           write MyVLAN;
+         property VLAN:           string  read MyVLAN           write MyVLAN;
+
+         property VLANIDStr:      string  read GetVLANIDStr     write SetVLANIDStr;
+         property ZoneCount:      integer read GetZoneCount;
+         property ZoneIndex:      word    read GetZoneIndex;
          property ZoneCIDR[ Index: word]:     string read GetZoneCIDR;
       end; // tNetworkInfo class
 

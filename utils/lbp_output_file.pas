@@ -57,8 +57,8 @@ var
 
 function  OutputAvailable(): boolean;
 procedure SetOutputFileParam( Required: boolean = true;   // must have an output file
-                              UseO:     boolean = false;  // Add '-o' as an aliase paramater
-                              AsOption: boolean = false;  // Add the parameter in its own section
+                              UseO:     boolean = true;  // Add '-o' as an aliase paramater
+                              AsOption: boolean = true;  // Add the parameter in its own section
                               DoOpen: boolean = true);   // Open the OutputFile
 
 
