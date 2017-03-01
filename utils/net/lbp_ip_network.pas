@@ -104,30 +104,30 @@ type
          function    Contains( iCIDR:   string): boolean;
          function    FirstZoneCIDR(): string;
          function    NextZoneCIDR():  string;
-         property IPAddr:         word32  read MyIPAddr         write MyIPAddr;
-         property IPAddrStr:      string  read GetIPAddrStr     write SetIPAddrStr;
+         property IPAddr:         word32  read MyIPAddr          write MyIPAddr;
+         property IPAddrStr:      string  read GetIPAddrStr      write SetIPAddrStr;
          property NetNum:         word32  read GetNetNum;
-         property NetMask:        word32  read MyNetMask        write SetNetMask;
-         property Gateway:        word32  read MyGateway        write MyGateway;
-         property Prefix:         word    read MyPrefix         write SetPrefix;
+         property NetMask:        word32  read MyNetMask         write SetNetMask;
+         property Gateway:        word32  read MyGateway         write MyGateway;
+         property Prefix:         word    read MyPrefix          write SetPrefix;
          property Broadcast:      word32  read GetBroadcast;
          property NetNumStr:      string  read GetNetNumStr;
-         property NetMaskStr:     string  read GetNetMaskStr    write SetNetMaskStr;
-         property GatewayStr:     string  read GetGatewayStr    write SetGatewayStr;
-         property PrefixStr:      string  read GetPrefixStr     write SetPrefixStr;
+         property NetMaskStr:     string  read GetNetMaskStr     write SetNetMaskStr;
+         property GatewayStr:     string  read GetGatewayStr     write SetGatewayStr;
+         property PrefixStr:      string  read GetPrefixStr      write SetPrefixStr;
          property BroadcastStr:   string  read GetBroadcastStr;
-         property CIDR:           string  read GetFullStr       write SetFullStr;
-         property Comment:        string  read MyComment        write MyComment;
-         property VLAN:           string  read MyVLAN           write MyVLAN;
-         property VLANID:         word    read MyVLANID         write MyVLANID;
-         property L2OutVLan:      string  read MyL2OutVlan      write MyL2OutVlan;
-         property L2OutVLanId:    string  read MyL2OutVlanId    write MyL2OutVlanId;
-         property L2OutVLanIdStr: string  read MyL2OutVlanIdStr write MyL2OutVlanId;
-         property Esxi:           string  read MyVLAN           write MyVLAN;
-         property VLAN:           string  read MyVLAN           write MyVLAN;
-         property VLAN:           string  read MyVLAN           write MyVLAN;
+         property CIDR:           string  read GetFullStr        write SetFullStr;
+         property Comment:        string  read MyComment         write MyComment;
+         property VLAN:           string  read MyVLAN            write MyVLAN;
+         property VLANID:         word    read MyVLANID          write MyVLANID;
+         property L2OutVLan:      string  read MyL2OutVlan       write MyL2OutVlan;
+         property L2OutVlanId:    word    read MyL2OutVlanId     write MyL2OutVlanId;
+         property L2OutVlanIdStr: string  read GetL2OutVlanIdStr write SetL2OutVlanIdStr;
+         property EsxiVLan:       string  read MyEsxiVlan        write MyEsxiVlan;
+         property PaloZone:       string  read MyPaloZone        write MyPaloZone;
+         property PaloL2OutVlan:  string  read MyPaloL2OutVlan   write MyPaloL2OutVlan;
 
-         property VLANIDStr:      string  read GetVLANIDStr     write SetVLANIDStr;
+         property VLANIDStr:      string  read GetVLANIDStr      write SetVLANIDStr;
          property ZoneCount:      integer read GetZoneCount;
          property ZoneIndex:      word    read GetZoneIndex;
          property ZoneCIDR[ Index: word]:     string read GetZoneCIDR;
@@ -594,6 +594,40 @@ procedure tNetworkInfo.SetVLANIDStr( const V: string);
 
       VLANID:= word( Temp);
    end; // SetVLANIDStr()
+
+
+// *************************************************************************
+// * GetL2OutVlanIdStr() - Returns the string version of the VLAN ID.
+// *************************************************************************
+
+function tNetworkInfo.GetL2OutVlanIdStr(): string;
+   begin
+      result:= '';
+      str( MyL2OutVlanId, result)
+   end; // GetL2OutVlanIdStr()
+
+
+// *************************************************************************
+// * SetL2OutVlanIdStr() - Set the VLANID from a string representation of the
+// *                  word value
+// *************************************************************************
+
+procedure tNetworkInfo.SetL2OutVlanIdStr( const V: string);
+   var
+      Code: integer;
+      Temp: integer;
+   begin
+      MyZoneCount:= MyZoneCountError;
+      MyZoneIndex:= MyZoneIndexError;
+
+      val( V, Temp, Code);
+      if( Code <> 0) then begin
+         raise IPConversionException.Create(
+               'tNetworkInfo.SetL2OutVlanIdStr(): Invalid VLAN ID value!');
+      end;
+
+      MyL2OutVlanId:= word( Temp);
+   end; // SetL2OutVlanIdStr()
 
 
 // *************************************************************************
