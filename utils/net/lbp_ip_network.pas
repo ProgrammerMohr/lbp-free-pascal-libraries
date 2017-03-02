@@ -46,7 +46,17 @@ interface
 uses
    lbp_types, // show_debug boolean
    lbp_ip_utils,
-   lbp_binary_trees; // IP Conversion
+   lbp_binary_trees, // IP Conversion
+   sysutils;   // Format()
+
+
+// =========================================================================
+// = Global variable to control how LongDump works
+// =========================================================================
+
+var
+   SkipEmptyVlan: boolean = true;
+
 
 // =========================================================================
 // = tNetworkInfo - Store network numbers and netmasks
@@ -120,14 +130,13 @@ type
          property Comment:        string  read MyComment         write MyComment;
          property VLAN:           string  read MyVLAN            write MyVLAN;
          property VLANID:         word    read MyVLANID          write MyVLANID;
-         property L2OutVLan:      string  read MyL2OutVlan       write MyL2OutVlan;
+         property VLANIDStr:      string  read GetVLANIDStr      write SetVLANIDStr;
+         property L2OutVlan:      string  read MyL2OutVlan       write MyL2OutVlan;
          property L2OutVlanId:    word    read MyL2OutVlanId     write MyL2OutVlanId;
          property L2OutVlanIdStr: string  read GetL2OutVlanIdStr write SetL2OutVlanIdStr;
-         property EsxiVLan:       string  read MyEsxiVlan        write MyEsxiVlan;
+         property EsxiVlan:       string  read MyEsxiVlan        write MyEsxiVlan;
          property PaloZone:       string  read MyPaloZone        write MyPaloZone;
          property PaloL2OutVlan:  string  read MyPaloL2OutVlan   write MyPaloL2OutVlan;
-
-         property VLANIDStr:      string  read GetVLANIDStr      write SetVLANIDStr;
          property ZoneCount:      integer read GetZoneCount;
          property ZoneIndex:      word    read GetZoneIndex;
          property ZoneCIDR[ Index: word]:     string read GetZoneCIDR;
@@ -221,6 +230,23 @@ var
    MyZoneCountError: word = 256;  // Any number above 255
    MyZoneIndexError: word = 257;  // Any number above MyZoneCount;
 
+// =========================================================================
+// = Global function to support handling empty VLANs
+// =========================================================================
+
+procedure WriteVlanVariable( VarName:       string; 
+                             DefaultValue:  string; 
+                             OriginalValue: string);
+   var
+      Temp: string;
+   begin
+      if( OriginalValue = '') then begin
+         if( (DefaultValue = '') or SkipEmptyVlan) then exit;
+         Temp:= DefaultValue;
+      end else Temp:= OriginalValue;
+      writeln( Format( '%-22s%s', [VarName, Temp]));
+   end; // writeVlanVariable();
+
 
 // =========================================================================
 // = tNetworkInfo - Store network numbers and netmasks
@@ -273,19 +299,29 @@ procedure tNetworkInfo.Dump();
 procedure tNetworkInfo.LongDump( HostName: string; PaloObj: string);
    begin
       writeln();
-      if( Length( PaloObj) > 0) then writeln( 'Palo Obj:    ', PaloObj);
-      if( Length( HostName) > 0) then writeln( 'Host Name:   ', HostName);
-      if( IPAddr <>  NetNum) then writeln( 'IP Address:  ', IPAddrStr);
+      WriteVlanVariable( 'Palo Obj:',             '',        PaloObj);
+      WriteVlanVariable( 'Host Name:',            '',        HostName);
+      if( IPAddr <>  NetNum) then begin
+         WriteVlanVariable( 'IP Address:',        '',        IPAddrStr);
+      end;
       if( (Length( PaloObj) > 0) or (Length( HostName) > 0) or (IPAddr <> NetNum)) then writeln;
-      writeln( 'CIDR:        ', CIDR);
-      writeln( 'Net Number:  ', NetNumStr);
-      writeln( 'Broadcast:   ', BroadcastStr);
-      writeln( 'Netmask:     ', NetMaskStr);
-      if( Gateway > 0) then writeln( 'Gateway:     ',GatewayStr); 
+      WriteVlanVariable( 'CIDR:',                 '',        CIDR);
+      WriteVlanVariable( 'Net Number:',           '',        NetNumStr);
+      WriteVlanVariable( 'Broadcast:',            '',        BroadcastStr);
+      WriteVlanVariable( 'Netmask:',              '',        NetMaskStr);
+      WriteVlanVariable( 'Gateway:',              '',        GatewayStr); 
       if( (Length( VLAN) > 0) or (VLANID > 0) or( Length( Comment) > 0)) then writeln;
-      if( Length( VLAN) > 0) then writeln( 'VLAN Name:   ', VLAN);
-      if( VLANID > 0) then writeln( 'VLAN ID:     ', VLANIDStr);
-      if( Length( Comment) >0) then writeln( 'Comment:     ', Comment);
+      WriteVlanVariable( 'VMware VLAN:',          VLAN,      EsxiVlan);
+      WriteVlanVariable( 'Palo Zone:',            VLAN,      PaloZone);
+      WriteVlanVariable( 'VLAN Name:',            '',        VLAN);
+      WriteVlanVariable( 'VLAN ID:',              '',        VlanIdStr);
+      WriteVlanVariable( 'Palo L2 Outside Zone:', L2OutVlan, PaloL2OutVlan);
+      WriteVlanVariable( 'L2 Outside VLAN:',      '',        L2OutVlan);
+      WriteVlanVariable( 'L2 Outside VLAN ID:',   '',        L2OutVlanIdStr);
+      if( Length( Comment) > 0) then begin
+         writeln;
+         WriteVlanVariable( 'Comment:',           '',        Comment);
+      end;
       writeln( '---------------------------------------------');
       writeln();
    end; // LongDump();
@@ -563,13 +599,14 @@ procedure tNetworkInfo.SetFullStr( const S: string);
 
 
 // *************************************************************************
-// * GetVLANIDStr() - Returns the string version of the VLAN ID.
+// * GetVLANIDStr() - Returns the string version of the VLAN ID or an empty
+// *                  string if VlanID = 0.
 // *************************************************************************
 
 function tNetworkInfo.GetVLANIDStr(): string;
    begin
       result:= '';
-      str( VLANID, result)
+      if( VlanID <> 0) then str( VLANID, result);
    end; // GetVLANIDStr()
 
 
@@ -586,12 +623,13 @@ procedure tNetworkInfo.SetVLANIDStr( const V: string);
       MyZoneCount:= MyZoneCountError;
       MyZoneIndex:= MyZoneIndexError;
 
+      VlanID:= 0;
+      if( Length( V) = 0) then exit;
       val( V, Temp, Code);
-      if( Code <> 0) then begin
+      if( Code > 0) then begin
          raise IPConversionException.Create(
                'tNetworkInfo.SetVLANIDStr(): Invalid VLAN ID value!');
       end;
-
       VLANID:= word( Temp);
    end; // SetVLANIDStr()
 
@@ -603,7 +641,7 @@ procedure tNetworkInfo.SetVLANIDStr( const V: string);
 function tNetworkInfo.GetL2OutVlanIdStr(): string;
    begin
       result:= '';
-      str( MyL2OutVlanId, result)
+      if( MyL2OutVlanId <> 0) then str( MyL2OutVlanId, result)
    end; // GetL2OutVlanIdStr()
 
 
@@ -620,12 +658,13 @@ procedure tNetworkInfo.SetL2OutVlanIdStr( const V: string);
       MyZoneCount:= MyZoneCountError;
       MyZoneIndex:= MyZoneIndexError;
 
+      MyL2OutVlanId:= 0;
+      if( Length( V) = 0) then exit;
       val( V, Temp, Code);
       if( Code <> 0) then begin
          raise IPConversionException.Create(
-               'tNetworkInfo.SetL2OutVlanIdStr(): Invalid VLAN ID value!');
+               'tNetworkInfo.SetL2OutVlanIdStr(): Invalid L2 VLAN ID value!');
       end;
-
       MyL2OutVlanId:= word( Temp);
    end; // SetL2OutVlanIdStr()
 
