@@ -53,7 +53,7 @@ interface
 // SysUtils for Exceptions
 // Linux for BaseName()
 uses
-{$ifndef win32}
+{$ifndef WINDOWS}
    BaseUnix,   // fpstat();
    UnixUtil,   // BaseName();
 {$endif}

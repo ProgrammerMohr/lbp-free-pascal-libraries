@@ -30,6 +30,7 @@ SourceDirs='
 # *************************************************************************
 
 AllowedBaseDirs='
+   H:\programming\pascal\lbp
    programming/pascal/lbp/
    /opt/programming/pascal/lbp/
 '
