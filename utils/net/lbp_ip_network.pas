@@ -309,7 +309,7 @@ procedure tNetworkInfo.LongDump( HostName: string; PaloObj: string);
       WriteVlanVariable( 'Net Number:',           '',        NetNumStr);
       WriteVlanVariable( 'Broadcast:',            '',        BroadcastStr);
       WriteVlanVariable( 'Netmask:',              '',        NetMaskStr);
-      WriteVlanVariable( 'Gateway:',              '',        GatewayStr); 
+      if( Gateway > 0) then WriteVlanVariable( 'Gateway:', '', GatewayStr);
       if( (Length( VLAN) > 0) or (VLANID > 0) or( Length( Comment) > 0)) then writeln;
       WriteVlanVariable( 'VMware VLAN:',          VLAN,      EsxiVlan);
       WriteVlanVariable( 'Palo Zone:',            VLAN,      PaloZone);
@@ -491,9 +491,12 @@ procedure tNetworkInfo.SetPrefix( const W: word);
       end;
 
       MyPrefix:= W;
-
-      ShiftValue:= 32 - W;
-      MyNetMask:= Slash32 shl ShiftValue;
+      if( W = 0) then begin
+         MyNetMask:= 0;
+      end else begin
+         ShiftValue:= 32 - W;
+         MyNetMask:= Slash32 shl ShiftValue;
+      end;
    end; // SetPrefix()
 
 
