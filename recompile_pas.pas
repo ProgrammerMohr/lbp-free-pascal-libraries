@@ -102,27 +102,44 @@ var
 {$WARNING It then calls the inner function which is recusive.}
 function CreateListOfFiles( Path: string = '.'): tFPList;
    var
-      FileInfo: TUnicodeSearchRec;
       CurrentDir: UnicodeString;
-   begin
-      result:= tFPList.Create;
 
-      if( FindFirst ('*', faAnyFile and faDirectory, FileInfo) = 0) then begin
-         Repeat
-            GetDir( 0, CurrentDir);
+   // --------------------------------------------------------------------
+   // - RecusiveLOF()
+   // --------------------------------------------------------------------
+
+   procedure RecusiveLOF( Path: UnicodeString);
+      var
+         FileInfo: TUnicodeSearchRec;
+         L: integer; // The length of the file name
+      begin
+         chdir( Path);
+         if( FindFirst ('*', faAnyFile and faDirectory, FileInfo) = 0) then Repeat
             if( (FileInfo.Attr and faDirectory) = faDirectory) then begin
+               
                Writeln( 'Directory');
                Writeln( '   Name = ', FileInfo.Name);
                Writeln( '   Path = ', Path);
                // Call the recursive function
-               ChDir( CurrentDir);
+            end else begin
+               // Handle a standard file - Does it end with a *.pas or *.pp?
+               L:= length( FileInfo.Name);
+               if( (pos( '.pas', FileInfo.Name) = (L - 3)) or
+                   (pos( '.pp',  FileInfo.Name) = (L - 2))) then begin
+                  writeln( 'Pascal file = ', FileInfo.Name);
+               end; // if it ends in .pas or .pp
             end;
          Until FindNext( FileInfo) <> 0;
-         writeln( CurrentDir);
-      end;
-      FindClose( FileInfo);
+      end; // RecursiveLOF()
 
+   // --------------------------------------------------------------------
 
+   begin
+      result:= tFPList.Create;
+      GetDir( 0, CurrentDir);
+
+      RecusiveLOF( CurrentDir);
+      ChDir( CurrentDir);
    end; // CreateListOfFiles()
 
 
