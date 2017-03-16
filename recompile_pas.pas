@@ -49,14 +49,15 @@ uses
 type
    tCode = class
       public
-         Name:       string;
-         Folder:     string;
+         Name:       String;
+         Folder:     String;
          Found:      boolean;
          Prog:       boolean;
          DependsOn:  tFPList;
          UsedBy:     tFPList;
-         constructor Create( iName: string; iFolder: string);
+         constructor Create( iName: String; iFolder: String);
          destructor  Destroy(); override;
+         procedure   Dump( NameOnly: boolean = false; Indent: string = ''); // debug
       end; // tCode class
 
 
@@ -64,8 +65,9 @@ type
 // * Create() - constructor
 // ***********************************************************************
 
-constructor tCode.Create( iName: string; iFolder: string);
+constructor tCode.Create( iName: String; iFolder: String);
    begin
+      inherited Create();
       Name:=       iName;
       Folder:=     iFolder;
       Found:=      false;
@@ -83,7 +85,22 @@ destructor tCode.Destroy();
    begin
       DependsOn.Destroy;
       UsedBy.Destroy;
+      inherited Destroy;
    end; // Destroy()
+
+
+// ***********************************************************************
+// * Dump() - print the record to StdOut
+// ***********************************************************************
+
+procedure tCode.Dump( NameOnly: boolean; Indent: string);
+   begin
+      writeln( Folder, DirectorySeparator, Name);
+      if( not NameOnly) then begin
+      end;
+   end; // Dump;
+
+
 
 // =======================================================================
 // = Global functions and variables
@@ -102,43 +119,55 @@ var
 {$WARNING It then calls the inner function which is recusive.}
 function CreateListOfFiles( Path: string = '.'): tFPList;
    var
-      CurrentDir: UnicodeString;
+      CurrentDir: String;
+      FileList:   tFPList;
 
    // --------------------------------------------------------------------
-   // - RecusiveLOF()
+   // - RecursiveLOF()
    // --------------------------------------------------------------------
 
-   procedure RecusiveLOF( Path: UnicodeString);
+   procedure RecursiveLOF( Path: String);
       var
-         FileInfo: TUnicodeSearchRec;
-         L: integer; // The length of the file name
+         FileInfo:   TSearchRec;
+         L:          integer; // The length of the file name
+         FullName:   String;
+         FolderList: tStringList;
+         i:          integer; 
+         FolderName: String;
       begin
+         FolderList:= tStringList.Create();
          chdir( Path);
          if( FindFirst ('*', faAnyFile and faDirectory, FileInfo) = 0) then Repeat
             if( (FileInfo.Attr and faDirectory) = faDirectory) then begin
-               
-               Writeln( 'Directory');
-               Writeln( '   Name = ', FileInfo.Name);
-               Writeln( '   Path = ', Path);
-               // Call the recursive function
+               if( (FileInfo.Name = '.') or (FileInfo.Name = '..')) then continue;
+               FolderName:= Path + DirectorySeparator + FileInfo.Name;
+               FolderList.Add( FolderName);
             end else begin
                // Handle a standard file - Does it end with a *.pas or *.pp?
                L:= length( FileInfo.Name);
                if( (pos( '.pas', FileInfo.Name) = (L - 3)) or
                    (pos( '.pp',  FileInfo.Name) = (L - 2))) then begin
-                  writeln( 'Pascal file = ', FileInfo.Name);
+                  FileList.Add( tCode.Create( FileInfo.Name, Path));
                end; // if it ends in .pas or .pp
             end;
          Until FindNext( FileInfo) <> 0;
+         FindClose( FileInfo);
+
+         // Now process the list of subfolders.  We have to do it this way because
+         //    Find() and FindNext() can not be called recursively.
+         for FolderName in FolderList do RecursiveLOF( FolderName);
+         FolderList.Clear;
+         FolderList.Destroy;
       end; // RecursiveLOF()
 
    // --------------------------------------------------------------------
 
    begin
-      result:= tFPList.Create;
+      FileList:= tFPList.Create;
+      result:= FileList;
       GetDir( 0, CurrentDir);
 
-      RecusiveLOF( CurrentDir);
+      RecursiveLOF( CurrentDir);
       ChDir( CurrentDir);
    end; // CreateListOfFiles()
 
@@ -146,9 +175,18 @@ function CreateListOfFiles( Path: string = '.'): tFPList;
 // ************************************************************************
 // * main()
 // ************************************************************************
-
+var
+   C:  tCode;
+   i:  integer;
 begin
    Codes:= CreateListOfFiles();
+
+   // dump the contents of Codes
+   for i:= 0 to Codes.Count - 1 do begin
+      C:= tCode( Codes.Items[ i]);
+      C.Dump;
+      C.Destroy;
+   end;
 
    Codes.Destroy;
 end.  // recompile_pas
