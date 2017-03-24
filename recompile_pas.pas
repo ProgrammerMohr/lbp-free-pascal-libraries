@@ -48,18 +48,30 @@ uses
 
 type
    tCode = class
+      private
+         FIsOpen:    boolean;
+         F:          Text; // The file
       public
          Name:       String;
          Folder:     String;
          Found:      boolean;
          Prog:       boolean;
-         DependsOn:  tFPList;
-         UsedBy:     tFPList;
+         DependsOn:  tFPList; // List of tCode
+         UsedBy:     tFPList; // List of tCode
          constructor Create( iName: String; iFolder: String);
          destructor  Destroy(); override;
          procedure   Dump( NameOnly: boolean = false; Indent: string = ''); // debug
+         function    FullFileName(): string;
+      private
+         Line:       string;  // The current line as we parse the file
+         iLine:      integer; // Current Position in the line.
+         LLine:      integer; // The length of the line.   
+         procedure   Open(); // Open the file
+         procedure   Close(); // Close the file if it is open
+         function    FullFileName(): string;
       end; // tCode class
 
+{ Notes  Curly Braces and (* *) are multi line.  // is to end of line}
 
 // ***********************************************************************
 // * Create() - constructor
@@ -74,6 +86,7 @@ constructor tCode.Create( iName: String; iFolder: String);
       Prog:=       false;
       DependsOn:=  tFPList.Create();
       UsedBy:=     tFPList.Create();
+      FIsOpen:=    false;
    end; // Create()
 
 
@@ -95,11 +108,23 @@ destructor tCode.Destroy();
 
 procedure tCode.Dump( NameOnly: boolean; Indent: string);
    begin
-      writeln( Folder, DirectorySeparator, Name);
+      writeln( FullFileName);
       if( not NameOnly) then begin
       end;
    end; // Dump;
 
+
+// ***********************************************************************
+// * FullFileName() - Returns the full path file name
+// ***********************************************************************
+{*
+junk 1
+junk 2
+*}
+function tCode.FullFileName(): string;
+   begin
+      result:= Folder +  DirectorySeparator + Name;
+   end; // FullFileName()
 
 
 // =======================================================================
@@ -130,9 +155,7 @@ function CreateListOfFiles( Path: string = '.'): tFPList;
       var
          FileInfo:   TSearchRec;
          L:          integer; // The length of the file name
-         FullName:   String;
          FolderList: tStringList;
-         i:          integer; 
          FolderName: String;
       begin
          FolderList:= tStringList.Create();
