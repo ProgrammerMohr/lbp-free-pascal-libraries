@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="9"/>
+    <BuildModes Active="Default"/>
+    <Units Count="3">
+      <Unit0>
+        <Filename Value="gpg_clipboard.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="gpg_clipboard"/>
+        <UsageCount Value="21"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="gpg_cb_clipboard.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="CryptEditForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="gpg_cb_clipboard"/>
+        <EditorIndex Value="0"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="17" Y="23"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="/opt/lazarus/lazarus/components/lazutils/paswstring.pas"/>
+        <UnitName Value="paswstring"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="361"/>
+        <CursorPos X="43" Y="385"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit2>
+    </Units>
+    <General>
+      <ActiveWindowIndexAtStart Value="0"/>
+    </General>
+    <JumpHistory Count="7" HistoryIndex="6">
+      <Position1>
+        <Filename Value="gpg_cb_clipboard.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position1>
+      <Position2>
+        <Filename Value="gpg_cb_clipboard.pas"/>
+        <Caret Line="20" Column="17" TopLine="1"/>
+      </Position2>
+      <Position3>
+        <Filename Value="gpg_cb_clipboard.pas"/>
+        <Caret Line="21" Column="17" TopLine="1"/>
+      </Position3>
+      <Position4>
+        <Filename Value="gpg_cb_clipboard.pas"/>
+        <Caret Line="22" Column="17" TopLine="1"/>
+      </Position4>
+      <Position5>
+        <Filename Value="gpg_cb_clipboard.pas"/>
+        <Caret Line="24" Column="17" TopLine="1"/>
+      </Position5>
+      <Position6>
+        <Filename Value="gpg_cb_clipboard.pas"/>
+        <Caret Line="23" Column="17" TopLine="1"/>
+      </Position6>
+      <Position7>
+        <Filename Value="/opt/lazarus/lazarus/components/lazutils/paswstring.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position7>
+    </JumpHistory>
+  </ProjectSession>
+</CONFIG>

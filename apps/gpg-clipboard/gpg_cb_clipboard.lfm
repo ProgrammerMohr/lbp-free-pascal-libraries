@@ -1,0 +1,82 @@
+object CryptEditForm: TCryptEditForm
+  Left = 1829
+  Height = 351
+  Top = 127
+  Width = 386
+  Caption = 'GPG Clipboard'
+  ClientHeight = 351
+  ClientWidth = 386
+  Color = clMedGray
+  LCLVersion = '1.0.6.0'
+  object CryptBtn: TButton
+    AnchorSideRight.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Control = Owner
+    AnchorSideBottom.Side = asrBottom
+    Left = 313
+    Height = 29
+    Hint = 'Encrypt or decrypt the text based on its content'
+    Top = 322
+    Width = 73
+    Anchors = [akRight, akBottom]
+    Caption = 'Encrypt'
+    Font.Height = -13
+    Font.Name = 'Sans'
+    ParentFont = False
+    ParentShowHint = False
+    ShowHint = True
+    TabOrder = 0
+  end
+  object EditBox: TMemo
+    AnchorSideLeft.Control = Owner
+    AnchorSideTop.Control = Owner
+    AnchorSideRight.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Control = CryptBtn
+    Left = 0
+    Height = 320
+    Top = 0
+    Width = 386
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    BorderSpacing.Bottom = 2
+    Font.Height = -13
+    Font.Name = 'Sans'
+    Lines.Strings = (
+      'EditBox'
+    )
+    ParentFont = False
+    TabOrder = 1
+  end
+  object ComboBox1: TComboBox
+    AnchorSideLeft.Control = MenuBtn
+    AnchorSideLeft.Side = asrBottom
+    AnchorSideTop.Control = CryptBtn
+    AnchorSideRight.Control = CryptBtn
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Control = Owner
+    AnchorSideBottom.Side = asrBottom
+    Left = 34
+    Height = 29
+    Top = 322
+    Width = 276
+    Anchors = [akTop, akLeft, akBottom]
+    BorderSpacing.Left = 2
+    BorderSpacing.Right = 2
+    ItemHeight = 0
+    TabOrder = 2
+    Text = 'ComboBox1'
+  end
+  object MenuBtn: TSpeedButton
+    AnchorSideTop.Control = EditBox
+    AnchorSideTop.Side = asrBottom
+    AnchorSideBottom.Control = Owner
+    AnchorSideBottom.Side = asrBottom
+    Left = 0
+    Height = 29
+    Top = 322
+    Width = 32
+    Anchors = [akTop, akLeft, akBottom]
+    BorderSpacing.Top = 2
+    NumGlyphs = 0
+  end
+end
