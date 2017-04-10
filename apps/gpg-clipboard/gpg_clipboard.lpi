@@ -1,7 +1,7 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="9"/>
+    <Version Value="10"/>
     <General>
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
@@ -39,7 +39,6 @@
       <Unit0>
         <Filename Value="gpg_clipboard.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="gpg_clipboard"/>
       </Unit0>
       <Unit1>
         <Filename Value="gpg_cb_clipboard.pas"/>
@@ -47,7 +46,6 @@
         <ComponentName Value="CryptEditForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <UnitName Value="gpg_cb_clipboard"/>
       </Unit1>
     </Units>
   </ProjectOptions>
@@ -67,12 +65,6 @@
         </Win32>
       </Options>
     </Linking>
-    <Other>
-      <CompilerMessages>
-        <MsgFileName Value=""/>
-      </CompilerMessages>
-      <CompilerPath Value="$(CompPath)"/>
-    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions Count="3">

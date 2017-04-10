@@ -1,13 +1,13 @@
 object CryptEditForm: TCryptEditForm
-  Left = 1829
+  Left = 375
   Height = 351
-  Top = 127
+  Top = 148
   Width = 386
   Caption = 'GPG Clipboard'
   ClientHeight = 351
   ClientWidth = 386
   Color = clMedGray
-  LCLVersion = '1.0.6.0'
+  LCLVersion = '1.6.5.0'
   object CryptBtn: TButton
     AnchorSideRight.Control = Owner
     AnchorSideRight.Side = asrBottom
@@ -77,6 +77,5 @@ object CryptEditForm: TCryptEditForm
     Width = 32
     Anchors = [akTop, akLeft, akBottom]
     BorderSpacing.Top = 2
-    NumGlyphs = 0
   end
 end
