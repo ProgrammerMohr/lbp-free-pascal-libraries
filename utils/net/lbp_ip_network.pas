@@ -76,11 +76,11 @@ type
          MyComment:        string;
          MyVLAN:           string;
          MyVLANID:         word;
-         MyL2OutVLan:      string;
-         MyL2OutVlanId:    word;
+         MyL2InVLan:       string;
+         MyL2InVlanId:     word;
          MyEsxiVlan:       string;   // VMware VLAN/Network Name
          MyPaloZone:       string;
-         MyPaloL2OutVlan:  string;
+         MyPaloL2InZone:   string;
          function  GetNetNum(): word32;
          procedure SetNetMask( const W: word32);
          procedure SetPrefix( const W: word);
@@ -101,8 +101,8 @@ type
          function  GetZoneIndex():    word;
          function  GetVLANIDStr(): string;
          procedure SetVLANIDStr( const V: string);
-         function  GetL2OutVlanIdStr(): string;
-         procedure SetL2OutVlanIdStr( const V: string);
+         function  GetL2InVlanIdStr(): string;
+         procedure SetL2InVlanIdStr( const V: string);
          function  GetZoneCIDR( Index: word): string;
       public
          AuxData:    tObject;
@@ -131,12 +131,12 @@ type
          property VLAN:           string  read MyVLAN            write MyVLAN;
          property VLANID:         word    read MyVLANID          write MyVLANID;
          property VLANIDStr:      string  read GetVLANIDStr      write SetVLANIDStr;
-         property L2OutVlan:      string  read MyL2OutVlan       write MyL2OutVlan;
-         property L2OutVlanId:    word    read MyL2OutVlanId     write MyL2OutVlanId;
-         property L2OutVlanIdStr: string  read GetL2OutVlanIdStr write SetL2OutVlanIdStr;
+         property L2InVlan:       string  read MyL2InVlan        write MyL2InVlan;
+         property L2InVlanId:     word    read MyL2InVlanId      write MyL2InVlanId;
+         property L2InVlanIdStr:  string  read GetL2InVlanIdStr  write SetL2InVlanIdStr;
          property EsxiVlan:       string  read MyEsxiVlan        write MyEsxiVlan;
          property PaloZone:       string  read MyPaloZone        write MyPaloZone;
-         property PaloL2OutVlan:  string  read MyPaloL2OutVlan   write MyPaloL2OutVlan;
+         property PaloL2InZone:   string  read MyPaloL2InZone    write MyPaloL2InZone;
          property ZoneCount:      integer read GetZoneCount;
          property ZoneIndex:      word    read GetZoneIndex;
          property ZoneCIDR[ Index: word]:     string read GetZoneCIDR;
@@ -309,15 +309,15 @@ procedure tNetworkInfo.LongDump( HostName: string; PaloObj: string);
       WriteVlanVariable( 'Net Number:',           '',        NetNumStr);
       WriteVlanVariable( 'Broadcast:',            '',        BroadcastStr);
       WriteVlanVariable( 'Netmask:',              '',        NetMaskStr);
-      WriteVlanVariable( 'Gateway:',              '',        GatewayStr); 
+      if( Gateway > 0) then WriteVlanVariable( 'Gateway:', '', GatewayStr);
       if( (Length( VLAN) > 0) or (VLANID > 0) or( Length( Comment) > 0)) then writeln;
       WriteVlanVariable( 'VMware VLAN:',          VLAN,      EsxiVlan);
       WriteVlanVariable( 'Palo Zone:',            VLAN,      PaloZone);
       WriteVlanVariable( 'VLAN Name:',            '',        VLAN);
       WriteVlanVariable( 'VLAN ID:',              '',        VlanIdStr);
-      WriteVlanVariable( 'Palo L2 Outside Zone:', L2OutVlan, PaloL2OutVlan);
-      WriteVlanVariable( 'L2 Outside VLAN:',      '',        L2OutVlan);
-      WriteVlanVariable( 'L2 Outside VLAN ID:',   '',        L2OutVlanIdStr);
+      WriteVlanVariable( 'Palo L2 Inside Zone:',  L2InVlan,  PaloL2InZone);
+      WriteVlanVariable( 'L2 Inside VLAN:',       '',        L2InVlan);
+      WriteVlanVariable( 'L2 Inside VLAN ID:',    '',        L2InVlanIdStr);
       if( Length( Comment) > 0) then begin
          writeln;
          WriteVlanVariable( 'Comment:',           '',        Comment);
@@ -491,9 +491,12 @@ procedure tNetworkInfo.SetPrefix( const W: word);
       end;
 
       MyPrefix:= W;
-
-      ShiftValue:= 32 - W;
-      MyNetMask:= Slash32 shl ShiftValue;
+      if( W = 0) then begin
+         MyNetMask:= 0;
+      end else begin
+         ShiftValue:= 32 - W;
+         MyNetMask:= Slash32 shl ShiftValue;
+      end;
    end; // SetPrefix()
 
 
@@ -635,22 +638,22 @@ procedure tNetworkInfo.SetVLANIDStr( const V: string);
 
 
 // *************************************************************************
-// * GetL2OutVlanIdStr() - Returns the string version of the VLAN ID.
+// * GetL2InVlanIdStr() - Returns the string version of the VLAN ID.
 // *************************************************************************
 
-function tNetworkInfo.GetL2OutVlanIdStr(): string;
+function tNetworkInfo.GetL2InVlanIdStr(): string;
    begin
       result:= '';
-      if( MyL2OutVlanId <> 0) then str( MyL2OutVlanId, result)
-   end; // GetL2OutVlanIdStr()
+      if( MyL2InVlanId <> 0) then str( MyL2InVlanId, result)
+   end; // GetL2InVlanIdStr()
 
 
 // *************************************************************************
-// * SetL2OutVlanIdStr() - Set the VLANID from a string representation of the
+// * SetL2InVlanIdStr() - Set the VLANID from a string representation of the
 // *                  word value
 // *************************************************************************
 
-procedure tNetworkInfo.SetL2OutVlanIdStr( const V: string);
+procedure tNetworkInfo.SetL2InVlanIdStr( const V: string);
    var
       Code: integer;
       Temp: integer;
@@ -658,15 +661,15 @@ procedure tNetworkInfo.SetL2OutVlanIdStr( const V: string);
       MyZoneCount:= MyZoneCountError;
       MyZoneIndex:= MyZoneIndexError;
 
-      MyL2OutVlanId:= 0;
+      MyL2InVlanId:= 0;
       if( Length( V) = 0) then exit;
       val( V, Temp, Code);
       if( Code <> 0) then begin
          raise IPConversionException.Create(
-               'tNetworkInfo.SetL2OutVlanIdStr(): Invalid L2 VLAN ID value!');
+               'tNetworkInfo.SetL2InVlanIdStr(): Invalid L2 VLAN ID value!');
       end;
-      MyL2OutVlanId:= word( Temp);
-   end; // SetL2OutVlanIdStr()
+      MyL2InVlanId:= word( Temp);
+   end; // SetL2InVlanIdStr()
 
 
 // *************************************************************************
