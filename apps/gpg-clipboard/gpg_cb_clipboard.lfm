@@ -690,9 +690,13 @@ object CryptEditForm: TCryptEditForm
       0000000000000000000000000000000000000000000000000000
     }
   end
-  object AsyncProcess1: TAsyncProcess
+  object GpgRunner: TAsyncProcess
     Active = False
-    Options = []
+    Executable = '/bin/ls'
+    Parameters.Strings = (
+      '/home/lpark/programming/pascal'
+    )
+    Options = [poUsePipes]
     Priority = ppNormal
     StartupOptions = []
     ShowWindow = swoNone

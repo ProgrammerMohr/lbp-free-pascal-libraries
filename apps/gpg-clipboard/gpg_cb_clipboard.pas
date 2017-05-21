@@ -13,7 +13,7 @@ type
   { TCryptEditForm }
 
   TCryptEditForm = class(TForm)
-     AsyncProcess1: TAsyncProcess;
+     GpgRunner: TAsyncProcess;
      ComboBox1: TComboBox;
      CryptBtn: TButton;
      EditBox: TMemo;
