@@ -53,6 +53,8 @@ How to install from SVN (Subversion)
 - Install the new zip
    cd /opt/fpc/fixes_3_0
    tar -zxvf src/fpc-3.0.3.x86_64-linux.tar.gz
+   cd bin
+   ln -s ../lib/fpc/3.0.3/ppcx64 .
    cd /opt/fpc
    rm current
    ln -s fixes_3_0 current
