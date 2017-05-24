@@ -153,6 +153,7 @@ procedure ParseArgv();
       end else if( IsRequired) then begin
          raise lbp_exception.Create( 'No output file was specified!');
       end else begin
+         flush( Output);
          OutputFile:= Output;
          Available:= true;
       end;
@@ -181,6 +182,7 @@ initialization
 finalization
    begin
       if( lbp_types.show_init) then writeln( 'lbp_output_file.finalization:  begin');
+      flush( OutputFile);
       if( Opened) then close( OutputFile);
       if( lbp_types.show_init) then writeln( 'lbp_output_file.finalization:  end');
    end;
