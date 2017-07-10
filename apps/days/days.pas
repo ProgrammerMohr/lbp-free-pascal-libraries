@@ -116,7 +116,7 @@ procedure PrintDays();
       for i:= 1 to NumberOfDays do begin
          DOW:=   DowStr[ DayOfWeek( DT)];
          Month:= MonthStr[ MonthOf( DT)];
-         Writeln( DOW, ', ', Month, DayOf( DT));
+         Writeln( DOW, ', ', Month, ' ', DayOf( DT));
          DT:= IncDay( DT);
       end; // for
    end; // PrintDays()
