@@ -149,6 +149,7 @@ type
          function  NextFqdn:   tDnsName;
          procedure LookupFqdns();
          procedure LookupIPs();
+         procedure Resolve(); // Trys to use DNS to find the most FQDNs and IPs
          procedure Dump(); // Debug procedure which prints the contents of tDnsHost
       end; // tDnsHost
 
@@ -467,16 +468,12 @@ function tDnsIpTree.GetPrevious(): tDnsIp;
 // *************************************************************************
 
 constructor tDnsHost.Create( IpOrFqdn: string = '');
-   var
-      TempIpStr: string;
-      TempFQDN:  string;
    begin
       IpTree:=   tDnsIpTree.Create;
       FqdnTree:= tDnsNameTree.Create;
       if( IpOrFqdn <> '') then begin
          Add( IpOrFqdn);
-
-{$WARNING Add code here to automatically perform the DNS lookups.}
+         Resolve; 
       end;
    end; // Create()
 
@@ -638,6 +635,25 @@ procedure tDnsHost.LookupIps();
          Temp:= NextFqdn;
       end; // while
    end; // LookupFqdns()
+
+
+// *************************************************************************
+// * Resolve() - Use DNS to find other names and IPs associated with the host
+// *****************4********************************************************
+
+procedure tDnsHost.Resolve();
+   begin
+      if( IpTree.Empty and FqdnTree.Empty) then begin
+         raise lbp_exception.Create( 'This tDNSHost class has no IPs nor DNS names!');
+      end;
+
+      if( not FqdnTree.Empty) then begin
+         LookupIps;
+      end;
+
+      LookupFqdns;
+//      LookupIps;
+   end; // Resolve();
 
 
 // *************************************************************************
