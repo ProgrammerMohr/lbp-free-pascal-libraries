@@ -51,6 +51,12 @@ uses
 //   lbp_vararray;  // Int64SortElement
 
 
+
+// ************************************************************************
+
+type
+   lbp_container_exception = class( lbp_exception);
+
 // ************************************************************************
 
 type
@@ -59,6 +65,7 @@ type
          Parent:     tgAvlTreeNode;
          LeftChild:  tgAvlTreeNode;
          RightChild: tgAvlTreeNode;
+         Balance:    integer;
          Data:       T;
       public
          Constructor Create( MyData: T);
@@ -82,7 +89,7 @@ type
          MyCompare:       tCompareFunction;
       public
          Constructor Create( iCompare:        tCompareFunction;
-                             iAllowDuplicates: boolean);
+                             iAllowDuplicates: boolean = false);
          Destructor  Destroy(); override;
          procedure   RemoveAll( DestroyElements: boolean = false);
          procedure   Add( Data: T);
@@ -92,6 +99,7 @@ type
          function    Next():      T;
       protected
          function    IsEmpty():  boolean; virtual;
+         procedure   RemoveSubtree( StRoot: tAvlTreeNode; DestroyElements: boolean);
       public
          property    AllowDuplicates: boolean
                                 read DuplicateOK write DuplicateOK;
@@ -121,6 +129,7 @@ constructor tgAvlTreeNode.Create( MyData: T);
      Parent:=     nil;
      LeftChild:=  nil;
      RightChild:= nil;
+     Balance:=    0;
      Data:=       MyData;
   end; // Create()
 
@@ -164,6 +173,7 @@ Destructor tgAvlTree.Destroy();
 
 procedure tgAvlTree.RemoveAll( DestroyElements: boolean);
    begin
+      if( MyRoot <> nil) then RemoveSubtree( MyRoot, DestroyElements);
    end; // RemoveAll()
 
 
@@ -172,7 +182,44 @@ procedure tgAvlTree.RemoveAll( DestroyElements: boolean);
 // ************************************************************************
 
 procedure tgAvlTree.Add( Data: T);
+   var
+      Child:          tAvlTreeNode;
+      Parent:         tAvlTreeNode;
+      Added:          boolean = false;
+      CompareResult:  integer;
    begin
+      Child:= tAvlTreeNode.Create( Data);
+      Parent:= MyRoot;
+
+      if( MyRoot = nil) then begin
+         // Special case of an empty tree
+         MyRoot:= Child;
+      end else while( not Added) do begin
+         CompareResult:= Compare( Child.Data, Parent.Data);
+         if( (CompareResult = 0) and (not DuplicateOK)) then 
+            raise lbp_container_exception.create( 
+            'Duplicate records violates the constraints of this AVL tree!');
+         if( CompareResult >= 0) then begin
+            // Right path
+            if( Parent.RightChild = nil) then begin
+               // Add as right child
+               Parent.RightChild:= Child;
+               Added:= true
+            end else begin
+               Parent:= Parent.rightChild;
+            end;
+         end else begin
+            // Left path
+            if( Parent.LeftChild = nil) then begin
+               // Add as left child
+               Parent.LeftChild:= Child;
+               Added:= true
+            end else begin
+               Parent:= Parent.LeftChild;
+            end;
+         end;
+      end; // else non-empty tree
+      inc( MyCount);
    end; // Add()
 
 
@@ -182,7 +229,17 @@ procedure tgAvlTree.Add( Data: T);
 
 function tgAvlTree.First(): T;
    begin
-      result:= MyRoot.Data;
+      // Check for empty tree
+      if( MyRoot = nil) then begin
+         result:= nil;
+         CurrentNode:= nil;
+      end else begin
+         CurrentNode:= MyRoot;
+         while( CurrentNode.LeftChild <> nil) do begin 
+            CurrentNode:= CurrentNode.LeftChild;
+         end;
+         result:= CurrentNode.Data;
+      end;
    end; // First()
 
 
@@ -192,7 +249,17 @@ function tgAvlTree.First(): T;
 
 function tgAvlTree.Last(): T;
    begin
-      result:= MyRoot.Data;
+       // Check for empty tree
+      if( MyRoot = nil) then begin
+         result:= nil;
+         CurrentNode:= nil;
+      end else begin
+         CurrentNode:= MyRoot;
+         while( CurrentNode.RightChild <> nil) do begin 
+            CurrentNode:= CurrentNode.RightChild;
+         end;
+         result:= CurrentNode.Data;
+      end;
    end; // Last()
 
 
@@ -202,7 +269,7 @@ function tgAvlTree.Last(): T;
 
 function tgAvlTree.Previous(): T;
    begin
-      result:= MyRoot.Data;
+      raise lbp_container_exception.create( 'Previous() is not implemented yet!');
    end; // Previous()
 
 
@@ -212,7 +279,28 @@ function tgAvlTree.Previous(): T;
 
 function tgAvlTree.Next(): T;
    begin
-      result:= MyRoot.Data;
+      writeln( 'Next called');
+      if( CurrentNode = nil) then begin
+         result:= First();
+         exit;
+      end;
+      if( CurrentNode.RightChild <> nil) then begin
+         // Start traversing the right subtree
+         CurrentNode:= CurrentNode.RightChild;
+         writeln( 'Next(): 2');
+         while( CurrentNode.LeftChild <> nil) do begin
+            writeln( 'Finding leftmost child of the right subtree');
+            CurrentNode:= CurrentNode.LeftChild;
+         end;
+      end else begin
+         // Move back toward root
+         writeln( 'Next(): 3');
+         while( (CurrentNode <> nil) and (CurrentNode = CurrentNode.Parent.RightChild)) do begin
+            writeln( 'Move back toward root');
+            CurrentNode:= CurrentNode.Parent;
+         end;
+      end;
+      if( CurrentNode = nil) then result:= nil else result:= CurrentNode.Data;
    end; // Next()
 
 
@@ -225,6 +313,22 @@ function tgAvlTree.IsEmpty(): T;
       result:= (MyCount = 0);
    end; // First()
 
+
+// ************************************************************************
+// * RemoveSubtree() - Helper for RemoveAll
+// ************************************************************************
+
+procedure tgAvlTree.RemoveSubtree( StRoot: tAvlTreeNode; DestroyElements: boolean);
+   begin
+      if( StRoot.LeftChild <> nil) then begin
+         RemoveSubtree( StRoot.LeftChild, DestroyElements);
+      end;
+      if( StRoot.RightChild <> nil) then begin 
+         RemoveSubtree( StRoot.RightChild, DestroyElements);
+      end;
+      if( DestroyElements) then StRoot.Data.Destroy;
+      StRoot.Destroy;
+   end; // RemoveSubtree()
 
 
 // ************************************************************************

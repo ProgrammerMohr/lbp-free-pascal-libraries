@@ -24,6 +24,7 @@
 program test_trees;
 
 {$include lbp_standard_modes.inc}
+{$LONGSTRINGS ON}    // Non-sized Strings are ANSI strings
 
 uses
    lbp_generic_trees,
@@ -39,9 +40,6 @@ type
       Constructor Create( MyValue: string);
    end; // tStringClass
 
-type
-   tAvlTreeNode = specialize tgAvlTreeNode< tStringClass>; 
-
 
 constructor tStringClass.Create( MyValue: string);
    begin
@@ -49,28 +47,108 @@ constructor tStringClass.Create( MyValue: string);
    end;
 
 
+// ************************************************************************
+
+type
+   tStringTree = specialize tgAvlTree< test_trees.tStringClass>;
+
+var
+   A: tStringClass;
+   B: tStringClass;
+   C: tStringClass;
+   D: tStringClass;
+   E: tStringClass;
+   F: tStringClass;
+   G: tStringClass;
+
+
+// *************************************************************************
+// * CompareStrings - global function used only by tStringTree
+// *************************************************************************
+
+function CompareStrings(  S1: tStringClass; S2: tStringClass): integer;
+   begin
+      if( S1.Value > S2.Value) then begin
+         result:= 1;
+      end else if( S1.Value < S2.Value) then begin
+         result:= -1;
+      end else begin
+         result:= 0;
+      end;
+   end; // CompareStrings()
+
+
+// ************************************************************************
+// * CreateStrings()
+// ************************************************************************
+
+procedure CreateStrings();
+   begin
+      A:= tStringClass.Create( 'A');
+      B:= tStringClass.Create( 'B');
+      C:= tStringClass.Create( 'C');
+      D:= tStringClass.Create( 'D');
+      E:= tStringClass.Create( 'E');
+      F:= tStringClass.Create( 'F');
+      G:= tStringClass.Create( 'G');
+   end; // CreateStrings()
+
+
+// ************************************************************************
+// * DestroyStrings()
+// ************************************************************************
+
+procedure DestroyStrings();
+   begin
+      A.Destroy;
+      B.Destroy;
+      C.Destroy;
+      D.Destroy;
+      E.Destroy;
+      F.Destroy;
+      G.Destroy;
+   end; // DestroyStrings;
+
+
+// ************************************************************************
+// * FirstNextTest() - Test the First(), Next() functions
+// ************************************************************************
+
+procedure FirstNextTest();
+   var
+     T: tStringTree;
+     S: tStringClass;
+   begin
+      CreateStrings;
+      T:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
+
+     
+      T.Add( D);
+      T.Add( B);
+      T.Add( F);
+      T.Add( A);
+      T.Add( C);
+      T.Add( E);
+      T.Add( G);
+
+      writeln( 'Count = ', T.Count);
+      Writeln( 'Last = ', T.Last.Value);
+      S:= T.First;
+      while( S <> nil) do begin
+         Writeln( S.Value);
+         S:= T.Next;
+      end; 
+
+      T.Destroy;
+      DestroyStrings;
+   end; // FirstNextTest()
 
 
 // ************************************************************************
 // * main()
 // ************************************************************************
 
-var
-   A: tStringClass;
-   B: tStringClass;
-   C: tStringClass;
-   AvlTreeNode: tAvlTreeNode;
-
 begin
-   A:= tStringClass.Create( 'A');
-   B:= tStringClass.Create( 'B');
-   C:= tStringClass.Create( 'C');
-   
-   AvlTreeNode:= tAvlTreeNode.Create( A);
-   AvlTreeNode.Destroy;
-
-   A.Destroy;
-   B.Destroy;
-   C.Destroy;
+   FirstNextTest;
 end.  // test_trees
 
