@@ -219,6 +219,7 @@ procedure tgAvlTree.Add( Data: T);
             end;
          end;
       end; // else non-empty tree
+      Child.Parent:= Parent;
       inc( MyCount);
    end; // Add()
 
@@ -268,8 +269,29 @@ function tgAvlTree.Last(): T;
 // ************************************************************************
 
 function tgAvlTree.Previous(): T;
+   var
+      PreviousNode:  tAvlTreeNode;
    begin
-      raise lbp_container_exception.create( 'Previous() is not implemented yet!');
+      if( CurrentNode = nil) then begin
+         result:= Last();
+         exit;
+      end;
+      // Do I have a left child?
+      if( CurrentNode.LeftChild <> nil) then begin
+         // Start traversing the right subtree
+         CurrentNode:= CurrentNode.LeftChild;
+         // Find the rightmost child if any
+         while( CurrentNode.RightChild <> nil) do begin
+            CurrentNode:= CurrentNode.RightChild;
+         end;
+
+      end else repeat
+         // Move toward the root
+         PreviousNode:= CurrentNode;
+         CurrentNode:= CurrentNode.Parent;
+      until( (CurrentNode = nil) or (CurrentNode.RightChild = PreviousNode)); 
+
+      if( CurrentNode = nil) then result:= nil else result:= CurrentNode.Data;
    end; // Previous()
 
 
@@ -278,28 +300,28 @@ function tgAvlTree.Previous(): T;
 // ************************************************************************
 
 function tgAvlTree.Next(): T;
+   var
+      PreviousNode:  tAvlTreeNode;
    begin
-      writeln( 'Next called');
       if( CurrentNode = nil) then begin
          result:= First();
          exit;
       end;
+      // Do I have a right child?
       if( CurrentNode.RightChild <> nil) then begin
          // Start traversing the right subtree
          CurrentNode:= CurrentNode.RightChild;
-         writeln( 'Next(): 2');
+         // Find the leftmost child if any
          while( CurrentNode.LeftChild <> nil) do begin
-            writeln( 'Finding leftmost child of the right subtree');
             CurrentNode:= CurrentNode.LeftChild;
          end;
-      end else begin
-         // Move back toward root
-         writeln( 'Next(): 3');
-         while( (CurrentNode <> nil) and (CurrentNode = CurrentNode.Parent.RightChild)) do begin
-            writeln( 'Move back toward root');
-            CurrentNode:= CurrentNode.Parent;
-         end;
-      end;
+
+      end else repeat
+         // Move toward the root
+         PreviousNode:= CurrentNode;
+         CurrentNode:= CurrentNode.Parent;
+      until( (CurrentNode = nil) or (CurrentNode.LeftChild = PreviousNode)); 
+
       if( CurrentNode = nil) then result:= nil else result:= CurrentNode.Data;
    end; // Next()
 

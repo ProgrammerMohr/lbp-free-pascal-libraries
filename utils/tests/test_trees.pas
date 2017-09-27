@@ -131,11 +131,10 @@ procedure FirstNextTest();
       T.Add( E);
       T.Add( G);
 
-      writeln( 'Count = ', T.Count);
-      Writeln( 'Last = ', T.Last.Value);
+      writeln( '------ Testing AVL Tree First() and Next() functions. ------');
       S:= T.First;
       while( S <> nil) do begin
-         Writeln( S.Value);
+         Writeln( '   ', S.Value);
          S:= T.Next;
       end; 
 
@@ -145,10 +144,44 @@ procedure FirstNextTest();
 
 
 // ************************************************************************
+// * LastPreviouTest() - Test the Last(), Previous() functions
+// ************************************************************************
+
+procedure LastPreviousTest();
+   var
+     T: tStringTree;
+     S: tStringClass;
+   begin
+      CreateStrings;
+      T:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
+
+     
+      T.Add( D);
+      T.Add( B);
+      T.Add( F);
+      T.Add( A);
+      T.Add( C);
+      T.Add( E);
+      T.Add( G);
+
+   writeln( '------ Testing AVL Tree Last() and Previous() functions. ------');
+      S:= T.Last;
+      while( S <> nil) do begin
+         Writeln( '   ', S.Value);
+         S:= T.Previous;
+      end; 
+
+      T.Destroy;
+      DestroyStrings;
+   end; // LastPreviousTest()
+
+
+// ************************************************************************
 // * main()
 // ************************************************************************
 
 begin
    FirstNextTest;
+   LastPreviousTest;
 end.  // test_trees
 
