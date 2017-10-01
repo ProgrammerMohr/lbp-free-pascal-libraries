@@ -78,6 +78,16 @@ function CompareStrings(  S1: tStringClass; S2: tStringClass): integer;
    end; // CompareStrings()
 
 
+// *************************************************************************
+// * NodeToString - global function used only by tStringTree
+// *************************************************************************
+
+function NodeToString( Data1: tStringClass): string;
+   begin
+      result:= Data1.Value
+   end; // NodeToString;
+
+
 // ************************************************************************
 // * CreateStrings()
 // ************************************************************************
@@ -121,8 +131,8 @@ procedure FirstNextTest();
    begin
       CreateStrings;
       T:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
+      T.NodeToString:= tStringTree.tNodeToStringFunction( @NodeToString);
 
-     
       T.Add( D);
       T.Add( B);
       T.Add( F);
@@ -137,6 +147,9 @@ procedure FirstNextTest();
          Writeln( '   ', S.Value);
          S:= T.Next;
       end; 
+
+      T.DumpNodes;
+
 
       T.Destroy;
       DestroyStrings;

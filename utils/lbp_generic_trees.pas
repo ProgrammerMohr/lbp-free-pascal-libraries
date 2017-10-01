@@ -46,8 +46,9 @@ interface
 {$LONGSTRINGS ON}    // Non-sized Strings are ANSI strings
 
 uses
-   sysutils,       // Exceptions
-   lbp_types;     // lbp_exception
+   sysutils,      // Exceptions
+   lbp_types,     // lbp_exception
+   lbp_generic_lists;
 //   lbp_vararray;  // Int64SortElement
 
 
@@ -79,7 +80,9 @@ type
       public
          type
             tAvlTreeNode = specialize tgAvlTreeNode< T>;
-            tCompareFunction = function( const Data1, Data2: T): Integer;  
+            tAvlTreeNodeList = specialize tgDoubleLinkedList< tAvlTreeNode>;
+            tCompareFunction = function( const Data1, Data2: T): Integer;
+            tNodeToStringFunction = function( const Data: T): string;  
       private
          MyRoot:          tAvlTreeNode;
          DuplicateOK:     boolean;
@@ -87,6 +90,7 @@ type
          MyCount:         integer;
          MyName:          string;
          MyCompare:       tCompareFunction;
+         MyNodeToString:  tNodeToStringFunction;
       public
          Constructor Create( iCompare:        tCompareFunction;
                              iAllowDuplicates: boolean = false);
@@ -97,6 +101,7 @@ type
          function    Last():      T;
          function    Previous():  T;
          function    Next():      T;
+         procedure   DumpNodes();  // 
       protected
          function    IsEmpty():  boolean; virtual;
          procedure   RemoveSubtree( StRoot: tAvlTreeNode; DestroyElements: boolean);
@@ -108,6 +113,7 @@ type
          property    Root:  tAvlTreeNode read MyRoot;
          property    Name:  string  read MyName write MyName;
          property    Compare: tCompareFunction read MyCompare write MyCompare;
+         property    NodeToString:  tNodeToStringFunction read MyNodeToString write MyNodeToString;
       end; // tgAvlTree
 
 
@@ -148,6 +154,7 @@ constructor tgAvlTree.Create( iCompare:     tCompareFunction;
       inherited Create;
       MyRoot:= nil;
       Compare:= iCompare;
+      NodeToString:= nil;
       DuplicateOK:= iAllowDuplicates;
       CurrentNode:= nil;
       MyName:= '';
@@ -324,6 +331,47 @@ function tgAvlTree.Next(): T;
 
       if( CurrentNode = nil) then result:= nil else result:= CurrentNode.Data;
    end; // Next()
+
+
+// ************************************************************************
+// * DumpNodes();
+// ************************************************************************
+
+procedure tgAvlTree.DumpNodes();
+   var
+     L:  tAvlTreeNodeList;
+     N:  tAvlTreeNode;
+   begin
+      L:= tAvlTreeNodeList.Create();
+      N:= Root;
+
+      try 
+         while( N <> nil) do begin
+            write( 'Parent      = ');
+            if( N.Parent = nil) then writeln else writeln( NodeToString( N.Parent.Data));
+            writeln( 'Value       = ', NodeToString( N.Data));
+            write( 'Left Child  = ');
+            if( N.LeftChild = nil) then begin
+               writeln;
+            end else begin
+               writeln( NodeToString( N.LeftChild.Data));
+               L.Queue:= N.LeftChild;
+            end;
+            write( 'Right Child = '); 
+            if( N.RightChild = nil) then begin
+               writeln;
+            end else begin
+               writeln( NodeToString( N.RightChild.Data));
+               L.Queue:= N.RightChild;
+            end;
+            writeln( '-------------------------');
+            N:= L.Queue;
+         end;
+      except
+         on Exception do;
+      end;
+      L.Destroy;
+   end; // DumpNodes()
 
 
 // ************************************************************************
