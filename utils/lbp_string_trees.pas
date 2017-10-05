@@ -56,7 +56,8 @@ type
       public
          constructor   Create( iDuplicateOK: boolean);
          procedure        Add(        Item: string); overload;
-         procedure        Add(        Item: string; AuxData: pointer); overload;
+         procedure        Add(        Item: string; AuxPointer: pointer); overload;
+         procedure        Add(        Item: string; AuxInteger: integer); overload;
          function         Find(       Item: string): tStringObj; overload;
          function         GetFirst(): string; overload;
          function         GetLast():  string; overload;
@@ -118,10 +119,20 @@ procedure tStringTree.Add( Item: string); overload;
 
 // -------------------------------------------------------------------------
 
-procedure tStringTree.Add( Item: string; AuxData: pointer); overload;
+procedure tStringTree.Add( Item: string; AuxPointer: pointer); overload;
    begin
       StringObj:= tStringObj.Create( Item);
-      StringObj.AuxData:= AuxData;
+      StringObj.AuxPointer:= AuxPointer;
+      inherited Add( StringObj);
+   end; // Add()
+
+
+// -------------------------------------------------------------------------
+
+procedure tStringTree.Add( Item: string; AuxInteger: integer); overload;
+   begin
+      StringObj:= tStringObj.Create( Item);
+      StringObj.AuxInteger:= AuxInteger;
       inherited Add( StringObj);
    end; // Add()
 

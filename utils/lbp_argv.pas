@@ -319,7 +319,7 @@ procedure AddParamAlias( Alias: string; Name: string);
    var
       PV:  ParamValue;
    begin
-      PV:= ParamValue( PVTree.Find( Name).AuxData);
+      PV:= ParamValue( PVTree.Find( Name).auxpointer);
       if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
       PVTree.Add( Alias, PV);
    end; // AddParamAlias()
@@ -345,7 +345,7 @@ function GetParam( Name: string): string;
    var
       PV:   ParamValue;
    begin
-      PV:= ParamValue( PVTree.Find( Name).AuxData);
+      PV:= ParamValue( PVTree.Find( Name).auxpointer);
       if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
       result:= PV.Str;
    end; // GetParam()
@@ -359,7 +359,7 @@ function ParamSet( Name: string): boolean;
    var
       PV:   ParamValue;
    begin
-      PV:= ParamValue( PVTree.Find( Name).AuxData);
+      PV:= ParamValue( PVTree.Find( Name).auxpointer);
       if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
       result:= PV.InUse;
    end; // ParamSet()
@@ -375,7 +375,7 @@ procedure ParseHelper( Name: string; var Value: string);
    var
       PV:   ParamValue;
    begin
-      PV:= ParamValue( PVTree.Find( Name).AuxData);
+      PV:= ParamValue( PVTree.Find( Name).auxpointer);
       if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
       if( PV.InUse) then Value:= PV.Str;
    end; // ParseHelper
@@ -389,7 +389,7 @@ procedure ParseHelper( Name: string; var Value: integer);
       Temp:  integer;
       Code:  word;
    begin
-      PV:= ParamValue( PVTree.Find( Name).AuxData);
+      PV:= ParamValue( PVTree.Find( Name).auxpointer);
       if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
       if( PV.InUse) then begin
          Val( PV.Str, Temp, Code);
@@ -414,7 +414,6 @@ procedure ParseParams();
       i:          integer;
    begin
       Parsed:= true;
-
       PV:= nil;
       for iP:= 1 to ParamCount do begin
          // Have we previously found a named parameter but not the value?
@@ -437,7 +436,7 @@ procedure ParseParams();
                end;
 
                // We now know this is a valid named parameter
-               PV:= ParamValue( Node.AuxData);
+               PV:= ParamValue( Node.auxpointer);
 
                // Name=Value pair?
                if( i > 0) then begin
@@ -558,7 +557,7 @@ procedure DumpParams();
       PVTree.Copy( T);
       S:= T.GetFirst();
       while( Length( S) > 0) do begin
-         PV:= ParamValue( PVTree.Find( S).AuxData);
+         PV:= ParamValue( PVTree.Find( S).auxpointer);
          if( PV.ValueRequired) then begin
             if( PV.InUse) then begin
                writeln( '   ', S, '=', PV.Str);

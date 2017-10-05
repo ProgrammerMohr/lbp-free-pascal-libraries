@@ -147,13 +147,15 @@ type
 
 
 // -------------------------------------------------------------------------
-
+{$warning Put a case statement in tStringObj for different Aux types}
+ 
    tStringObj = class
       public
-         Value:      string;
-         AuxData:    pointer;  // Used to attach some user object
-         constructor Create( S: string);
-         destructor  Destroy; override;
+         Value:       string;
+         AuxPointer:  pointer;  // Used to attach some user object
+         AuxInteger:  integer;
+         constructor  Create( S: string);
+         destructor   Destroy; override;
       end;
 
 
