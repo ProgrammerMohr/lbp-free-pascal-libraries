@@ -458,7 +458,6 @@ constructor dbResults.Create( const idbType:   string;
       Temp: dbField;
    begin
       inherited Create();
-
       Connection:= ConnectionManager.GetConnection( idbType, iHost, iPort,
                                                     iUser, iPassword);
       Database:=   iDatabase;
@@ -1301,7 +1300,6 @@ function dbConnectionManager.GetConnection( const idbType:   string;
       for ClassI:= 0 to RegisteredClasses.UpperBound do begin
          RegClass:= dbConnectionRegistrationClass( RegisteredClasses[ ClassI]);
          if( RegClass.dbType = idbType) then begin
-
             // We know how to create the connection, so create it
             TestConn:= RegClass.NewConnection( iHost, iPort, iUser, iPassword);
             // And register it.

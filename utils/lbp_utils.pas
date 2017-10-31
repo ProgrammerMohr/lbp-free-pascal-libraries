@@ -51,6 +51,10 @@ procedure StripSpaces( Var S: string);
 procedure PadLeft(  var S: string; SLen:   integer);
 procedure PadRight( var S: string; SLen:   integer);
 function  HexStr( X: word64; Count: byte): string;
+function  StartsWith( SubString: string; Source: string): boolean;
+function  EndsWith( SubString: string; Source: string): boolean;
+function  Contains( SubString: string; Source: string): boolean;
+
 
 // General purpose bit setting and clearing routines.
 procedure SetBit( var BitSet: int32; BitNumber: integer);
@@ -171,6 +175,49 @@ function HexStr( X: word64; Count: byte): string;
          X:= X shr 4;
       end;
    end; // HexStr()
+
+
+// ************************************************************************
+// * StartsWith() - Returns true if Source starts with SubString
+// ************************************************************************
+
+function  StartsWith( SubString: string; Source: string): boolean;
+   var
+     iSubString;  integer;
+     LSubString:  integer;
+     iSource;     integer;
+     LSubString:  integer;
+     C:
+   begin
+      result:= false;
+      LSubString:= Length( SubString);
+      LSource:=    Length( Source);
+
+      if( (LSubString = 0) or (LSource = 0)) then exit;
+
+{$error StartsWith() is not finished!}
+
+   end; // StartsWtih()
+
+
+// ************************************************************************
+// * EndsWith() - Returns true if Source ends with SubString
+// ************************************************************************
+
+function  EndsWith( SubString: string; Source: string): boolean;
+   begin
+{$warning EndsWith() is not implemented!}
+   end; // EndsWith()
+
+
+// ************************************************************************
+// * Contains() - Returns true if Source contains SubString
+// ************************************************************************
+
+function  Contains( SubString: string; Source: string): boolean;
+   begin
+{$warning Contains() is not implemented!}
+   end; // Contains()
 
 
 // ************************************************************************

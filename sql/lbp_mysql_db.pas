@@ -626,7 +626,7 @@ function NewConnection( const iHost:     string;
                         const iUser:     string;
                         const iPassword: string): dbConnection;
    begin
-      exit( MySQLdbConnection.Create( iHost, iPort, iUser, iPassword, ''));
+      result:= MySQLdbConnection.Create( iHost, iPort, iUser, iPassword, '');
    end; // NewConnection()
 
 

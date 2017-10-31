@@ -3,6 +3,7 @@
 Copyright (c) 2017 by Lloyd B. Park
 
 Open a file for input based on command line options
+Note:  You must call SetInputFileParam() before parsing arguments!
 
 This file is part of Lloyd's Free Pascal Libraries (LFPL).
 
