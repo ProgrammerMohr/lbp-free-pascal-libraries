@@ -40,6 +40,7 @@ unit lbp_utils;
 interface
 
 {$include lbp_standard_modes.inc}
+{$modeswitch typehelpers}
 
 uses
    lbp_Types;
@@ -47,13 +48,20 @@ uses
 
 // ************************************************************************
 
+type
+   tLbpStringHelper = type helper for string
+      function StartsWith( SubString: string): boolean;
+      function EndsWith( SubString: string): boolean;
+      function Contains( SubString: string): boolean;
+   end; // tLbpStringHelper
+  
+
+// ************************************************************************
+
 procedure StripSpaces( Var S: string);
 procedure PadLeft(  var S: string; SLen:   integer);
 procedure PadRight( var S: string; SLen:   integer);
 function  HexStr( X: word64; Count: byte): string;
-function  StartsWith( SubString: string; Source: string): boolean;
-function  EndsWith( SubString: string; Source: string): boolean;
-function  Contains( SubString: string; Source: string): boolean;
 
 
 // General purpose bit setting and clearing routines.
@@ -177,26 +185,34 @@ function HexStr( X: word64; Count: byte): string;
    end; // HexStr()
 
 
+// ========================================================================
+// = tLbpStringHelper
+// ========================================================================
 // ************************************************************************
 // * StartsWith() - Returns true if Source starts with SubString
 // ************************************************************************
 
-function  StartsWith( SubString: string; Source: string): boolean;
+function tLbpStringHelper.StartsWith( SubString: string): boolean;
    var
-     iSubString;  integer;
+     i:           integer;
      LSubString:  integer;
-     iSource;     integer;
-     LSubString:  integer;
-     C:
+     LSelf:       integer;
    begin
       result:= false;
       LSubString:= Length( SubString);
-      LSource:=    Length( Source);
+      LSelf:=      Length( Self);
 
-      if( (LSubString = 0) or (LSource = 0)) then exit;
+      if( LSubString = 0) then begin
+         result:= true;
+         exit;
+      end;
+      if( LSelf < LSubString) then exit;
 
-{$error StartsWith() is not finished!}
-
+      for i:= 1 to LSubString do begin
+         result:= (Self[ i] = Substring[ i]);
+         if( not result) then exit; // exit loop
+      end;
+      Self:= 'found';
    end; // StartsWtih()
 
 
@@ -204,9 +220,34 @@ function  StartsWith( SubString: string; Source: string): boolean;
 // * EndsWith() - Returns true if Source ends with SubString
 // ************************************************************************
 
-function  EndsWith( SubString: string; Source: string): boolean;
+function tLbpStringHelper.EndsWith( SubString: string): boolean;
+   var
+     iSubString:  integer;
+     iSelf:       integer;
+     LSubString:  integer;
+     LSelf:       integer;
+     OK:          boolean = false;
    begin
-{$warning EndsWith() is not implemented!}
+      result:= false;
+      LSubString:= Length( SubString);
+      LSelf:=    Length( Self);
+
+      if( LSubString = 0) then begin
+         result:= true;
+         exit;
+      end;
+      if( LSelf < LSubString) then exit;
+      
+      iSelf:= LSelf;
+      for iSubString:= LSubString downto 1 do begin
+         result:= (Self[ iSelf] = Substring[ iSubString]);
+//          writeln( '-------------------------');
+//          writeln( 'Source[ iSource]       = ', Source[ iSource]);
+//          writeln( 'SubString[ iSubString] = ', SubString[ iSubString]);
+//          writeln( 'result                 = ', result);
+         if( not result) then exit; // exit loop
+         dec(iSelf);
+      end;
    end; // EndsWith()
 
 
@@ -214,9 +255,17 @@ function  EndsWith( SubString: string; Source: string): boolean;
 // * Contains() - Returns true if Source contains SubString
 // ************************************************************************
 
-function  Contains( SubString: string; Source: string): boolean;
+function tLbpStringHelper.Contains( SubString: string): boolean;
+   var
+     P:           SizeInt;
    begin
-{$warning Contains() is not implemented!}
+      if( Length( SubString) = 0) then begin
+          result:= true;
+         exit;
+      end;
+       
+      P:= Pos( SubString, Self);
+      result:= (P > 0);
    end; // Contains()
 
 
