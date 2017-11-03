@@ -212,7 +212,6 @@ function tLbpStringHelper.StartsWith( SubString: string): boolean;
          result:= (Self[ i] = Substring[ i]);
          if( not result) then exit; // exit loop
       end;
-      Self:= 'found';
    end; // StartsWtih()
 
 
@@ -241,11 +240,7 @@ function tLbpStringHelper.EndsWith( SubString: string): boolean;
       iSelf:= LSelf;
       for iSubString:= LSubString downto 1 do begin
          result:= (Self[ iSelf] = Substring[ iSubString]);
-//          writeln( '-------------------------');
-//          writeln( 'Source[ iSource]       = ', Source[ iSource]);
-//          writeln( 'SubString[ iSubString] = ', SubString[ iSubString]);
-//          writeln( 'result                 = ', result);
-         if( not result) then exit; // exit loop
+        if( not result) then exit; // exit loop
          dec(iSelf);
       end;
    end; // EndsWith()
