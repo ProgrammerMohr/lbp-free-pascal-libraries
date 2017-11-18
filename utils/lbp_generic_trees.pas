@@ -105,6 +105,14 @@ type
       protected
          function    IsEmpty():  boolean; virtual;
          procedure   RemoveSubtree( StRoot: tAvlTreeNode; DestroyElements: boolean);
+         procedure   AddBalance( N: tAVLTreeNode; Balance: integer);
+         procedure   RemoveBalance( N: tAVLTreeNode; Balance: integer);
+         procedure   RotateLeft( N: tAVLTreeNode);
+         procedure   RotateLeftRight( N: tAVLTreeNode);
+         procedure   RotateRight( N: tAVLTreeNode);
+         procedure   RotateRightLeft( N: tAVLTreeNode);
+
+//         procedure   Rebalance( N: Node);
       public
          property    AllowDuplicates: boolean
                                 read DuplicateOK write DuplicateOK;
@@ -196,37 +204,43 @@ procedure tgAvlTree.Add( Data: T);
       CompareResult:  integer;
    begin
       Child:= tAvlTreeNode.Create( Data);
-      Parent:= MyRoot;
 
       if( MyRoot = nil) then begin
          // Special case of an empty tree
          MyRoot:= Child;
-      end else while( not Added) do begin
-         CompareResult:= Compare( Child.Data, Parent.Data);
-         if( (CompareResult = 0) and (not DuplicateOK)) then 
-            raise lbp_container_exception.create( 
-            'Duplicate records violates the constraints of this AVL tree!');
-         if( CompareResult >= 0) then begin
-            // Right path
-            if( Parent.RightChild = nil) then begin
-               // Add as right child
-               Parent.RightChild:= Child;
-               Added:= true
+      end else begin
+         Parent:= MyRoot;
+         while( Parent <> nil) do begin
+            CompareResult:= Compare( Child.Data, Parent.Data);
+            if( (CompareResult = 0) and (not DuplicateOK)) then begin 
+               Child.Destroy;
+               raise lbp_container_exception.create( 
+               'Duplicate records violate the constraints of this AVL tree!');
+            end else if( CompareResult > 0) then begin
+               // Right path
+               if( Parent.RightChild = nil) then begin
+                  // Add as right child
+                  Parent.RightChild:= Child;
+                  Child.Parent:= Parent;
+                  AddBalance( Parent, 1);
+                  exit;
+               end else begin
+                  Parent:= Parent.RightChild;
+               end;
             end else begin
-               Parent:= Parent.rightChild;
+               // Left path
+               if( Parent.LeftChild = nil) then begin
+                  // Add as left child
+                  Parent.LeftChild:= Child;
+                  Child.Parent:= Parent;
+                  AddBalance( Parent, -1);
+                  exit;
+               end else begin
+                  Parent:= Parent.LeftChild;
+               end;
             end;
-         end else begin
-            // Left path
-            if( Parent.LeftChild = nil) then begin
-               // Add as left child
-               Parent.LeftChild:= Child;
-               Added:= true
-            end else begin
-               Parent:= Parent.LeftChild;
-            end;
-         end;
+         end; // while
       end; // else non-empty tree
-      Child.Parent:= Parent;
       inc( MyCount);
    end; // Add()
 
@@ -345,6 +359,9 @@ procedure tgAvlTree.DumpNodes();
       L:= tAvlTreeNodeList.Create();
       N:= Root;
 
+      if( NodeToString = nil) then begin
+         raise lbp_container_exception.Create( 'NodeToString() has not been defined for this tgAVlTreeNode!');
+      end;
       try 
          while( N <> nil) do begin
             write( 'Parent      = ');
@@ -364,6 +381,7 @@ procedure tgAvlTree.DumpNodes();
                writeln( NodeToString( N.RightChild.Data));
                L.Queue:= N.RightChild;
             end;
+            writeln( 'Balance    = ', N.Balance);
             writeln( '-------------------------');
             N:= L.Queue;
          end;
@@ -399,6 +417,92 @@ procedure tgAvlTree.RemoveSubtree( StRoot: tAvlTreeNode; DestroyElements: boolea
       if( DestroyElements) then StRoot.Data.Destroy;
       StRoot.Destroy;
    end; // RemoveSubtree()
+
+
+// ************************************************************************
+// * AddBalance() - Rebalance the tree after an Add()
+// ************************************************************************
+
+procedure tgAvlTree.AddBalance( N: tAVLTreeNode; Balance: integer);
+   var
+      Parent: tAVLTreeNode;
+   begin
+      while( N <> nil) do begin
+         Balance:= Balance + N.Balance;
+         N.Balance:= Balance;
+         if(Balance = 0) then begin
+            exit;
+         end else if( Balance = -2) then begin
+            if( N.LeftChild.Balance= -1) then begin
+               RotateRight( N);
+            end else begin
+               RotateLeftRight( N);
+            end;
+            exit;
+         end else if( Balance = 2) then begin
+            if( N.RightChild.Balance = 1) then begin
+               RotateLeft( N);
+            end else begin
+               RotateRightLeft( N);
+            end;
+            exit;
+         end;
+         Parent:= N.Parent;
+         if( Parent <> nil) then begin
+            if( Parent.LeftChild = N) then Balance:= -1 else Balance:= 1;
+         end;
+         N:= Parent;
+      end;
+   end; // AddBalance()
+
+
+// ************************************************************************
+// * RemoveBalance() - Rebalance the tree after a Remove()
+// ************************************************************************
+
+procedure tgAvlTree.RemoveBalance( N: tAVLTreeNode; Balance: integer);
+   begin
+   end; // RemoveBalance()
+
+
+// ************************************************************************
+// * RotateLeft()
+// ************************************************************************
+
+procedure tgAvlTree.RotateLeft( N: tAVLTreeNode);
+   begin
+   end; // RotateLeft();
+
+
+// ************************************************************************
+// * RotateLeftRight()
+// ************************************************************************
+
+procedure tgAvlTree.RotateLeftRight( N: tAVLTreeNode);
+   begin
+   end; // RotateLeftRight();
+
+
+// ************************************************************************
+// * RotateRight()
+// ************************************************************************
+
+procedure tgAvlTree.RotateRight( N: tAVLTreeNode);
+   begin
+   end; // RotateRight();
+
+
+// ************************************************************************
+// * RotatRightLeft()
+// ************************************************************************
+
+procedure tgAvlTree.RotateRightLeft( N: tAVLTreeNode);
+   begin
+   end; // RotateRightLeft();
+
+
+
+
 
 
 // ************************************************************************
