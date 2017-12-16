@@ -105,7 +105,9 @@ type
          function    Last():      T;
          function    Previous():  T;
          function    Next():      T;
-         procedure   DumpNodes();  // 
+         procedure   DumpNodes( N:           tAvlTreeNode; 
+                                LeftPrefix:  string; 
+                                RightPrefix: string);  // Debug code
       protected
          function    IsEmpty():  boolean; virtual;
          procedure   RemoveSubtree( StRoot: tAvlTreeNode; DestroyElements: boolean);
@@ -505,8 +507,21 @@ procedure tgAvlTree.RotateRightLeft( N: tAVLTreeNode);
    end; // RotateRightLeft();
 
 
+// ************************************************************************
+// * DumpNOdes
+// ************************************************************************
 
+//  d - b - a
+//  |    \- c
+//   \- f - e
+//       \- g
 
+procedure tAvlTree.DumpNodes( N:           tAvlTreeNode = nil; 
+                                  LeftPrefix:  string       = ''; 
+                                  RightPrefix: string       = '');
+   begin
+      Write( LeftPrefix, Data
+   end; // DumpNodes
 
 
 // ************************************************************************
