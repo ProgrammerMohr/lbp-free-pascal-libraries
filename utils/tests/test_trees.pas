@@ -147,9 +147,11 @@ procedure FirstNextTest();
          Writeln( '   ', S.Value);
          S:= T.Next;
       end; 
+      writeln;
 
-      T.DumpNodes;
-
+      writeln( '------ Testing AVL Tree Dump procedure. ------');
+      T.Dump;
+      writeln;
 
       T.Destroy;
       DestroyStrings;
@@ -177,12 +179,13 @@ procedure LastPreviousTest();
       T.Add( E);
       T.Add( G);
 
-   writeln( '------ Testing AVL Tree Last() and Previous() functions. ------');
+      writeln( '------ Testing AVL Tree Last() and Previous() functions. ------');
       S:= T.Last;
       while( S <> nil) do begin
          Writeln( '   ', S.Value);
          S:= T.Previous;
       end; 
+      writeln;
 
       T.Destroy;
       DestroyStrings;
@@ -196,5 +199,7 @@ procedure LastPreviousTest();
 begin
    FirstNextTest;
    LastPreviousTest;
+
+   writeln( '------ Testing AVL Tree Dump() debugging function. ------')
 end.  // test_trees
 

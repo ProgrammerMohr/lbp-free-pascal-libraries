@@ -225,7 +225,6 @@ function tLbpStringHelper.EndsWith( SubString: string): boolean;
      iSelf:       integer;
      LSubString:  integer;
      LSelf:       integer;
-     OK:          boolean = false;
    begin
       result:= false;
       LSubString:= Length( SubString);

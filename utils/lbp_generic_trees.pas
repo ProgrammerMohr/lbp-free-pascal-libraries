@@ -47,7 +47,8 @@ interface
 
 uses
    sysutils,      // Exceptions
-   lbp_types,     // lbp_exception
+   lbp_types,     // lbp_excpetion
+   lbp_utils,     // PadLeft()
    lbp_generic_lists;
 //   lbp_vararray;  // Int64SortElement
 
@@ -105,9 +106,8 @@ type
          function    Last():      T;
          function    Previous():  T;
          function    Next():      T;
-         procedure   DumpNodes( N:           tAvlTreeNode; 
-                                LeftPrefix:  string; 
-                                RightPrefix: string);  // Debug code
+         procedure   Dump( N:       tAvlTreeNode = nil; 
+                           Prefix:  string = '');  // Debug code 
       protected
          function    IsEmpty():  boolean; virtual;
          procedure   RemoveSubtree( StRoot: tAvlTreeNode; DestroyElements: boolean);
@@ -206,7 +206,6 @@ procedure tgAvlTree.Add( Data: T);
    var
       Child:          tAvlTreeNode;
       Parent:         tAvlTreeNode;
-      Added:          boolean = false;
       CompareResult:  integer;
    begin
       Child:= tAvlTreeNode.Create( Data);
@@ -354,48 +353,88 @@ function tgAvlTree.Next(): T;
 
 
 // ************************************************************************
-// * DumpNodes();
+// * DumpNOdes
 // ************************************************************************
 
-procedure tgAvlTree.DumpNodes();
-   var
-     L:  tAvlTreeNodeList;
-     N:  tAvlTreeNode;
-   begin
-      L:= tAvlTreeNodeList.Create();
-      N:= Root;
+//  d - b - a
+//  |    \- c
+//   \- f - e
+//       \- g
 
-      if( NodeToString = nil) then begin
-         raise lbp_container_exception.Create( 'NodeToString() has not been defined for this tgAVlTreeNode!');
+procedure tgAvlTree.Dump( N:       tAvlTreeNode = nil;
+                          Prefix:  string       = ''); 
+   var
+      Temp: string;
+   begin
+      // Take care of the start condition and the empty cases
+      if( N = nil) then begin
+         if( MyRoot = nil) then exit;
+         N:= MyRoot;
       end;
-      try 
-         while( N <> nil) do begin
-            write( 'Parent      = ');
-            if( N.Parent = nil) then writeln else writeln( NodeToString( N.Parent.Data));
-            writeln( 'Value       = ', NodeToString( N.Data));
-            write( 'Left Child  = ');
-            if( N.LeftChild = nil) then begin
-               writeln;
-            end else begin
-               writeln( NodeToString( N.LeftChild.Data));
-               L.Queue:= N.LeftChild;
-            end;
-            write( 'Right Child = '); 
-            if( N.RightChild = nil) then begin
-               writeln;
-            end else begin
-               writeln( NodeToString( N.RightChild.Data));
-               L.Queue:= N.RightChild;
-            end;
-            writeln( 'Balance    = ', N.Balance);
-            writeln( '-------------------------');
-            N:= L.Queue;
-         end;
-      except
-         on Exception do;
+
+      // Convert the data to something printable
+      Temp:= NodeToString( N.Data);
+      if( Length( Temp) > 4) then SetLength( Temp, 4);
+      PadLeft( Temp, 4);
+
+      // Print N's data
+      write( Temp);
+
+      // Process the Left Branch
+      if( N.LeftChild = nil) then begin
+         writeln;
+      end else begin
+         write( ' -> ');
+         Dump( N.LeftChild, Prefix + '   |    ');
       end;
-      L.Destroy;
-   end; // DumpNodes()
+
+      // Process the Right Branch
+      if( N.RightChild <> nil) then begin
+         write( Prefix, '    \-> ');
+         Dump( N.RightChild, Prefix + '        ');
+      end;
+   end; // DumpNodes
+
+
+// procedure tgAvlTree.DumpNodes();
+//    var
+//      L:  tAvlTreeNodeList;
+//      N:  tAvlTreeNode;
+//    begin
+//       L:= tAvlTreeNodeList.Create();
+//       N:= Root;
+// 
+//       if( NodeToString = nil) then begin
+//          raise lbp_container_exception.Create( 'NodeToString() has not been defined for this tgAVlTreeNode!');
+//       end;
+//       try 
+//          while( N <> nil) do begin
+//             write( 'Parent      = ');
+//             if( N.Parent = nil) then writeln else writeln( NodeToString( N.Parent.Data));
+//             writeln( 'Value       = ', NodeToString( N.Data));
+//             write( 'Left Child  = ');
+//             if( N.LeftChild = nil) then begin
+//                writeln;
+//             end else begin
+//                writeln( NodeToString( N.LeftChild.Data));
+//                L.Queue:= N.LeftChild;
+//             end;
+//             write( 'Right Child = '); 
+//             if( N.RightChild = nil) then begin
+//                writeln;
+//             end else begin
+//                writeln( NodeToString( N.RightChild.Data));
+//                L.Queue:= N.RightChild;
+//             end;
+//             writeln( 'Balance    = ', N.Balance);
+//             writeln( '-------------------------');
+//             N:= L.Queue;
+//          end;
+//       except
+//          on Exception do;
+//       end;
+//       L.Destroy;
+//    end; // DumpNodes()
 
 
 // ************************************************************************
@@ -505,23 +544,6 @@ procedure tgAvlTree.RotateRight( N: tAVLTreeNode);
 procedure tgAvlTree.RotateRightLeft( N: tAVLTreeNode);
    begin
    end; // RotateRightLeft();
-
-
-// ************************************************************************
-// * DumpNOdes
-// ************************************************************************
-
-//  d - b - a
-//  |    \- c
-//   \- f - e
-//       \- g
-
-procedure tAvlTree.DumpNodes( N:           tAvlTreeNode = nil; 
-                                  LeftPrefix:  string       = ''; 
-                                  RightPrefix: string       = '');
-   begin
-      Write( LeftPrefix, Data
-   end; // DumpNodes
 
 
 // ************************************************************************
