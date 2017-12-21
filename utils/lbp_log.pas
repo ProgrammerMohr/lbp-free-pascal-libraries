@@ -125,7 +125,7 @@ var
 procedure Log( const Level: int16; const Msg: String);
    begin
       if( DoLogging and (Level <= LogLevel)) then begin
-{$ifndef win32}
+{$ifndef windows}
          EnterCriticalSection( CritSect);
          if( UseSyslog) then begin
 
@@ -145,7 +145,7 @@ procedure Log( const Level: int16; const Msg: String);
          LeaveCriticalSection( CritSect);
       end; // if DoLogging
 {$endif}
-{$ifdef win32}
+{$ifdef windows}
          writeln( LogFile, Msg);
          Flush( LogFile);
       end;
@@ -447,7 +447,7 @@ procedure ReadINI();
          LogfileAppend:= INI.ReadVariable( Sect2, 'LogFileAppend', LogFileAppend);
          DoLogging:=   INI.ReadVariable( Sect2, 'Logging', DoLogging);
 
-{$ifndef win32}
+{$ifndef windows}
          UseSyslog:=   INI.ReadVariable( Sect1, 'UseSyslog', IsDaemon());
          UseSyslog:=   INI.ReadVariable( Sect2, 'UseSyslog', UseSyslog);
 {$endif}
@@ -466,7 +466,7 @@ procedure ReopenLog();
          Close( LogFile);
       end;
 
-{$ifndef win32}
+{$ifndef windows}
       // Are we trying to log to standard out when we are a daemon?
       if( IsDaemon() and (not UseSysLog) and (LogFileName = '')) then begin
          DoLogging:= false;
@@ -474,7 +474,7 @@ procedure ReopenLog();
 {$endif}
       // Don't do anything else unless we are logging.
       if( DoLogging) then begin
-{$ifndef win32}
+{$ifndef windows}
          if( UseSyslog) then begin
 
             // Open the Syslog if needed
@@ -507,7 +507,7 @@ procedure ReopenLog();
             end else begin
                LogFile:= OUTPUT;
             end;
-{$ifndef win32}
+{$ifndef windows}
          end; // if UseSyslog
 {$endif}
       end; // if DoLogging
@@ -571,7 +571,7 @@ finalization
 {$ifdef DEBUG_UNIT_INITIALIZATION} 
       writeln( 'Finalization of lbp_log started.'); 
 {$endif}
-{$ifndef win32}
+{$ifndef windows}
       if( SyslogIsOpen) then begin
          CloseLog();
       end;
