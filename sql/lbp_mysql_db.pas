@@ -39,8 +39,10 @@ unit lbp_mysql_db;
 
 interface
 {$include lbp_standard_modes.inc}
-{$LINKLIB ssl}
-{$LINKLIB mysqlclient_r}
+{$ifndef windows}
+   {$LINKLIB ssl}
+   {$LINKLIB mysqlclient_r}
+{$endif}
 
 uses
    lbp_types,       // Ordinal types, lbpExceptions
