@@ -42,89 +42,86 @@ uses
    sysutils,  // functions to traverse a file directory
    classes;   // tFPList
 
-// =======================================================================
-// = tCode class - Holds a file name and its properties
-// =======================================================================
+// // =======================================================================
+// // = tCode class - Holds a file name and its properties
+// // =======================================================================
 
-type
-   tCode = class
-      private
-         FIsOpen:    boolean;
-         F:          Text; // The file
-      public
-         Name:       String;
-         Folder:     String;
-         Found:      boolean;
-         Prog:       boolean;
-         DependsOn:  tFPList; // List of tCode
-         UsedBy:     tFPList; // List of tCode
-         constructor Create( iName: String; iFolder: String);
-         destructor  Destroy(); override;
-         procedure   Dump( NameOnly: boolean = false; Indent: string = ''); // debug
-         function    FullFileName(): string;
-      private
-         Line:       string;  // The current line as we parse the file
-         iLine:      integer; // Current Position in the line.
-         LLine:      integer; // The length of the line.   
-         procedure   Open(); // Open the file
-         procedure   Close(); // Close the file if it is open
-         function    FullFileName(): string;
-      end; // tCode class
+// type
+//    tCode = class
+//       private
+//          FIsOpen:    boolean;
+//          F:          Text; // The file
+//       public
+//          Name:       String;
+//          Folder:     String;
+//          Found:      boolean;
+//          Prog:       boolean;
+//          DependsOn:  tFPList; // List of tCode
+//          UsedBy:     tFPList; // List of tCode
+//          constructor Create( iName: String; iFolder: String);
+//          destructor  Destroy(); override;
+//          procedure   Dump( NameOnly: boolean = false; Indent: string = ''); // debug
+//          function    FullFileName(): string;
+//       private
+//          Line:       string;  // The current line as we parse the file
+//          iLine:      integer; // Current Position in the line.
+//          LLine:      integer; // The length of the line.   
+//          procedure   Open(); // Open the file
+//          procedure   Close(); // Close the file if it is open
+//          function    FullFileName(): string;
+//       end; // tCode class
 
-{ Notes  Curly Braces and (* *) are multi line.  // is to end of line}
+// { Notes  Curly Braces and (* *) are multi line.  // is to end of line}
 
-// ***********************************************************************
-// * Create() - constructor
-// ***********************************************************************
+// // ***********************************************************************
+// // * Create() - constructor
+// // ***********************************************************************
 
-constructor tCode.Create( iName: String; iFolder: String);
-   begin
-      inherited Create();
-      Name:=       iName;
-      Folder:=     iFolder;
-      Found:=      false;
-      Prog:=       false;
-      DependsOn:=  tFPList.Create();
-      UsedBy:=     tFPList.Create();
-      FIsOpen:=    false;
-   end; // Create()
-
-
-// ***********************************************************************
-// * Destroy() - destructor
-// ***********************************************************************
-
-destructor tCode.Destroy();
-   begin
-      DependsOn.Destroy;
-      UsedBy.Destroy;
-      inherited Destroy;
-   end; // Destroy()
+// constructor tCode.Create( iName: String; iFolder: String);
+//    begin
+//       inherited Create();
+//       Name:=       iName;
+//       Folder:=     iFolder;
+//       Found:=      false;
+//       Prog:=       false;
+//       DependsOn:=  tFPList.Create();
+//       UsedBy:=     tFPList.Create();
+//       FIsOpen:=    false;
+//    end; // Create()
 
 
-// ***********************************************************************
-// * Dump() - print the record to StdOut
-// ***********************************************************************
+// // ***********************************************************************
+// // * Destroy() - destructor
+// // ***********************************************************************
 
-procedure tCode.Dump( NameOnly: boolean; Indent: string);
-   begin
-      writeln( FullFileName);
-      if( not NameOnly) then begin
-      end;
-   end; // Dump;
+// destructor tCode.Destroy();
+//    begin
+//       DependsOn.Destroy;
+//       UsedBy.Destroy;
+//       inherited Destroy;
+//    end; // Destroy()
 
 
-// ***********************************************************************
-// * FullFileName() - Returns the full path file name
-// ***********************************************************************
-{*
-junk 1
-junk 2
-*}
-function tCode.FullFileName(): string;
-   begin
-      result:= Folder +  DirectorySeparator + Name;
-   end; // FullFileName()
+// // ***********************************************************************
+// // * Dump() - print the record to StdOut
+// // ***********************************************************************
+
+// procedure tCode.Dump( NameOnly: boolean; Indent: string);
+//    begin
+//       writeln( FullFileName);
+//       if( not NameOnly) then begin
+//       end;
+//    end; // Dump;
+
+
+// // ***********************************************************************
+// // * FullFileName() - Returns the full path file name
+// // ***********************************************************************
+
+// function tCode.FullFileName(): string;
+//    begin
+//       result:= Folder +  DirectorySeparator + Name;
+//    end; // FullFileName()
 
 
 // =======================================================================
@@ -132,20 +129,18 @@ function tCode.FullFileName(): string;
 // =======================================================================
 
 var
-   Progs: tFPList;  // A list of files which have been found to be programs
-   Codes: tFPList;  // A list of files which initially are units and programs
-                    // Later the programs will be moved to Progs.
-
-
+   PasFiles: tStringList;  // A list of files which initially are units and programs
+                       // Later the programs will be moved to Progs.
+   
 // ***********************************************************************
 // * CreateListOfFiles() - Returns an tFPList of tCode
 // ***********************************************************************
 {$WARNING Create an outer function which creates the tFPList and returns it}
 {$WARNING It then calls the inner function which is recusive.}
-function CreateListOfFiles( Path: string = '.'): tFPList;
+function CreateListOfFiles( Path: string = '.'): tStringList;
    var
       CurrentDir: String;
-      FileList:   tFPList;
+      FileList:   tStringList;
 
    // --------------------------------------------------------------------
    // - RecursiveLOF()
@@ -170,7 +165,7 @@ function CreateListOfFiles( Path: string = '.'): tFPList;
                L:= length( FileInfo.Name);
                if( (pos( '.pas', FileInfo.Name) = (L - 3)) or
                    (pos( '.pp',  FileInfo.Name) = (L - 2))) then begin
-                  FileList.Add( tCode.Create( FileInfo.Name, Path));
+                  FileList.Add( Path + DirectorySeparator + FileInfo.Name);
                end; // if it ends in .pas or .pp
             end;
          Until FindNext( FileInfo) <> 0;
@@ -186,7 +181,7 @@ function CreateListOfFiles( Path: string = '.'): tFPList;
    // --------------------------------------------------------------------
 
    begin
-      FileList:= tFPList.Create;
+      FileList:= tStringList.Create;
       result:= FileList;
       GetDir( 0, CurrentDir);
 
@@ -196,20 +191,50 @@ function CreateListOfFiles( Path: string = '.'): tFPList;
 
 
 // ************************************************************************
+// * Recompile() - Recompile every file in PasFiles.  Return a string list
+// *               of files which failed to compile.
+// ************************************************************************
+
+function Recompile(  PasFiles: tStringList): tStringList;
+   var
+      FailedFiles: tStringList;
+      i: integer;
+   begin
+      FailedFiles:= tStringList.Create();
+      
+   writeLn;
+   writeln;   
+      for i:= 0 to PasFiles.Count - 1 do begin
+         writeln( PasFiles.Strings[ i]);
+         if( (i mod 2) = 0) then begin
+            FailedFiles.Add( PasFiles.Strings[ i]);
+         end;
+      end;
+      
+      PasFiles.Destroy;
+      result:= FailedFiles;
+   end; // Recompile()
+
+   
+// ************************************************************************
 // * main()
 // ************************************************************************
-var
-   C:  tCode;
-   i:  integer;
-begin
-   Codes:= CreateListOfFiles();
 
-   // dump the contents of Codes
-   for i:= 0 to Codes.Count - 1 do begin
-      C:= tCode( Codes.Items[ i]);
-      C.Dump;
-      C.Destroy;
+var
+   i:  integer;
+   c1: integer;
+begin
+   PasFiles:= CreateListOfFiles();
+
+   // dump the contents of PasFiles
+   for i:= 0 to PasFiles.Count - 1 do begin
+      writeln( PasFiles.Strings[ i]);
    end;
 
-   Codes.Destroy;
+   PasFiles:= Recompile( PasFiles);
+
+// ExtractFilePath
+// ExtractFileDir
+// ExtractFileName
+   PasFiles.Destroy;
 end.  // recompile_pas
