@@ -42,87 +42,6 @@ uses
    sysutils,  // functions to traverse a file directory
    classes;   // tFPList
 
-// // =======================================================================
-// // = tCode class - Holds a file name and its properties
-// // =======================================================================
-
-// type
-//    tCode = class
-//       private
-//          FIsOpen:    boolean;
-//          F:          Text; // The file
-//       public
-//          Name:       String;
-//          Folder:     String;
-//          Found:      boolean;
-//          Prog:       boolean;
-//          DependsOn:  tFPList; // List of tCode
-//          UsedBy:     tFPList; // List of tCode
-//          constructor Create( iName: String; iFolder: String);
-//          destructor  Destroy(); override;
-//          procedure   Dump( NameOnly: boolean = false; Indent: string = ''); // debug
-//          function    FullFileName(): string;
-//       private
-//          Line:       string;  // The current line as we parse the file
-//          iLine:      integer; // Current Position in the line.
-//          LLine:      integer; // The length of the line.   
-//          procedure   Open(); // Open the file
-//          procedure   Close(); // Close the file if it is open
-//          function    FullFileName(): string;
-//       end; // tCode class
-
-// { Notes  Curly Braces and (* *) are multi line.  // is to end of line}
-
-// // ***********************************************************************
-// // * Create() - constructor
-// // ***********************************************************************
-
-// constructor tCode.Create( iName: String; iFolder: String);
-//    begin
-//       inherited Create();
-//       Name:=       iName;
-//       Folder:=     iFolder;
-//       Found:=      false;
-//       Prog:=       false;
-//       DependsOn:=  tFPList.Create();
-//       UsedBy:=     tFPList.Create();
-//       FIsOpen:=    false;
-//    end; // Create()
-
-
-// // ***********************************************************************
-// // * Destroy() - destructor
-// // ***********************************************************************
-
-// destructor tCode.Destroy();
-//    begin
-//       DependsOn.Destroy;
-//       UsedBy.Destroy;
-//       inherited Destroy;
-//    end; // Destroy()
-
-
-// // ***********************************************************************
-// // * Dump() - print the record to StdOut
-// // ***********************************************************************
-
-// procedure tCode.Dump( NameOnly: boolean; Indent: string);
-//    begin
-//       writeln( FullFileName);
-//       if( not NameOnly) then begin
-//       end;
-//    end; // Dump;
-
-
-// // ***********************************************************************
-// // * FullFileName() - Returns the full path file name
-// // ***********************************************************************
-
-// function tCode.FullFileName(): string;
-//    begin
-//       result:= Folder +  DirectorySeparator + Name;
-//    end; // FullFileName()
-
 
 // =======================================================================
 // = Global functions and variables
@@ -131,12 +50,98 @@ uses
 var
    PasFiles: tStringList;  // A list of files which initially are units and programs
                        // Later the programs will be moved to Progs.
-   
+   FPC: string; // The full path to the fpc executeable
+
 // ***********************************************************************
-// * CreateListOfFiles() - Returns an tFPList of tCode
+// * CreateListOfFiles() - Returns an tStringList of tCode
 // ***********************************************************************
-{$WARNING Create an outer function which creates the tFPList and returns it}
-{$WARNING It then calls the inner function which is recusive.}
+
+function GetPathStrings(): tStringList;
+   var
+      {$ifdef UNIX}
+         PathSeparator: char = ':';
+      {$endif}
+      {$ifdef WINDOWS}
+         PathSeparator: char = ';';
+      {$endif}
+      PathStrings: tStringList;
+      SearchPath:  string;
+      i:           integer; 
+      L:           integer; // length of S
+      iStart:      integer;
+      S:           string;
+      C:           char;
+   begin
+      PathStrings:= tStringList.Create;
+      SearchPath:= GetEnvironmentVariable( 'PATH');
+       L:= Length( SearchPath);
+      iStart:= 1;
+      S:= '';
+      i:= 1;
+      while( i <= L) do begin
+         C:= SearchPath[ i];
+         if( C = PathSeparator ) then begin
+            // Add S to PathStrings;
+            if( i > iStart) then begin
+               if( S[ Length(s)] <> DirectorySeparator) then begin
+                  S:= S + DirectorySeparator;
+               end;
+               PathStrings.Add( S);
+            end;
+            iStart:= i + 1;
+            S:= '';
+         end else begin
+            S:= S + C;
+         end;
+         Inc( i);
+      end;
+
+      if( i > iStart) then begin
+         if( S[ Length(s)] <> DirectorySeparator) then begin
+            S:= S + DirectorySeparator;
+         end;
+         PathStrings.Add( S);
+      end;
+      result:= PathStrings;
+   end; // GetPathStrings();
+      
+
+// ***********************************************************************
+// * GetFPC() - Returns the full path to the FPC compiler
+// ***********************************************************************
+
+function GetFPC(): string;
+   var
+      SearchPath: tStringList;
+      S:          string;
+      i:          integer;
+      L:          integer;
+      {$ifdef UNIX}
+         FPC:        string = 'fpc';
+      {$endif}
+      {$ifdef WINDOWS}
+         FPC:        string = 'fpc.exe';
+      {$endif}
+   begin
+      SearchPath:= GetPathStrings;
+      L:= SearchPath.Count - 1;
+      for i:= 0 to L do begin
+         S:= SearchPath.Strings[ i] + FPC;
+         if( FileExists( S)) then begin
+            result:= S;
+            SearchPath.Destroy;
+            exit;
+         end;
+      end;
+
+      raise Exception.Create( FPC + ' was not found in the search path!');
+   end; // GetFPC()
+
+
+// ***********************************************************************
+// * CreateListOfFiles() - Returns an tStringList of Pascal source code files
+// ***********************************************************************
+
 function CreateListOfFiles( Path: string = '.'): tStringList;
    var
       CurrentDir: String;
@@ -195,17 +200,17 @@ function CreateListOfFiles( Path: string = '.'): tStringList;
 // *               of files which failed to compile.
 // ************************************************************************
 
-function Recompile(  PasFiles: tStringList): tStringList;
+function Recompile(  PasFiles: tStringList; FPC: string): tStringList;
    var
       FailedFiles: tStringList;
       i: integer;
    begin
       FailedFiles:= tStringList.Create();
       
-   writeLn;
-   writeln;   
+   // writeLn;
+   // writeln;   
       for i:= 0 to PasFiles.Count - 1 do begin
-         writeln( PasFiles.Strings[ i]);
+         // writeln( PasFiles.Strings[ i]);
          if( (i mod 2) = 0) then begin
             FailedFiles.Add( PasFiles.Strings[ i]);
          end;
@@ -220,21 +225,18 @@ function Recompile(  PasFiles: tStringList): tStringList;
 // * main()
 // ************************************************************************
 
-var
-   i:  integer;
-   c1: integer;
 begin
    PasFiles:= CreateListOfFiles();
+   FPC:= GetFPC;
 
    // dump the contents of PasFiles
-   for i:= 0 to PasFiles.Count - 1 do begin
-      writeln( PasFiles.Strings[ i]);
-   end;
+   // for i:= 0 to PasFiles.Count - 1 do begin
+   //    writeln( PasFiles.Strings[ i]);
+   // end;
 
-   PasFiles:= Recompile( PasFiles);
+   PasFiles:= Recompile( PasFiles, FPC);
 
-// ExtractFilePath
-// ExtractFileDir
-// ExtractFileName
    PasFiles.Destroy;
+
+   writeln( GetFPC);
 end.  // recompile_pas
