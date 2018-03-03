@@ -40,6 +40,7 @@ program recompile_pas;
 
 uses
    sysutils,  // functions to traverse a file directory
+   process,   // Execute a child program
    classes;   // tFPList
 
 
@@ -48,9 +49,10 @@ uses
 // =======================================================================
 
 var
-   PasFiles: tStringList;  // A list of files which initially are units and programs
-                       // Later the programs will be moved to Progs.
-   FPC: string; // The full path to the fpc executeable
+   MaxAttempts:  integer  = 4; // The maximum attempts to compile.
+   ShowProgress: boolean  = true;
+   ShowFailed:   boolean  = true;
+
 
 // ***********************************************************************
 // * CreateListOfFiles() - Returns an tStringList of tCode
@@ -196,47 +198,84 @@ function CreateListOfFiles( Path: string = '.'): tStringList;
 
 
 // ************************************************************************
-// * Recompile() - Recompile every file in PasFiles.  Return a string list
-// *               of files which failed to compile.
+// * RecompileSub() - Recompile every file in PasFiles.  On return PasFiles
+// *                  contains only the files wich failed to compile.
 // ************************************************************************
 
-function Recompile(  PasFiles: tStringList; FPC: string): tStringList;
+procedure RecompileSub(  var PasFiles: tStringList; FPC: string);
    var
-      FailedFiles: tStringList;
-      i: integer;
+      FailedFiles:  tStringList;
+      i:            integer;
+      L:            integer;
+      Folder:       string;
+      Options:      array[ 1..1] of string;
+      OutputStr:    string;
+      ExitStatus:   integer;
+      RunResult:    integer;      
    begin
       FailedFiles:= tStringList.Create();
       
    // writeLn;
    // writeln;   
-      for i:= 0 to PasFiles.Count - 1 do begin
-         // writeln( PasFiles.Strings[ i]);
-         if( (i mod 2) = 0) then begin
+      L:= PasFiles.Count - 1;
+      for i:= 0 to L do begin
+         Folder:= ExtractFilePath( PasFiles.Strings[ i]);
+         Options[ 1]:= ExtractFileName( PasFiles.Strings[ i]);
+         
+         RunResult:= RunCommandInDir( Folder, FPC, Options, OutputStr, ExitStatus);
+         if( (RunResult = 0) and (ExitStatus = 0)) then begin
+            if( ShowProgress) then writeln( 'OK:      ', PasFiles.Strings[ i]);
+         end else begin
+            if( ShowProgress) then writeln( 'Failed:  ', PasFiles.Strings[ i]);
             FailedFiles.Add( PasFiles.Strings[ i]);
          end;
+         
       end;
       
       PasFiles.Destroy;
-      result:= FailedFiles;
-   end; // Recompile()
+      PasFiles:= FailedFiles;
+   end; // RecompileSub()
 
    
+// ************************************************************************
+// * Recompile() - Recompile all pascal files found in the current folder's
+//                 subtree.
+// ************************************************************************
+
+procedure Recompile();
+   var
+      PasFiles:  tStringList;  // List of source code files
+      FPC:       string;       // Full path of the compiler executeable
+      PassCount: integer = 0;
+      i:         integer;
+   begin
+      PasFiles:= CreateListOfFiles();
+      FPC:= GetFPC;
+   
+      while( (PassCount < MaxAttempts) and (PasFiles.Count > 0)) do begin
+         RecompileSub( PasFiles, FPC);
+         inc( PassCount);
+      end;
+   
+      if( ShowFailed) then begin
+         if( PasFiles.Count > 0) then begin
+           writeln();
+           writeln();
+           writeln( 'The following files failed to compile!');
+           writeln();
+         end;
+         for i:= 0 to PasFiles.Count - 1 do begin
+            writeln( PasFiles.Strings[ i]);
+         end;
+      end; // If ShowFailed
+      PasFiles.Destroy;
+   end; // Recompile()
+
+
 // ************************************************************************
 // * main()
 // ************************************************************************
 
 begin
-   PasFiles:= CreateListOfFiles();
-   FPC:= GetFPC;
-
-   // dump the contents of PasFiles
-   // for i:= 0 to PasFiles.Count - 1 do begin
-   //    writeln( PasFiles.Strings[ i]);
-   // end;
-
-   PasFiles:= Recompile( PasFiles, FPC);
-
-   PasFiles.Destroy;
-
-   writeln( GetFPC);
+   Recompile();
 end.  // recompile_pas
