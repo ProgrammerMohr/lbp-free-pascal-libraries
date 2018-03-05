@@ -2,7 +2,11 @@
 
 Copyright (c) 2017 by Lloyd B. Park
 
-a class to handle some UNIX file information.
+recompile_pas program.  This porgram gathers a list of pascal source code files
+(.pas and .pp) in the current folder and all subfolders of the current folder.
+It then attempts to compile is source file.  Any that fail are tried again in a 
+second, third, and fourth pass.  This is inefficient, but much easier than 
+parsing each file looking for 'uses' clauses and building a dependency tree.
 
 This file is part of Lloyd's Free Pascal Libraries (LFPL).
 
