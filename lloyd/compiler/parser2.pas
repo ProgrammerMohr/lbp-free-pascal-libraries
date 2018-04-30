@@ -35,8 +35,6 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 *************************************************************************** *}
 
 { Parser program.                                       Lloyd B. Park  }
-{                                                       298-42-8639    }
-{                                                       Section 1510   }
 {                             March 03, 1992                           }
 {                                                                      }
 {           1  modified to include code generation  April 01, 1993     }

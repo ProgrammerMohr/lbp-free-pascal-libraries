@@ -35,8 +35,6 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 *************************************************************************** *}
 
 { Lists file                                            Lloyd B. Park  }
-{                                                       298-42-8639    }
-{                                                       Section 1510   }
 {                             January 31, 1992                         }
 {                                                                      }
 { This Turbo Pascal code fragment implements double linked lists.      }

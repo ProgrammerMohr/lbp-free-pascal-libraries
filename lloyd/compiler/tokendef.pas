@@ -35,8 +35,6 @@ Token definitions from an old compiler CS course
 *************************************************************************** *}
 
 { Token definitions                                     Lloyd B. Park  }
-{                                                       298-42-8639    }
-{                                                       Section 1510   }
 {                             February 09, 1992                        }
 {                                                                      }
 unit TokenDef;

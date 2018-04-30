@@ -35,8 +35,6 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 *************************************************************************** *}
 
 { Parser program.                                       Lloyd B. Park  }
-{                                                       298-42-8639    }
-{                                                       Section 1510   }
 {                             March 03, 1992                           }
 {                                                                      }
 { This Turbo Pascal unit performs a lexical analysis of the input file }

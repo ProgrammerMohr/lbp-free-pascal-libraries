@@ -35,8 +35,6 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 *************************************************************************** *}
 
 { Buffered text input module.                           Lloyd B. Park }
-{                                                       298-42-8639   }
-{                                                       Section 1510  }
 {                             January 31, 1992                        }
 {                                                                     }
 { This Turbo Pascal unit buffers the input from text files.           }

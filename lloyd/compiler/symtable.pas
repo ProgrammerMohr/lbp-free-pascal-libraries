@@ -35,8 +35,6 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 *************************************************************************** *}
 
 { Symbol Table Module                                   Lloyd B. Park  }
-{                                                       298-42-8639    }
-{                                                       Section 1510   }
 {                             February 09, 1992                        }
 {                                                                      }
 {  1. April 01, 1993                                                   }

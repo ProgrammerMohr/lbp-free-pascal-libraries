@@ -35,8 +35,6 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 *************************************************************************** *}
 
 { Lexical Analyzer module.                              Lloyd B. Park  }
-{                                                       298-42-8639    }
-{                                                       Section 1510   }
 {                             January 31, 1992                         }
 {  1.  April 01, 1993                                                  }
 {         Initialized new Identifier's attributes in the sybol table   }
