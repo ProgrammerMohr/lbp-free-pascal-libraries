@@ -110,7 +110,7 @@ type
 //      private
       public
          Str:           string; // the string value
-         InUse:         boolean; // true or false
+         IsSet:         boolean; // true or false
          ValueRequired: boolean;
       public
          constructor Create();
@@ -134,6 +134,7 @@ function  AddParam( Names: array of string;
 procedure AddParamAlias( Alias: string; Name: string);
 procedure AddPostParseProcedure( P: tArgVParseProc);
 function  GetParam( Name: string): string;
+procedure SetParam( Name: string; iValue: string; iIsSet: boolean);
 function  ParamSet( Name: string): boolean;
 procedure ParseHelper( Name: string; var Value: string);
 procedure ParseHelper( Name: string; var Value: integer);
@@ -162,7 +163,7 @@ constructor ParamValue.Create();
    begin
       inherited Create();
       Str:=   '';
-      InUse:= false;
+      IsSet:= false;
    end; // Create();
 
 
@@ -361,8 +362,25 @@ function ParamSet( Name: string): boolean;
    begin
       PV:= ParamValue( PVTree.Find( Name).auxpointer);
       if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
-      result:= PV.InUse;
+      result:= PV.IsSet;
    end; // ParamSet()
+
+
+// ************************************************************************
+// * SetParam() - Sets the default string value and the IsSet flag to
+// *              new values.  This should be done before the call to 
+// *              call to ParseParams().
+// ************************************************************************
+
+procedure SetParam( Name: string; iValue: string; iIsSet: boolean);
+   var
+      PV:   ParamValue;
+   begin
+      PV:= ParamValue( PVTree.Find( Name).auxpointer);
+      if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
+      PV.IsSet:= iIsSet;
+      PV.Str:= iValue;
+   end; // SetParam()
 
 
 // ************************************************************************
@@ -377,7 +395,7 @@ procedure ParseHelper( Name: string; var Value: string);
    begin
       PV:= ParamValue( PVTree.Find( Name).auxpointer);
       if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
-      if( PV.InUse) then Value:= PV.Str;
+      if( PV.IsSet) then Value:= PV.Str;
    end; // ParseHelper
 
 
@@ -391,7 +409,7 @@ procedure ParseHelper( Name: string; var Value: integer);
    begin
       PV:= ParamValue( PVTree.Find( Name).auxpointer);
       if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
-      if( PV.InUse) then begin
+      if( PV.IsSet) then begin
          Val( PV.Str, Temp, Code);
          if( Code > 0) then raise argv_exception.Create( Name + ' parameter value is not a valid integer!');
          Value:= Temp;
@@ -441,22 +459,22 @@ procedure ParseParams();
                // Name=Value pair?
                if( i > 0) then begin
                   if( PV.ValueRequired) then begin
-                     PV.InUse:= true;
+                     PV.IsSet:= true;
                      PV.Str:= Value;
                      PV:= nil;
                   end else begin
                      Value:= lowercase( Value);
                      if( (Value = '1') or (Value = 't') or (Value = 'true') or (Value = 'y') or (Value = 'yes')) then begin
-                        PV.InUse:= true;
+                        PV.IsSet:= true;
                      end else begin
-                        PV.InUse:= false;
+                        PV.IsSet:= false;
                      end; // true or false Value
                   end;
                end else begin
 
                   // else not a Name=Value pair
                   if( not PV.ValueRequired) then begin
-                     PV.InUse:= true;
+                     PV.IsSet:= true;
                      PV:= nil;
                   end;
                end; // if/else Name=Value pair
@@ -470,7 +488,7 @@ procedure ParseParams();
             // PV <> nil
             // This is the stand alone value of a named parameter
             PV.Str:= ParamStr( iP);
-            PV.InUse:= true;
+            PV.IsSet:= true;
             PV:= nil;
          end; // else PV <> nil
       end; // for
@@ -559,11 +577,11 @@ procedure DumpParams();
       while( Length( S) > 0) do begin
          PV:= ParamValue( PVTree.Find( S).auxpointer);
          if( PV.ValueRequired) then begin
-            if( PV.InUse) then begin
+            if( PV.IsSet) then begin
                writeln( '   ', S, '=', PV.Str);
             end;
          end else begin
-            if( PV.InUse) then begin
+            if( PV.IsSet) then begin
                writeln( '   ', S, '=true');
             end else begin
                writeln( '   ', S, '=false');
