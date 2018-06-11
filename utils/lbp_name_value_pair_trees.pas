@@ -47,24 +47,34 @@ uses
    lbp_types;
 
 // *************************************************************************
-// * tNVPNode - Name Value Pair node.
+// * tgNVPNode - Name Value Pair node.
 // *************************************************************************
 type
-   tNVPNode = class
-      public
-         MyName:  string;
-         MyValue: string;
-         constructor Create( Name: string; Value: string);
-      end; // tNVPNode
-
-
-// *************************************************************************
-// * tNameValuePairTree - Basic tree with case sensitive searching.
-// *************************************************************************
-type
-   tNameValuePairTree = class( tBalancedBinaryTree)
+   generic tgNVPNode<T> = class
       protected
-         NVP:        tNVPNode;
+         MyName:  string;
+         MyValue: T;
+         procedure SetName( iName: string);
+         function  GetName(): string;
+         procedure SetValue( iValue: T);
+         function  GetValue(): T;
+      public
+         constructor Create( iName: string; iValue: T = Default( T));
+         property    Name:  string read GetName  write SetName;
+         property    Value: T      read GetValue write SetValue;            
+      end; // 53
+
+
+
+// *************************************************************************
+// * tgNameValuePairTree - Basic tree with case sensitive searching.
+// *************************************************************************
+type
+   generic tgNameValuePairTree<T> = class( tBalancedBinaryTree)
+      private type
+         tNode = specialize tgNVPNode<T>;
+      protected
+         NVP:        tNode;
       public
          constructor  Create( iDuplicateOK: boolean);
          procedure    Add(  iName: string; iValue: string); overload;
@@ -76,29 +86,16 @@ type
          procedure    Remove( iName: string); overload;
          procedure    Dump; virtual; // Debug
       private
-         function     GetValue(): string;
+         function     GetValue(): T;
+         function     CompareNames( N2: tNode): int8;
       public
-         property     Value: string read GetValue;
+         property     Value: T read GetValue;
       end; // tNameValuePairTree
 
 
 // *************************************************************************
 
 implementation
-
-// =========================================================================
-// = tNVPNode - Name Value Pair node.
-// =========================================================================
-// *************************************************************************
-// * Create() - constructor
-// *************************************************************************
-
-constructor tNVPNode.Create( Name: string; Value: string);
-   begin
-      MyName:= Name;
-      MyValue:= Value;
-   end; // Create()
-
 
 // =========================================================================
 // = Global procedures
@@ -119,14 +116,70 @@ function CompareNames(  P1: tNVPNode; P2: tNVPNode): int8;
    end; // CompareNames()
 
 
+
 // =========================================================================
-// = tNameValuePairTree
+// = tgNVPNode - Name Value Pair node.
+// =========================================================================
+// *************************************************************************
+// * Create() - constructor
+// *************************************************************************
+
+constructor tgNVPNode.Create( iName: string; iValue: T);
+   begin
+      Name:=  iName;
+      Value:= iValue;
+   end; // Create()
+
+
+// *************************************************************************
+// * SetName()
+// *************************************************************************
+
+procedure tgNVPNode.SetName( iName: string);
+   begin
+     MyName:= iName;
+   end; // SetName()
+
+
+// *************************************************************************
+// * GetName()
+// *************************************************************************
+
+function tgNVPNode.GetName(): string;
+   begin
+      result:= MyName;
+   end; // GetName()
+
+
+// *************************************************************************
+// * SetValue
+// *************************************************************************
+
+procedure tgNVPNode.SetValue( iValue: T);
+   begin
+     MyValue:= iValue;
+   end; // SetValue()
+
+
+// *************************************************************************
+// * GetValue
+// *************************************************************************
+
+function tgNVPNode.GetValue(): T;
+   begin
+      result:= MyValue;
+   end; // GetValue()
+
+
+
+// =========================================================================
+// = tgNameValuePairTree
 // =========================================================================
 // *************************************************************************
 // * Create() - Constructor
 // *************************************************************************
 
-constructor tNameValuePairTree.Create( iDuplicateOK: boolean);
+constructor tgNameValuePairTree.Create( iDuplicateOK: boolean);
    begin
       inherited Create( tCompareProcedure( @CompareNames), iDuplicateOK);
    end; //constructor
@@ -136,7 +189,7 @@ constructor tNameValuePairTree.Create( iDuplicateOK: boolean);
 // * Add() - Add a string to the tree
 // *************************************************************************
 
-procedure tNameValuePairTree.Add( iName: string; iValue: string);
+procedure tgNameValuePairTree.Add( iName: string; iValue: string);
    begin
       NVP:= tNVPNode.Create( iName, iValue);
       inherited Add( NVP);
@@ -148,13 +201,13 @@ procedure tNameValuePairTree.Add( iName: string; iValue: string);
 // *          with it.
 // *************************************************************************
 
-function tNameValuePairTree.Find( iName: string): string;
+function tgNameValuePairTree.Find( iName: string): string;
    var
       Temp: tNVPNode;
    begin
       Temp:= tNVPNode.Create( iName, '');
       NVP:= tNVPNode( inherited Find( Temp));
-      if( NVP = nil) then result:= '' else result:= NVP.MyValue;
+      if( NVP = nil) then result:= '' else result:= NVP.Value;
       Temp.Destroy;
       NVP:= nil;
    end; // Find()
@@ -164,10 +217,10 @@ function tNameValuePairTree.Find( iName: string): string;
 // * GetFirst() - Get the first Name in the tree
 // *************************************************************************
 
-function tNameValuePairTree.GetFirst(): string;
+function tgNameValuePairTree.GetFirst(): string;
    begin
       NVP:= tNVPNode( inherited GetFirst());
-      if( NVP = nil) then result:= '' else result:= NVP.MyName;
+      if( NVP = nil) then result:= '' else result:= NVP.Name;
    end; // GetFirst()
 
 
@@ -175,10 +228,10 @@ function tNameValuePairTree.GetFirst(): string;
 // * GetLast() - Get the Last string in the tree
 // *************************************************************************
 
-function tNameValuePairTree.GetLast():  string;
+function tgNameValuePairTree.GetLast():  string;
    begin
       NVP:= tNVPNode( inherited GetLast());
-      if( NVP = nil) then result:= '' else result:= NVP.MyName;
+      if( NVP = nil) then result:= '' else result:= NVP.Name;
    end; // GetLast()
 
 
@@ -186,10 +239,10 @@ function tNameValuePairTree.GetLast():  string;
 // * GetNext() - Get the Next string in the tree
 // *************************************************************************
 
-function tNameValuePairTree.GetNext():  string;
+function tgNameValuePairTree.GetNext():  string;
    begin
       NVP:= tNVPNode( inherited GetNext());
-      if( NVP = nil) then result:= '' else result:= NVP.MyName;
+      if( NVP = nil) then result:= '' else result:= NVP.Name;
    end; // GetNext()
 
 
@@ -197,10 +250,10 @@ function tNameValuePairTree.GetNext():  string;
 // * GetPrevious() - Get the previous string in the tree
 // *************************************************************************
 
-function tNameValuePairTree.GetPrevious(): string;
+function tgNameValuePairTree.GetPrevious(): string;
    begin
       NVP:= tNVPNode( inherited GetPrevious());
-      if( NVP = nil) then result:= '' else result:= NVP.MyName;
+      if( NVP = nil) then result:= '' else result:= NVP.Name;
    end; // GetPrevious()
 
 
@@ -208,7 +261,7 @@ function tNameValuePairTree.GetPrevious(): string;
 // * Remove - Remove the string from the tree
 // *************************************************************************
 
-procedure tNameValuePairTree.Remove( iName: string);
+procedure tgNameValuePairTree.Remove( iName: string);
    begin
       NVP:= tNVPNode.Create( iName, '');
       inherited Remove( NVP, true);
@@ -218,12 +271,28 @@ procedure tNameValuePairTree.Remove( iName: string);
 
 
 // *************************************************************************
+// * CompareNames() - Compare the Names of the tNodes
+// *************************************************************************
+
+function CompareNames<T>( N2: T): int8;
+   begin
+      if( Name > N2.Name) then begin
+         result:= 1;
+      end else if( Name < N2.Name) then begin
+         result:= -1;
+      end else begin
+         result:= 0;
+      end;
+   end; // CompareNames()
+
+
+// *************************************************************************
 // * GetValue() - Returns the value of the current Name Value pair
 // *************************************************************************
 
-function tNameValuePairTree.GetValue(): string;
+function tgNameValuePairTree.GetValue(): string;
    begin
-      if( NVP = nil) then result:= '' else result:= NVP.MyValue;
+      if( NVP = nil) then result:= '' else result:= NVP.Value;
    end; // GetValue()
 
 
@@ -231,7 +300,7 @@ function tNameValuePairTree.GetValue(): string;
 // * Dump() - Display all the strings in the tree.
 // *************************************************************************
 
-procedure tNameValuePairTree.Dump();
+procedure tgNameValuePairTree.Dump();
    var
       TempName: string;
    begin
