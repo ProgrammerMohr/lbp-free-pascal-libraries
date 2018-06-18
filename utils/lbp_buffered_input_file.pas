@@ -1,11 +1,10 @@
 {* ***************************************************************************
 
-Copyright (c) 2017 by Lloyd B. Park
+Copyright (c) 2018 by Lloyd B. Park
 
-Open a file for input based on command line options
-Note:  You must call SetInputFileParam() before parsing arguments!
-
-This file is part of Lloyd's Free Pascal Libraries (LFPL).
+Buffers the input from a text file to facilitate parsing where line breaks are
+just another optional white space.  It combines the features of lbp_input_file
+and the buffering I incorporated in a compiler college class in 1993.
 
     LFPL is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as 
@@ -32,10 +31,8 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 
     You should have received a copy of the GNU Lesser General Public 
     License along with LFPL.  If not, see <http://www.gnu.org/licenses/>.
-
 *************************************************************************** *}
-
-unit lbp_input_file;
+unit lbp_buffered_input_file;
 
 interface
 
@@ -52,12 +49,6 @@ uses
 
 
 // ************************************************************************
-
-var
-   InputFile:       text;
-   InputFileHandle: tHandle;  // the UNIX or Windows file handle associated with InputFile
-
-
 // ************************************************************************
 
 {$ifdef UNIX}
@@ -170,7 +161,7 @@ procedure ParseArgv();
    var
       FileName: string;
    begin
-      if( lbp_types.show_init) then writeln( 'lbp_input_file.ParseArgV:  begin');
+      if( lbp_types.show_init) then writeln( 'lbp_buffered_input_file.ParseArgV:  begin');
 
       if( ParamSet( 'input-file')) then begin
          if( not DoNotOpen) then begin
@@ -192,7 +183,7 @@ procedure ParseArgv();
       if( Available) then begin
          InputFileHandle:= TextRec( InputFile).Handle;
       end;
-      if( lbp_types.show_init) then writeln( 'lbp_input_file.ParseArgV:  end');
+      if( lbp_types.show_init) then writeln( 'lbp_buffered_input_file.ParseArgV:  end');
    end; // ParseArgV
 
 
@@ -201,10 +192,10 @@ procedure ParseArgv();
 initialization
    begin
       // Add Usage messages
-      if( lbp_types.show_init) then writeln( 'lbp_input_file.initialization:  begin');
+      if( lbp_types.show_init) then writeln( 'lbp_buffered_input_file.initialization:  begin');
       AddPostParseProcedure( @ParseArgv);
 
-      if( lbp_types.show_init) then writeln( 'lbp_input_file.initialization:  end');
+      if( lbp_types.show_init) then writeln( 'lbp_buffered_input_file.initialization:  end');
    end;
 
 
@@ -212,12 +203,12 @@ initialization
 
 finalization
    begin
-      if( lbp_types.show_init) then writeln( 'lbp_input_file.finalization:  begin');
+      if( lbp_types.show_init) then writeln( 'lbp_buffered_input_file.finalization:  begin');
       if( Opened) then close( InputFile);
-      if( lbp_types.show_init) then writeln( 'lbp_input_file.finalization:  end');
+      if( lbp_types.show_init) then writeln( 'lbp_buffered_input_file.finalization:  end');
    end;
 
 
 // *************************************************************************
 
-end. // lbp_input_file unit
+end.  // lbp_buffered_input_file unit

@@ -3,6 +3,9 @@
 Copyright (c) 2017 by Lloyd B. Park
 
 AVL and Red Black trees which use generics
+The AVL Tree is my attempt to make a generic version of Mattias Gaertner's
+tAVLTree in the AVL_Tree unit included with Free Pascal. 
+
 
 This file is part of Lloyd's Free Pascal Libraries (LFPL).
 
@@ -66,15 +69,16 @@ type
 // ************************************************************************
 
 type
-   generic tgAvlTreeNode< T: tObject> = class( tObject)
+   generic tgAvlTreeNode< T> = class( tObject)
       protected
-         Parent:     tgAvlTreeNode;
-         LeftChild:  tgAvlTreeNode;
-         RightChild: tgAvlTreeNode;
-         Balance:    integer;
-         Data:       T;
+         Parent:   tgAvlTreeNode;
+         Left:     tgAvlTreeNode;
+         Right:    tgAvlTreeNode;
+         Balance:  integer;
+         Data:     T;
       public
-         Constructor Create( MyData: T);
+         constructor Create( MyData: T);
+         function TreeDepth: integer; // longest WAY down. e.g. only one node => 0 !
       end; // tgAvlTreeNode
 
 
@@ -146,12 +150,41 @@ constructor tgAvlTreeNode.Create( MyData: T);
   // Makes a new and empty List
   begin
      inherited Create;
-     Parent:=     nil;
-     LeftChild:=  nil;
-     RightChild:= nil;
-     Balance:=    0;
-     Data:=       MyData;
+     Parent:=   nil;
+     Left:=     nil;
+     Right:=    nil;
+     Balance:=  0;
+     Data:=     MyData;
   end; // Create()
+
+
+// ************************************************************************
+// * TreeDepth() - Returns the depth of this node.
+// ************************************************************************
+
+function tgAvlTreeNode.TreeDepth: integer;
+// longest WAY down. e.g. only one node => 0 !
+var 
+   LeftDepth:  integer;
+   RightDepth: integer;
+begin
+  if Left<>nil then begin
+    LeftDepth:=Left.TreeDepth+1
+  end else begin
+    LeftDepth:=0;
+  end;
+
+  if Right<>nil then begin
+    RightDepth:=Right.TreeDepth+1
+  end else begin
+    RightDepth:=0;
+  end;
+  
+  if LeftDepth>RightDepth then
+    Result:=LeftDepth
+  else
+    Result:=RightDepth;
+end; // TreeDepth
 
 
 
