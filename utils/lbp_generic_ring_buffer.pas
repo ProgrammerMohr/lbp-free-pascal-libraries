@@ -79,21 +79,21 @@ uses
          protected
             function  IncIndex( I: integer): integer;
             function  DecIndex( I: integer): integer;
-
-             procedure      AddHead( Item: T); virtual; // Add to the head of the list
-             function       GetHead(): T; virtual;      // Return the head element.
-             function       DelHead(): T; virtual;      // Return the head element and remove it from the list.
-             procedure      AddTail( Item: T); virtual; // Add to the tail of the list
-             function       GetTail(): T; virtual;      // Return the head element
-             function       DelTail(): T; virtual;      // Return the head element and remove it from the list.
+         public
+            procedure      AddHead( Item: T); virtual; // Add to the head of the list
+            function       GetHead(): T; virtual;      // Return the head element.
+            function       RemoveHead(): T; virtual;      // Return the head element and remove it from the list.
+            procedure      AddTail( Item: T); virtual; // Add to the tail of the list
+            function       GetTail(): T; virtual;      // Return the head element
+            function       RemoveTail(): T; virtual;      // Return the head element and remove it from the list.
 //             procedure      RemoveAll(); virtual;
 //             procedure      StartIteration( Forward: boolean = true); virtual;
 //             function       Next():           boolean; virtual;
 //             procedure      RemoveAll( DestroyElements: boolean = false); virtual; // Remove all elements from the list.
              function       IsEmpty():        boolean; virtual;
              function       IsFull():         boolean; virtual;
-//             function       IsFirst():        boolean; virtual; // True if CurrentNode is First
-//             function       IsLast():         boolean; virtual;
+             function       IsFirst():        boolean; virtual; // True if CurrentNode is First
+             function       IsLast():         boolean; virtual;
 //             function       GetCurrent():     T virtual; // Returns the data pointer at CurrentNode
 //             function       GetEnumerator():  tListEnumerator;
 //             function       Reverse():        tListEnumerator;
@@ -158,8 +158,6 @@ function tgList.DecIndex( I: integer): integer;
 // ************************************************************************
 
 procedure tgList.AddHead( Item: T);
-   var
-      Temp: integer;
    begin
       if( IsFull) then begin
          raise lbpListException.Create( 'An attempt was made to add an item to a circular list which is full!');
@@ -167,6 +165,7 @@ procedure tgList.AddHead( Item: T);
 
       Items[ Head]:= Item;
       Head:= DecIndex( Head);
+      CurrentIndex:= -1;
    end; // AddHead()
 
 
@@ -174,7 +173,7 @@ procedure tgList.AddHead( Item: T);
 // * GetHead() - Returns the Item at the Head
 // ************************************************************************
 
-function tgList.GetHead(): T
+function tgList.GetHead(): T;
    begin
       if( IsEmpty) then begin
          raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
@@ -185,17 +184,18 @@ function tgList.GetHead(): T
 
 
 // ************************************************************************
-// * DelHead() - Removes and returns the Item at the Head
+// * RemoveHead() - Removes and returns the Item at the Head
 // ************************************************************************
 
-function tgList.DelHead(): T
+function tgList.RemoveHead(): T;
    begin
       if( IsEmpty) then begin
          raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
       end;
-      CurrentIndex:= IncIndex( Head);
+      Head:= IncIndex( Head);
+      CurrentIndex:= Head;
       result:= Items[ CurrentIndex];
-   end; // DelHead()
+   end; // RemoveHead()
 
 
 // ************************************************************************
@@ -203,8 +203,6 @@ function tgList.DelHead(): T
 // ************************************************************************
 
 procedure tgList.AddTail( Item: T);
-   var
-      Temp: integer;
    begin
       if( IsFull) then begin
          raise lbpListException.Create( 'An attempt was made to add an item to a circular list which is full!');
@@ -212,6 +210,7 @@ procedure tgList.AddTail( Item: T);
 
       Items[ Tail]:= Item;
       Tail:= IncIndex( Tail);
+      CurrentIndex:= -1;
    end; // AddTail()
 
 
@@ -219,28 +218,29 @@ procedure tgList.AddTail( Item: T);
 // * GetTail() - Returns the Item at the Tail
 // ************************************************************************
 
-function tgList.GetHead(): T
+function tgList.GetTail(): T;
    begin
       if( IsEmpty) then begin
          raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
       end;
       CurrentIndex:= DecIndex( Tail);
       result:= Items[ CurrentIndex];
-   end; // GetHead()
+   end; // GetTail()
 
 
 // ************************************************************************
-// * DelHead() - Removes and returns the Item at the Head
+// * DelTail() - Removes and returns the Item at the Tail
 // ************************************************************************
 
-function tgList.DelHead(): T
+function tgList.RemoveTail(): T;
    begin
       if( IsEmpty) then begin
          raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
       end;
-      CurrentIndex:= IncIndex( Head);
+      Tail:= DecIndex( Tail);
+      CurrentIndex:= Tail;
       result:= Items[ CurrentIndex];
-   end; // DelHead()
+   end; // RemoveTail()
 
 
 // ************************************************************************
@@ -252,6 +252,7 @@ function tgList.IsEmpty(): boolean;
       result:= (Tail = IncIndex( Head));
    end; // IsEmpty()
 
+
 // ************************************************************************
 // * IsFull() - Returns true if the buffer is full
 // ************************************************************************
@@ -260,6 +261,27 @@ function tgList.IsFull(): boolean;
    begin
       result:= (Head = IncIndex( Tail));
    end; // IsFull()
+
+
+// ************************************************************************
+// * IsFirst()  - Returns true if the current item is also first
+// ************************************************************************
+
+function tgList.IsFirst(): boolean;
+   begin
+     result:= (CurrentIndex = IncIndex( Head));
+   end; // IsFirst()
+
+
+// ************************************************************************
+// * IsLast()  - Returns true if the current item is also last
+// ************************************************************************
+
+function tgList.IsLast(): boolean;
+   begin
+     result:= (CurrentIndex = DecIndex( Tail));
+   end; // IsLast()
+
 
 // ************************************************************************
 
