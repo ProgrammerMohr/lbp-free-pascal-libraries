@@ -55,23 +55,34 @@ uses
    sysutils,       // Exceptions
    lbp_types;     // int32
 
+
 // ************************************************************************
 
    type
       lbpListException = class( lbp_exception);
       generic tgList< T> = class( tObject)
-//         private type
-//            tListNode = specialize tgListNode< T>;
-//            tListEnumerator = specialize tgDLListEnumerator< T>;
+         private type
+         // ---------------------------------------------------------------
+            tgListEnumerator = class(tObject)
+               private
+                  MyList: tgList;
+               public
+                  constructor Create( List: tgList);
+               private
+                  function GetCurrent(): T;
+               public
+                  function MoveNext(): boolean;
+                  property Current: T read GetCurrent;
+               end; // tgLListEnumerator
+         // ---------------------------------------------------------------
          public
             Name:          String;
          protected
             MySize:        integer;
             SizeM:         integer; // MySize - 1
-            Head:          integer;
-            Tail:          integer;
+            MyHead:        integer;
+            MyTail:        integer;
             CurrentIndex:  integer;
-            ListLength:    integer;
             MyForward:     boolean;
             Items:         array of T;
          public
@@ -86,28 +97,34 @@ uses
             procedure      AddTail( Item: T); virtual; // Add to the tail of the list
             function       GetTail(): T; virtual;      // Return the head element
             function       RemoveTail(): T; virtual;      // Return the head element and remove it from the list.
-//             procedure      RemoveAll(); virtual;
-//             procedure      StartIteration( Forward: boolean = true); virtual;
-//             function       Next():           boolean; virtual;
-//             procedure      RemoveAll( DestroyElements: boolean = false); virtual; // Remove all elements from the list.
-             function       IsEmpty():        boolean; virtual;
-             function       IsFull():         boolean; virtual;
-             function       IsFirst():        boolean; virtual; // True if CurrentNode is First
-             function       IsLast():         boolean; virtual;
-//             function       GetCurrent():     T virtual; // Returns the data pointer at CurrentNode
-//             function       GetEnumerator():  tListEnumerator;
-//             function       Reverse():        tListEnumerator;
-//             property       Head:             T read DelHead write AddHead;
-//             property       Tail:             T read DelTail write AddTail;
-//             property       Stack:            T read DelTail write AddTail;
-//             property       Push:             T write AddTail;
-//             property       Pop:              T read DelTail;
-//             property       Queue:            T read DelHead write AddTail;
-//             property       Enqueue:          T write AddTail;
-//             property       Dequeue:          T read DelHead;
-//             property       Value:            T read GetCurrent write Replace;
-//             property       Length:           Int32 read ListLength;
+            
+            procedure      Empty(); virtual;
+            procedure      StartIteration( Forward: boolean = true); virtual;
+            function       Next():           boolean; virtual;
+            function       IsEmpty():        boolean; virtual;
+            function       IsFull():         boolean; virtual;
+            function       IsFirst():        boolean; virtual; // True if CurrentNode is First
+            function       IsLast():         boolean; virtual;
+            function       GetCurrent():     T;       virtual; // Returns the data pointer at CurrentNode
+            procedure      Replace( Item: T); virtual; 
+//            function       Length():         integer; virtual;
+            function       GetEnumerator():  tgListEnumerator;
+            function       Reverse():        tgListEnumerator;
+            property       Head:             T read RemoveHead write AddHead;
+            property       Tail:             T read RemoveTail write AddTail;
+            property       Stack:            T read RemoveTail write AddTail;
+            property       Push:             T write AddTail;
+            property       Pop:              T read RemoveTail;
+            property       Queue:            T read RemoveHead write AddTail;
+            property       Enqueue:          T write AddTail;
+            property       Dequeue:          T read RemoveHead;
+            property       Value:            T read GetCurrent write Replace;
+            property       Forward:    boolean read MyForward write MyForward;
       end; // generic tgList
+
+
+// ************************************************************************
+
 
 
 // ************************************************************************
@@ -124,12 +141,15 @@ implementation
 
 constructor tgList.Create( const iSize: integer; iName: string = '');
    begin
+      inherited Create;
       MySize:= iSize + 2;
       SizeM:=  iSize + 1;
       Name:=   iName;
       SetLength( Items, MySize);
-      Head:= 0;
-      Tail:= 1;
+      MyHead:= 0;
+      MyTail:= 1;
+      MyForward:= true;
+      CurrentIndex:= -1;
    end; // Create()
 
 
@@ -163,8 +183,8 @@ procedure tgList.AddHead( Item: T);
          raise lbpListException.Create( 'An attempt was made to add an item to a circular list which is full!');
       end;
 
-      Items[ Head]:= Item;
-      Head:= DecIndex( Head);
+      Items[ MyHead]:= Item;
+      MyHead:= DecIndex( MyHead);
       CurrentIndex:= -1;
    end; // AddHead()
 
@@ -178,8 +198,8 @@ function tgList.GetHead(): T;
       if( IsEmpty) then begin
          raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
       end;
-      CurrentIndex:= IncIndex( Head);
-      result:= Items[ CurrentIndex];
+      CurrentIndex:= -1;
+      result:= Items[ IncIndex( MyHead)];
    end; // GetHead()
 
 
@@ -192,9 +212,9 @@ function tgList.RemoveHead(): T;
       if( IsEmpty) then begin
          raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
       end;
-      Head:= IncIndex( Head);
-      CurrentIndex:= Head;
-      result:= Items[ CurrentIndex];
+      MyHead:= IncIndex( MyHead);
+      result:= Items[ MyHead];
+      CurrentIndex:= -1;
    end; // RemoveHead()
 
 
@@ -208,8 +228,8 @@ procedure tgList.AddTail( Item: T);
          raise lbpListException.Create( 'An attempt was made to add an item to a circular list which is full!');
       end;
 
-      Items[ Tail]:= Item;
-      Tail:= IncIndex( Tail);
+      Items[ MyTail]:= Item;
+      MyTail:= IncIndex( MyTail);
       CurrentIndex:= -1;
    end; // AddTail()
 
@@ -223,13 +243,13 @@ function tgList.GetTail(): T;
       if( IsEmpty) then begin
          raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
       end;
-      CurrentIndex:= DecIndex( Tail);
-      result:= Items[ CurrentIndex];
+      CurrentIndex:= -1;
+      result:= Items[ DecIndex( MyTail)];
    end; // GetTail()
 
 
 // ************************************************************************
-// * DelTail() - Removes and returns the Item at the Tail
+// * RemoveTail() - Removes and returns the Item at the Tail
 // ************************************************************************
 
 function tgList.RemoveTail(): T;
@@ -237,10 +257,59 @@ function tgList.RemoveTail(): T;
       if( IsEmpty) then begin
          raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
       end;
-      Tail:= DecIndex( Tail);
-      CurrentIndex:= Tail;
-      result:= Items[ CurrentIndex];
+      MyTail:= DecIndex( MyTail);
+      result:= Items[ MyTail];
+      CurrentIndex:= -1;
    end; // RemoveTail()
+
+
+// ************************************************************************
+// * RemoveAll() - Remove all elements from the list.  No destructors are
+//                 called!
+// ************************************************************************
+
+procedure tgList.Empty;
+   begin
+      MyHead:= 0;
+      MyTail:= 1;
+      MyForward:= true;
+      CurrentIndex:= -1;   
+   end; // RemoveAll
+
+
+// ************************************************************************
+// * StartIteration() - Begin the iteration
+// ************************************************************************
+
+procedure tgList.StartIteration( Forward: boolean);
+   begin
+      MyForward:= Forward;  // Set the direction
+      CurrentIndex:= -1;
+   end; // StartIteration
+
+
+// ************************************************************************
+// * Next() - Returns true if the buffer is empty
+// ************************************************************************
+
+function tgList.Next(): boolean;
+   begin
+      // If Empty
+      if( (MyTail = IncIndex( MyHead))) then begin
+         result:= false;
+      end else begin
+         if( MyForward) then begin
+            if( CurrentIndex < 0) then CurrentIndex:= MyHead;
+            CurrentIndex:= IncIndex( CurrentIndex);
+            if( CurrentIndex = MyTail) then CurrentIndex:= -1;  
+         end else begin
+            if( CurrentIndex < 0) then CurrentIndex:= MyTail;
+            CurrentIndex:= DecIndex( CurrentIndex);
+            if( CurrentIndex = MyHead) then CurrentIndex:= -1;  
+         end; // else not MyForward
+         result:= ( CurrentIndex >= 0);
+      end; // else not MyForward
+   end; // Next();
 
 
 // ************************************************************************
@@ -249,7 +318,7 @@ function tgList.RemoveTail(): T;
 
 function tgList.IsEmpty(): boolean;
    begin
-      result:= (Tail = IncIndex( Head));
+      result:= (MyTail = IncIndex( MyHead));
    end; // IsEmpty()
 
 
@@ -259,7 +328,7 @@ function tgList.IsEmpty(): boolean;
 
 function tgList.IsFull(): boolean;
    begin
-      result:= (Head = IncIndex( Tail));
+      result:= (MyHead = IncIndex( MyTail));
    end; // IsFull()
 
 
@@ -269,7 +338,7 @@ function tgList.IsFull(): boolean;
 
 function tgList.IsFirst(): boolean;
    begin
-     result:= (CurrentIndex = IncIndex( Head));
+     result:= (CurrentIndex = IncIndex( MyHead));
    end; // IsFirst()
 
 
@@ -279,8 +348,87 @@ function tgList.IsFirst(): boolean;
 
 function tgList.IsLast(): boolean;
    begin
-     result:= (CurrentIndex = DecIndex( Tail));
+     result:= (CurrentIndex = DecIndex( MyTail));
    end; // IsLast()
+
+
+// ************************************************************************
+// * GetCurrent() - Returns the current element
+// ************************************************************************
+
+function tgList.GetCurrent: T;
+   begin
+      result:= Items[ CurrentIndex];
+   end; // GetCurrent;
+
+
+// ************************************************************************
+// * Replace() - Replaces the current element with a new value
+// ************************************************************************
+
+procedure tgList.Replace( Item: T);
+   begin
+      Items[ CurrentIndex]:= Item;   
+   end; // Replace()
+
+
+// ************************************************************************
+// * GetEnumerator()  - Returns the enumerator
+// ************************************************************************
+
+function tgList.GetEnumerator():  tgListEnumerator;
+   begin
+      result:= tgListEnumerator.Create( Self);
+      CurrentIndex:= -1;
+      MyForward:= true;
+   end; // GetEnumerator()
+
+
+// ************************************************************************
+// * Reverse()  - Returns the enumerator
+// ************************************************************************
+
+function tgList.Reverse():  tgListEnumerator;
+   begin
+      result:= tgListEnumerator.Create( Self);
+      CurrentIndex:= -1;
+      MyForward:= false;
+   end; // Reverse()
+
+
+// ------------------------------------------------------------------------
+// -  tgListEnumerator
+// ------------------------------------------------------------------------
+// ************************************************************************
+// * Create() - constructor
+// ************************************************************************
+
+constructor tgList.tgListEnumerator.Create( List: tgList);
+   begin
+      inherited Create;
+      List.CurrentIndex:= -1;
+      MyList:= List;
+   end; // Create()
+
+
+// ************************************************************************
+// * GetCurrent() - Return the current list element
+// ************************************************************************
+
+function tgList.tgListEnumerator.GetCurrent(): T;
+   begin
+      result:= MyList.Items[ MyList.CurrentIndex];
+   end; // GetCurrent()
+
+
+// ************************************************************************
+// * MoveNext() - Move to the next element in the list
+// ************************************************************************
+
+function tgList.tgListEnumerator.MoveNext(): T;
+   begin
+      result:= MyList.Next;
+   end; // MoveNext()
 
 
 // ************************************************************************

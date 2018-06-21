@@ -73,6 +73,7 @@ uses
 // ************************************************************************
 
 type
+  {$WARNING See lbp_generic_ring_buffer for the proper way to do enumerators}
    generic tgDLListEnumerator<T> = class(tObject)
       public
          MyList: tObject;

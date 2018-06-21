@@ -30,14 +30,14 @@ procedure FillForward( L: CharList; Debug: boolean = False);
       C:= 'a';
       while( not L.IsFull) do begin
          if( Debug) then begin
-            if( L.IsEmpty) then writeln( '   Empty') else writeln( '   Not empty');
+            if( L.IsEmpty) then writeln( '   Empty');
             writeln( '   Adding ', C);
          end; // if Debug
          L.AddHead( C);
          inc( C);
          if( Debug) then begin
-            if( L.IsEmpty) then writeln( '   Empty') else writeln( '   Not empty');
-            if( L.IsFull)  then writeln( '   Full')  else writeln( '   Not full');
+            if( L.IsEmpty) then writeln( '   Empty');
+            if( L.IsFull)  then writeln( '   Full');
          end; // if Debug
       end;
    end; // FillForward()
@@ -55,14 +55,14 @@ procedure FillReverse( L: CharList; Debug: boolean = False);
       C:= 'a';
       while( not L.IsFull) do begin
          if( Debug) then begin
-            if( L.IsEmpty) then writeln( '   Empty') else writeln( '   Not empty');
+            if( L.IsEmpty) then writeln( '   Empty');
             writeln( '   Adding ', C);
          end; // if Debug
          L.AddTail( C);
          inc( C);
          if( Debug) then begin
-            if( L.IsEmpty) then writeln( '   Empty') else writeln( '   Not empty');
-            if( L.IsFull)  then writeln( '   Full')  else writeln( '   Not full');
+            if( L.IsEmpty) then writeln( '   Empty');
+            if( L.IsFull)  then writeln( '   Full');
          end; // if Debug
       end;
    end; // FillReverse()
@@ -79,12 +79,12 @@ procedure EmptyForward( L: CharList; Debug: boolean = False);
       writeln( 'EmptyForward()');
       while( not L.IsEmpty) do begin
          if( Debug) then begin
-            if( L.IsFull)  then writeln( '   Full')  else writeln( '   Not full');
+            if( L.IsFull)  then writeln( '   Full');
          end; // if Debug
          C:= L.RemoveTail;
          if( Debug) then begin
             writeln( '   Removed ', C);
-            if( L.IsEmpty) then writeln( '   Empty') else writeln( '   Not empty');
+            if( L.IsEmpty) then writeln( '   Empty');
          end; // if Debug
       end;
    end; // EmptyForward()
@@ -101,15 +101,120 @@ procedure EmptyReverse( L: CharList; Debug: boolean = False);
       writeln( 'EmptyReverse()');
       while( not L.IsEmpty) do begin
          if( Debug) then begin
-            if( L.IsFull)  then writeln( '   Full')  else writeln( '   Not full');
+            if( L.IsFull)  then writeln( '   Full');
          end; // if Debug
          C:= L.RemoveHead;
          if( Debug) then begin
             writeln( '   Removed ', C);
-            if( L.IsEmpty) then writeln( '   Empty') else writeln( '   Not empty');
+            if( L.IsEmpty) then writeln( '   Empty');
          end; // if Debug
       end;
    end; // EmptyReverse()
+
+
+// ************************************************************************
+// * PushPop()
+// ************************************************************************
+
+procedure PushPop( L: CharList; Debug: boolean = False);
+   var
+      C: char;
+   begin
+      writeln( 'PushPop()');
+      C:= 'a';
+      while( not L.IsFull) do begin
+         if( Debug) then begin
+            if( L.IsEmpty) then writeln( '   Empty');
+            writeln( '   Pushed ', C);
+         end; // if Debug
+         L.Push:= C;
+         inc( C);
+         if( Debug) then begin
+            if( L.IsEmpty) then writeln( '   Empty');
+            if( L.IsFull)  then writeln( '   Full');
+         end; // if Debug
+      end; 
+
+      while( not L.IsEmpty) do begin
+         if( Debug) then begin
+            if( L.IsFull)  then writeln( '   Full')  else;
+         end; // if Debug
+         C:= L.Pop;
+         if( Debug) then begin
+            writeln( '   Popped ', C);
+            if( L.IsEmpty) then writeln( '   Empty');
+         end; // if Debug
+      end;
+   end; // PushPop()
+
+
+// ************************************************************************
+// * EnqueueDequeue()
+// ************************************************************************
+
+procedure EnqueueDequeue( L: CharList; Debug: boolean = False);
+   var
+      C: char;
+   begin
+      writeln( 'EnqueueDequeue()');
+      C:= 'a';
+      while( not L.IsFull) do begin
+         if( Debug) then begin
+            if( L.IsEmpty) then writeln( '   Empty');
+            writeln( '   Enqueue ', C);
+         end; // if Debug
+         L.Queue:= C;
+         inc( C);
+         if( Debug) then begin
+            if( L.IsEmpty) then writeln( '   Empty');
+            if( L.IsFull)  then writeln( '   Full');
+         end; // if Debug
+      end; 
+
+      while( not L.IsEmpty) do begin
+         if( Debug) then begin
+            if( L.IsFull)  then writeln( '   Full')  else;
+         end; // if Debug
+         C:= L.Queue;
+         if( Debug) then begin
+            writeln( '   Dequeued ', C);
+            if( L.IsEmpty) then writeln( '   Empty');
+         end; // if Debug
+      end;
+   end; // EnqueueDequeue()
+
+
+// ************************************************************************
+// * ForIterate()
+// ************************************************************************
+
+procedure ForIterate( L: CharList; Debug: boolean = False);
+   var
+      C: char;
+      i: integer = 1;
+   begin
+      writeln( 'ForIterate()');
+      for C in L do begin
+         if Debug then Writeln( '   ', C);
+         if( i = 8) then exit;
+         inc( i);
+      end;
+   end; // ForIterate()
+
+
+// ************************************************************************
+// * Iterate()
+// ************************************************************************
+
+procedure Iterate( L: CharList; Debug: boolean = False);
+   var
+      C: char;
+      i: integer = 1;
+   begin
+      writeln( 'Iterate()');
+      L.StartIteration;
+      while (L.Next) do if Debug then writeln( '   ', L.Value);
+   end; // Iterate()
 
 
 // ************************************************************************
@@ -122,13 +227,17 @@ begin
 
    FillForward( L, true);
    EmptyForward( L, true);
-   FillForward( L, false);
+   FillForward( L);
    EmptyReverse( L, true);
    FillReverse( L, true);
    EmptyForward( L, true);
-   FillReverse( L, false);
+   FillReverse( L);
    EmptyReverse( L, true);
 
-
+   PushPop( L, true);
+   EnqueueDequeue( L, true);
+   FillReverse( L);
+   ForIterate( L, true);
+   Iterate( L, true);
    L.Destroy();
 end. // test_circular_list program
