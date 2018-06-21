@@ -59,6 +59,77 @@ uses
 
 // ************************************************************************
 
+type
+   lbpListException = class( lbp_exception);
+
+// ************************************************************************
+
+type
+   generic tgList< T> = class( tObject)
+      private type
+      // ---------------------------------------------------------------
+         tgListEnumerator = class(tObject)
+            private
+               MyList: tgList;
+            public
+               constructor Create( List: tgList);
+            private
+               function GetCurrent(): T;
+            public
+               function MoveNext(): boolean;
+               property Current: T read GetCurrent;
+            end; // tgLListEnumerator
+      // ---------------------------------------------------------------
+      public
+         Name:          String;
+      protected
+         MySize:        integer;
+         SizeM:         integer; // MySize - 1
+         MyHead:        integer;
+         MyTail:        integer;
+         CurrentIndex:  integer;
+         MyForward:     boolean;
+         Items:         array of T;
+      public
+         constructor    Create( const iSize: integer; iName: string = '');
+      protected
+         function  IncIndex( I: integer): integer;
+         function  DecIndex( I: integer): integer;
+      public
+         procedure      AddHead( Item: T); virtual; // Add to the head of the list
+         function       GetHead(): T; virtual;      // Return the head element.
+         function       RemoveHead(): T; virtual;      // Return the head element and remove it from the list.
+         procedure      AddTail( Item: T); virtual; // Add to the tail of the list
+         function       GetTail(): T; virtual;      // Return the head element
+         function       RemoveTail(): T; virtual;      // Return the head element and remove it from the list.
+         
+         procedure      Empty(); virtual;
+         procedure      StartIteration( Forward: boolean = true); virtual;
+         function       Next():           boolean; virtual;
+         function       IsEmpty():        boolean; virtual;
+         function       IsFull():         boolean; virtual;
+         function       IsFirst():        boolean; virtual; // True if CurrentNode is First
+         function       IsLast():         boolean; virtual;
+         function       GetCurrent():     T;       virtual; // Returns the data pointer at CurrentNode
+         procedure      Replace( Item: T); virtual; 
+//            function       Length():         integer; virtual;
+         function       GetEnumerator():  tgListEnumerator;
+         function       Reverse():        tgListEnumerator;
+         property       Head:             T read RemoveHead write AddHead;
+         property       Tail:             T read RemoveTail write AddTail;
+         property       Stack:            T read RemoveTail write AddTail;
+         property       Push:             T write AddTail;
+         property       Pop:              T read RemoveTail;
+         property       Queue:            T read RemoveHead write AddTail;
+         property       Enqueue:          T write AddTail;
+         property       Dequeue:          T read RemoveHead;
+         property       Value:            T read GetCurrent write Replace;
+         property       Forward:    boolean read MyForward write MyForward;
+   end; // generic tgList
+
+
+// ************************************************************************
+
    type
       generic tgListNode< T> = class( tObject)
          protected
@@ -87,7 +158,6 @@ type
 // ************************************************************************
 
    type
-      DoubleLinkedListException = class( lbp_exception);
       generic tgDoubleLinkedList< T> = class( tObject)
             //public type tListNodePtr = ^tListNode;
          private type
@@ -144,7 +214,307 @@ type
 implementation
 
 
-/// ========================================================================
+// ========================================================================
+// = tgList generic class
+// ========================================================================
+// ************************************************************************
+// * Constructors
+// ************************************************************************
+
+constructor tgList.Create( const iSize: integer; iName: string = '');
+   begin
+      inherited Create;
+      MySize:= iSize + 2;
+      SizeM:=  iSize + 1;
+      Name:=   iName;
+      SetLength( Items, MySize);
+      MyHead:= 0;
+      MyTail:= 1;
+      MyForward:= true;
+      CurrentIndex:= -1;
+   end; // Create()
+
+
+// ************************************************************************
+// * IncIndex() - Increment the passed index and return the value
+// ************************************************************************
+
+function tgList.IncIndex( I: integer): integer;
+   begin
+      result:= (I + 1) mod MySize; 
+   end; // IncIndex()
+
+
+// ************************************************************************
+// * DecIndex() - Decrement the passed index and return the value
+// ************************************************************************
+
+function tgList.DecIndex( I: integer): integer;
+   begin
+      result:= (I + SizeM) mod MySize; 
+   end; // DecIndex();
+
+
+// ************************************************************************
+// * AddHead() - Add an item to the head of the list
+// ************************************************************************
+
+procedure tgList.AddHead( Item: T);
+   begin
+      if( IsFull) then begin
+         raise lbpListException.Create( 'An attempt was made to add an item to a circular list which is full!');
+      end;
+
+      Items[ MyHead]:= Item;
+      MyHead:= DecIndex( MyHead);
+      CurrentIndex:= -1;
+   end; // AddHead()
+
+
+// ************************************************************************
+// * GetHead() - Returns the Item at the Head
+// ************************************************************************
+
+function tgList.GetHead(): T;
+   begin
+      if( IsEmpty) then begin
+         raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
+      end;
+      CurrentIndex:= -1;
+      result:= Items[ IncIndex( MyHead)];
+   end; // GetHead()
+
+
+// ************************************************************************
+// * RemoveHead() - Removes and returns the Item at the Head
+// ************************************************************************
+
+function tgList.RemoveHead(): T;
+   begin
+      if( IsEmpty) then begin
+         raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
+      end;
+      MyHead:= IncIndex( MyHead);
+      result:= Items[ MyHead];
+      CurrentIndex:= -1;
+   end; // RemoveHead()
+
+
+// ************************************************************************
+// * AddTail() - Add an item to the Tail of the list
+// ************************************************************************
+
+procedure tgList.AddTail( Item: T);
+   begin
+      if( IsFull) then begin
+         raise lbpListException.Create( 'An attempt was made to add an item to a circular list which is full!');
+      end;
+
+      Items[ MyTail]:= Item;
+      MyTail:= IncIndex( MyTail);
+      CurrentIndex:= -1;
+   end; // AddTail()
+
+
+// ************************************************************************
+// * GetTail() - Returns the Item at the Tail
+// ************************************************************************
+
+function tgList.GetTail(): T;
+   begin
+      if( IsEmpty) then begin
+         raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
+      end;
+      CurrentIndex:= -1;
+      result:= Items[ DecIndex( MyTail)];
+   end; // GetTail()
+
+
+// ************************************************************************
+// * RemoveTail() - Removes and returns the Item at the Tail
+// ************************************************************************
+
+function tgList.RemoveTail(): T;
+   begin
+      if( IsEmpty) then begin
+         raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
+      end;
+      MyTail:= DecIndex( MyTail);
+      result:= Items[ MyTail];
+      CurrentIndex:= -1;
+   end; // RemoveTail()
+
+
+// ************************************************************************
+// * RemoveAll() - Remove all elements from the list.  No destructors are
+//                 called!
+// ************************************************************************
+
+procedure tgList.Empty;
+   begin
+      MyHead:= 0;
+      MyTail:= 1;
+      MyForward:= true;
+      CurrentIndex:= -1;   
+   end; // RemoveAll
+
+
+// ************************************************************************
+// * StartIteration() - Begin the iteration
+// ************************************************************************
+
+procedure tgList.StartIteration( Forward: boolean);
+   begin
+      MyForward:= Forward;  // Set the direction
+      CurrentIndex:= -1;
+   end; // StartIteration
+
+
+// ************************************************************************
+// * Next() - Returns true if the buffer is empty
+// ************************************************************************
+
+function tgList.Next(): boolean;
+   begin
+      // If Empty
+      if( (MyTail = IncIndex( MyHead))) then begin
+         result:= false;
+      end else begin
+         if( MyForward) then begin
+            if( CurrentIndex < 0) then CurrentIndex:= MyHead;
+            CurrentIndex:= IncIndex( CurrentIndex);
+            if( CurrentIndex = MyTail) then CurrentIndex:= -1;  
+         end else begin
+            if( CurrentIndex < 0) then CurrentIndex:= MyTail;
+            CurrentIndex:= DecIndex( CurrentIndex);
+            if( CurrentIndex = MyHead) then CurrentIndex:= -1;  
+         end; // else not MyForward
+         result:= ( CurrentIndex >= 0);
+      end; // else not MyForward
+   end; // Next();
+
+
+// ************************************************************************
+// * IsEmpty() - Returns true if the buffer is empty
+// ************************************************************************
+
+function tgList.IsEmpty(): boolean;
+   begin
+      result:= (MyTail = IncIndex( MyHead));
+   end; // IsEmpty()
+
+
+// ************************************************************************
+// * IsFull() - Returns true if the buffer is full
+// ************************************************************************
+
+function tgList.IsFull(): boolean;
+   begin
+      result:= (MyHead = IncIndex( MyTail));
+   end; // IsFull()
+
+
+// ************************************************************************
+// * IsFirst()  - Returns true if the current item is also first
+// ************************************************************************
+
+function tgList.IsFirst(): boolean;
+   begin
+     result:= (CurrentIndex = IncIndex( MyHead));
+   end; // IsFirst()
+
+
+// ************************************************************************
+// * IsLast()  - Returns true if the current item is also last
+// ************************************************************************
+
+function tgList.IsLast(): boolean;
+   begin
+     result:= (CurrentIndex = DecIndex( MyTail));
+   end; // IsLast()
+
+
+// ************************************************************************
+// * GetCurrent() - Returns the current element
+// ************************************************************************
+
+function tgList.GetCurrent: T;
+   begin
+      result:= Items[ CurrentIndex];
+   end; // GetCurrent;
+
+
+// ************************************************************************
+// * Replace() - Replaces the current element with a new value
+// ************************************************************************
+
+procedure tgList.Replace( Item: T);
+   begin
+      Items[ CurrentIndex]:= Item;   
+   end; // Replace()
+
+
+// ************************************************************************
+// * GetEnumerator()  - Returns the enumerator
+// ************************************************************************
+
+function tgList.GetEnumerator():  tgListEnumerator;
+   begin
+      result:= tgListEnumerator.Create( Self);
+      CurrentIndex:= -1;
+      MyForward:= true;
+   end; // GetEnumerator()
+
+
+// ************************************************************************
+// * Reverse()  - Returns the enumerator
+// ************************************************************************
+
+function tgList.Reverse():  tgListEnumerator;
+   begin
+      result:= tgListEnumerator.Create( Self);
+      CurrentIndex:= -1;
+      MyForward:= false;
+   end; // Reverse()
+
+
+// ------------------------------------------------------------------------
+// -  tgListEnumerator
+// ------------------------------------------------------------------------
+// ************************************************************************
+// * Create() - constructor
+// ************************************************************************
+
+constructor tgList.tgListEnumerator.Create( List: tgList);
+   begin
+      inherited Create;
+      List.CurrentIndex:= -1;
+      MyList:= List;
+   end; // Create()
+
+
+// ************************************************************************
+// * GetCurrent() - Return the current list element
+// ************************************************************************
+
+function tgList.tgListEnumerator.GetCurrent(): T;
+   begin
+      result:= MyList.Items[ MyList.CurrentIndex];
+   end; // GetCurrent()
+
+
+// ************************************************************************
+// * MoveNext() - Move to the next element in the list
+// ************************************************************************
+
+function tgList.tgListEnumerator.MoveNext(): T;
+   begin
+      result:= MyList.Next;
+   end; // MoveNext()
+
+
+
+// ========================================================================
 // = tgListNode generic class
 // ========================================================================
 // ************************************************************************
@@ -187,7 +557,7 @@ destructor tgDoubleLinkedList.Destroy;
 
    begin
       if( FirstNode <> nil) then begin
-         raise DoubleLinkedListException.Create(
+         raise lbpListException.Create(
             'List ' + Name + ' is not empty and can not be destroyed!');
       end;
       inherited Destroy;
@@ -222,7 +592,7 @@ procedure tgDoubleLinkedList.AddHead( Item: T);
 function tgDoubleLinkedList.GetHead(): T;
    begin
       if( FirstNode = nil) then begin
-         raise DoubleLinkedListException.Create( 'Attempt to get an element from an empty list!');
+         raise lbpListException.Create( 'Attempt to get an element from an empty list!');
       end else begin
          result:= FirstNode.Item;
       end;
@@ -238,7 +608,7 @@ function tgDoubleLinkedList.DelHead(): T;
       N: tListNode;
    begin
       if( LastNode = nil) then begin
-         raise DoubleLinkedListException.Create( 'Attempt to get an element from an empty list!');
+         raise lbpListException.Create( 'Attempt to get an element from an empty list!');
       end else begin
          N:= FirstNode;
          // Adjust Pointers
@@ -289,7 +659,7 @@ procedure tgDoubleLinkedList.AddTail( Item: T);
 function tgDoubleLinkedList.GetTail: T;
    begin
       if( LastNode = nil) then begin
-         raise DoubleLinkedListException.Create( 'Attempt to get an element from an empty list!');
+         raise lbpListException.Create( 'Attempt to get an element from an empty list!');
       end else begin
          result:= LastNode.Item;
       end; // if Empty
@@ -306,7 +676,7 @@ function tgDoubleLinkedList.DelTail: T;
       N: tListNode;
    begin
       if( LastNode = nil) then begin
-         raise DoubleLinkedListException.Create( 'Attempt to get an element from an empty list!');
+         raise lbpListException.Create( 'Attempt to get an element from an empty list!');
       end else begin
          N:= LastNode;
          // Adjust Pointers
@@ -384,14 +754,14 @@ procedure tgDoubleLinkedList.Replace( OldItem, NewItem: T);
       N: tListNode;
    begin
       if( FirstNode = nil) then
-         raise DoubleLinkedListException.Create( 'Old Item not found in list')
+         raise lbpListException.Create( 'Old Item not found in list')
       else begin
          // Find the node
          N:= FirstNode;
          while (N <> nil) and (N.Item <> OldItem) do
             N:= N.Next;
          if (N = nil) then
-            raise DoubleLinkedListException.Create( 'Old Item not found in list')
+            raise lbpListException.Create( 'Old Item not found in list')
          else
             N.Item:= NewItem;
          CurrentNode:= nil;
@@ -418,14 +788,14 @@ procedure tgDoubleLinkedList.Remove( Item: T);
       N: tListNode;
    begin
       if( FirstNode = nil) then
-         raise DoubleLinkedListException.Create( 'Item not found in list')
+         raise lbpListException.Create( 'Item not found in list')
       else begin
          // Find the node
          N:= FirstNode;
          while (N <> nil) and (N.Item <> Item) do
             N:= N.Next;
          if (N = nil) then
-            raise DoubleLinkedListException.Create( 'Old Item not found in list');
+            raise lbpListException.Create( 'Old Item not found in list');
 
          // Adjust Pointers
          if N.Next = nil then LastNode:= N.Prev
@@ -444,7 +814,7 @@ procedure tgDoubleLinkedList.Remove( Item: T);
 procedure tgDoubleLinkedList.Remove();
    begin
       if (CurrentNode = nil) then exit;
-         raise DoubleLinkedListException.Create( 'The is no current item to remove from the list.');
+         raise lbpListException.Create( 'The is no current item to remove from the list.');
 
       // Adjust Pointers
       if CurrentNode.Next = Nil then LastNode:= CurrentNode.Prev
@@ -537,7 +907,7 @@ function tgDoubleLinkedList.IsLast(): boolean;
 function tgDoubleLinkedList.GetCurrent(): T;
    begin
       if CurrentNode = nil then
-         raise DoubleLinkedListException.Create( 'The is no current item to remove from the list.')
+         raise lbpListException.Create( 'The is no current item to remove from the list.')
       else
          result:= CurrentNode.Item;
    End; // GetCurrent()

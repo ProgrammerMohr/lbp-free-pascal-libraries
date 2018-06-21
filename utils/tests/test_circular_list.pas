@@ -8,7 +8,7 @@ program test_circular_list;
 {$LONGSTRINGS ON}    // Non-sized Strings are ANSI strings
 
 uses
-   lbp_generic_ring_buffer,
+   lbp_generic_lists,
    sysutils,       // Exceptions
    lbp_types;     // int32
 
@@ -191,13 +191,10 @@ procedure EnqueueDequeue( L: CharList; Debug: boolean = False);
 procedure ForIterate( L: CharList; Debug: boolean = False);
    var
       C: char;
-      i: integer = 1;
    begin
       writeln( 'ForIterate()');
       for C in L do begin
          if Debug then Writeln( '   ', C);
-         if( i = 8) then exit;
-         inc( i);
       end;
    end; // ForIterate()
 
@@ -207,9 +204,6 @@ procedure ForIterate( L: CharList; Debug: boolean = False);
 // ************************************************************************
 
 procedure Iterate( L: CharList; Debug: boolean = False);
-   var
-      C: char;
-      i: integer = 1;
    begin
       writeln( 'Iterate()');
       L.StartIteration;

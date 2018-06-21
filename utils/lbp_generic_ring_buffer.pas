@@ -58,8 +58,12 @@ uses
 
 // ************************************************************************
 
-   type
-      lbpListException = class( lbp_exception);
+type
+   lbpListException = class( lbp_exception);
+
+// ************************************************************************
+
+type
       generic tgList< T> = class( tObject)
          private type
          // ---------------------------------------------------------------
