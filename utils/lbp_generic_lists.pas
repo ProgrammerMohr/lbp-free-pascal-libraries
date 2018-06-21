@@ -2,7 +2,7 @@
 
 Copyright (c) 2017 by Lloyd B. Park
 
-linked list classes which use generics
+linked list and ring buffer/circular list which use generics
 
 This file is part of Lloyd's Free Pascal Libraries (LFPL).
 
@@ -35,7 +35,7 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 *************************************************************************** *}
 
 unit lbp_generic_Lists;
-// Creates generic lists of pointers to items.
+// Creates generic lists items.
 //
 // Push and Enqueue do the same thing, add to the end of the list.
 //    AddToFront does the oposite.
