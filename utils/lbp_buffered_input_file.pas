@@ -49,6 +49,11 @@ uses
 
 
 // ************************************************************************
+
+var
+   InputFile:       file of char;
+   InputFileHandle: tHandle;  // the UNIX or Windows file handle associated with InputFile
+
 // ************************************************************************
 
 {$ifdef UNIX}
