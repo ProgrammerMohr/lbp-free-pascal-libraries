@@ -93,16 +93,16 @@ type
       public
          constructor    Create( const iSize: integer; iName: string = '');
       protected
-         function  IncIndex( I: integer): integer;
-         function  DecIndex( I: integer): integer;
-      public
+         function       IncIndex( I: integer): integer; virtual;
+         function       DecIndex( I: integer): integer; virtual;
          procedure      AddHead( Item: T); virtual; // Add to the head of the list
          function       GetHead(): T; virtual;      // Return the head element.
          function       RemoveHead(): T; virtual;      // Return the head element and remove it from the list.
          procedure      AddTail( Item: T); virtual; // Add to the tail of the list
-         function       GetTail(): T; virtual;      // Return the head element
-         function       RemoveTail(): T; virtual;      // Return the head element and remove it from the list.
-         
+         function       GetTail(): T; virtual;      // Return the tail element
+         function       RemoveTail(): T; virtual;      // Return the tail element and remove it from the list.
+         function       GetByIndex( i: integer): T; virtual;
+      public
          procedure      Empty(); virtual;
          procedure      StartIteration( Forward: boolean = true); virtual;
          function       Next():           boolean; virtual;
@@ -112,9 +112,9 @@ type
          function       IsLast():         boolean; virtual;
          function       GetCurrent():     T;       virtual; // Returns the data pointer at CurrentNode
          procedure      Replace( Item: T); virtual; 
-//            function       Length():         integer; virtual;
-         function       GetEnumerator():  tgListEnumerator;
-         function       Reverse():        tgListEnumerator;
+         function       Length():         integer; virtual;
+         function       GetEnumerator():  tgListEnumerator; virtual;
+         function       Reverse():        tgListEnumerator; virtual;
          property       Head:             T read RemoveHead write AddHead;
          property       Tail:             T read RemoveTail write AddTail;
          property       Stack:            T read RemoveTail write AddTail;
@@ -125,6 +125,7 @@ type
          property       Dequeue:          T read RemoveHead;
          property       Value:            T read GetCurrent write Replace;
          property       Forward:    boolean read MyForward write MyForward;
+         property       Peek[ i: integer]: T read GetByIndex;
    end; // generic tgList
 
 
@@ -165,7 +166,7 @@ type
             tListEnumerator = specialize tgDLListEnumerator< T>;
          public
             Name:          String;
-         public
+         protected
             FirstNode:     tListNode;
             LastNode:      tListNode;
             CurrentNode:   tListNode;
@@ -346,6 +347,20 @@ function tgList.RemoveTail(): T;
 
 
 // ************************************************************************
+// * GetByIndex() - Return the i'th element.  The first element is #1
+// ************************************************************************
+
+function tgList.GetByIndex( i: integer): T;
+   begin
+      if( (i <= 0) or (i > Length)) then begin
+         raise lbpListException.Create( 'tgList index out of bounds!');
+      end;
+
+      result:= Items[ (MyHead + i) mod MySize];
+   end; // GetByIndex()
+
+
+// ************************************************************************
 // * RemoveAll() - Remove all elements from the list.  No destructors are
 //                 called!
 // ************************************************************************
@@ -453,6 +468,18 @@ procedure tgList.Replace( Item: T);
       Items[ CurrentIndex]:= Item;   
    end; // Replace()
 
+
+// ************************************************************************
+// * Length() - Returns the number of elements in the list
+// ************************************************************************
+
+function tgList.Length(): integer;
+   var
+      Tl: integer;
+   begin
+      if( MyTail < MyHead) then Tl:= MyTail + MySize else Tl:= MyTail;
+      result:= Tl - MyHead - 1;
+   end; // Length()
 
 // ************************************************************************
 // * GetEnumerator()  - Returns the enumerator

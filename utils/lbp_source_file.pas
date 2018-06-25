@@ -2,7 +2,8 @@
 
 Copyright (c) 2018 by Lloyd B. Park
 
-Buffers the input from a text file
+This unit defines SourceFile which is used to read a text file a character
+at a time for use in a parser or simple compiler project.  
 
 This file is part of Lloyd's Free Pascal Libraries (LFPL).
 
@@ -34,23 +35,28 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 
 *************************************************************************** *}
 
-{ Buffered text input module.                           Lloyd B. Park }
-{                             January 31, 1992                        }
-{                                                                     }
-{ This Turbo Pascal unit buffers the input from text files.           }
 
-
-unit lbp_buffered_file;
+unit lbp_source_file;
 
 interface
 
 {$include lbp_standard_modes.inc}
 {$LONGSTRINGS ON}
 
+uses
+   lbp_generic_lists;
 
-const
-   BuffSize = 8192;
+// ************************************************************************
 
+type
+   tCharList = specialize tgList< char>;
+
+type
+   tSourceFile: class( tObject)
+      private
+         MyFile:  file of char;
+         MyQ:     tCharList;
+      public
 
 // ************************************************************************
 // * tCharBuff 
@@ -226,4 +232,4 @@ Procedure Unget_Chr( var BF: TBuffered_File; var C: tpChar);
 
 { ************************************************************************ }
 
-end. { Buffered unit }
+end. // lbp_source_file unit

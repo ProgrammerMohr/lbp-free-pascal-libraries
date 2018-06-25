@@ -154,7 +154,8 @@ procedure PushPop( L: CharList; Debug: boolean = False);
 
 procedure EnqueueDequeue( L: CharList; Debug: boolean = False);
    var
-      C: char;
+      C:   char;
+      Len: integer;
    begin
       writeln( 'EnqueueDequeue()');
       C:= 'a';
@@ -172,13 +173,15 @@ procedure EnqueueDequeue( L: CharList; Debug: boolean = False);
       end; 
 
       while( not L.IsEmpty) do begin
+         Len:= L.Length;
          if( Debug) then begin
-            if( L.IsFull)  then writeln( '   Full')  else;
+            if( L.IsFull)  then writeln( '   Full.  Length = ', Len)  else;
          end; // if Debug
          C:= L.Queue;
          if( Debug) then begin
-            writeln( '   Dequeued ', C);
-            if( L.IsEmpty) then writeln( '   Empty');
+            writeln( '   Dequeued #', Len, ' - ', C);
+            if( L.IsEmpty) then writeln( '   Empty.  Length = ', L.Length);
+
          end; // if Debug
       end;
    end; // EnqueueDequeue()
@@ -212,6 +215,34 @@ procedure Iterate( L: CharList; Debug: boolean = False);
 
 
 // ************************************************************************
+// * QueuePeek() - 
+// ************************************************************************
+
+procedure QueuePeek( L: CharList; Debug: boolean = False);
+   var
+      C:   char;
+      i:   integer;
+      Len: integer;
+   begin
+      writeln( 'QueuePeek()');
+      C:= 'a';
+      while( not L.IsFull) do begin
+         L.Push:= C;
+         inc( C);
+      end; 
+
+      Len:= L.Length;
+      for i:= 1 to Len do begin
+         C:= L.Peek[ i];
+         if( Debug) then begin
+            writeln( '   Peeked at #', i, ' - ', C);
+         end; // if Debug
+      end;
+      L.Empty;
+   end; // QueuePeek()
+
+
+// ************************************************************************
 // * main()
 // ************************************************************************
 var 
@@ -233,5 +264,7 @@ begin
    FillReverse( L);
    ForIterate( L, true);
    Iterate( L, true);
+   QueuePeek( L, true);
+
    L.Destroy();
 end. // test_circular_list program
