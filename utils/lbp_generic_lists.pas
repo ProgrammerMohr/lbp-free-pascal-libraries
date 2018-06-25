@@ -68,7 +68,7 @@ type
    generic tgList< T> = class( tObject)
       private type
       // ---------------------------------------------------------------
-         tgListEnumerator = class(tObject)
+         tEnumerator = class(tObject)
             private
                MyList: tgList;
             public
@@ -78,7 +78,7 @@ type
             public
                function MoveNext(): boolean;
                property Current: T read GetCurrent;
-            end; // tgLListEnumerator
+            end; // tEnumerator
       // ---------------------------------------------------------------
       public
          Name:          String;
@@ -113,8 +113,8 @@ type
          function       GetCurrent():     T;       virtual; // Returns the data pointer at CurrentNode
          procedure      Replace( Item: T); virtual; 
          function       Length():         integer; virtual;
-         function       GetEnumerator():  tgListEnumerator; virtual;
-         function       Reverse():        tgListEnumerator; virtual;
+         function       GetEnumerator():  tEnumerator; virtual;
+         function       Reverse():        tEnumerator; virtual;
          property       Head:             T read RemoveHead write AddHead;
          property       Tail:             T read RemoveTail write AddTail;
          property       Stack:            T read RemoveTail write AddTail;
@@ -131,83 +131,73 @@ type
 
 // ************************************************************************
 
-   type
-      generic tgListNode< T> = class( tObject)
-         protected
-            Item:    T;
-            Prev:    tgListNode;
-            Next:    tgListNode;
-         public
-            constructor  Create( MyItem: T = Default( T));
-         end; // tgListNode class
-
-
-// ************************************************************************
-
 type
-  {$WARNING See lbp_generic_ring_buffer for the proper way to do enumerators}
-   generic tgDLListEnumerator<T> = class(tObject)
+   generic tgDoubleLinkedList< T> = class( tObject)
+         //public type tListNodePtr = ^tListNode;
+      private type
+         // ---------------------------------------------------------------
+         tListNode = class( tObject)
+            protected
+               Item:    T;
+               Prev:    tListNode;
+               Next:    tListNode;
+            public
+               constructor  Create( MyItem: T = Default( T));
+            end; // tgListNode class
+         // ---------------------------------------------------------------
+         tEnumerator = class(tObject)
+            public
+               MyList: tgDoubleLinkedList;
+               constructor Create( List: T);
+               function GetCurrent(): T;
+               function MoveNext(): boolean;
+               property Current: T read GetCurrent;
+            end; // tEnumerator
+         // ---------------------------------------------------------------
       public
-         MyList: tObject;
-         constructor Create( List: tObject);
-         function GetCurrent(): T;
-         function MoveNext(): boolean;
-         property Current: T read GetCurrent;
-      end; // tgDLListEnumerator
-
-
-// ************************************************************************
-
-   type
-      generic tgDoubleLinkedList< T> = class( tObject)
-            //public type tListNodePtr = ^tListNode;
-         private type
-            tListNode = specialize tgListNode< T>;
-            tListEnumerator = specialize tgDLListEnumerator< T>;
-         public
-            Name:          String;
-         protected
-            FirstNode:     tListNode;
-            LastNode:      tListNode;
-            CurrentNode:   tListNode;
-            ListLength:    Int32;
-            MyForward:     boolean;
-         public
-            constructor    Create( const iName: string = '');
-            destructor     Destroy; override;
-            procedure      AddHead( Item: T); virtual; // Add to the head of the list
-            function       GetHead(): T; virtual;      // Return the head element.
-            function       DelHead(): T; virtual;      // Return the head element and remove it from the list.
-            procedure      AddTail( Item: T); virtual; // Add to the tail of the list
-            function       GetTail(): T; virtual;      // Return the head element
-            function       DelTail(): T; virtual;      // Return the head element and remove it from the list.
-            procedure      InsertBeforeCurrent( Item: T); virtual;
-            procedure      InsertAfterCurrent( Item: T); virtual;
-            procedure      Replace( OldItem, NewItem: T); virtual;
-            procedure      Replace( NewItem: T); virtual;
-            procedure      Remove( Item: T); virtual;
-            procedure      Remove(); virtual;
-            procedure      RemoveAll(); virtual;
-            procedure      StartIteration( Forward: boolean = true); virtual;
-            function       Next():           boolean; virtual;
+         Name:          String;
+      protected
+         FirstNode:     tListNode;
+         LastNode:      tListNode;
+         CurrentNode:   tListNode;
+         ListLength:    Int32;
+         MyForward:     boolean;
+      public
+         constructor    Create( const iName: string = '');
+         destructor     Destroy; override;
+         procedure      AddHead( Item: T); virtual; // Add to the head of the list
+         function       GetHead(): T; virtual;      // Return the head element.
+         function       DelHead(): T; virtual;      // Return the head element and remove it from the list.
+         procedure      AddTail( Item: T); virtual; // Add to the tail of the list
+         function       GetTail(): T; virtual;      // Return the head element
+         function       DelTail(): T; virtual;      // Return the head element and remove it from the list.
+         procedure      InsertBeforeCurrent( Item: T); virtual;
+         procedure      InsertAfterCurrent( Item: T); virtual;
+         procedure      Replace( OldItem, NewItem: T); virtual;
+         procedure      Replace( NewItem: T); virtual;
+         procedure      Remove( Item: T); virtual;
+         procedure      Remove(); virtual;
+         procedure      RemoveAll(); virtual;
+         procedure      StartIteration( Forward: boolean = true); virtual;
+         function       Next():           boolean; virtual;
 //            procedure      RemoveAll( DestroyElements: boolean = false); virtual; // Remove all elements from the list.
-            function       IsEmpty():        boolean; virtual;
-            function       IsFirst():        boolean; virtual; // True if CurrentNode is First
-            function       IsLast():         boolean; virtual;
-            function       GetCurrent():     T virtual; // Returns the data pointer at CurrentNode
-            function       GetEnumerator():  tListEnumerator;
-            function       Reverse():        tListEnumerator;
-            property       Head:             T read DelHead write AddHead;
-            property       Tail:             T read DelTail write AddTail;
-            property       Stack:            T read DelTail write AddTail;
-            property       Push:             T write AddTail;
-            property       Pop:              T read DelTail;
-            property       Queue:            T read DelHead write AddTail;
-            property       Enqueue:          T write AddTail;
-            property       Dequeue:          T read DelHead;
-            property       Value:            T read GetCurrent write Replace;
-            property       Length:           Int32 read ListLength;
-      end; // generic tgDoubleLinkedList
+         function       IsEmpty():        boolean; virtual;
+         function       IsFirst():        boolean; virtual; // True if CurrentNode is First
+         function       IsLast():         boolean; virtual;
+         function       GetCurrent():     T virtual; // Returns the data pointer at CurrentNode
+         function       GetEnumerator():  tEnumerator;
+         function       Reverse():        tEnumerator;
+         property       Head:             T read DelHead write AddHead;
+         property       Tail:             T read DelTail write AddTail;
+         property       Stack:            T read DelTail write AddTail;
+         property       Push:             T write AddTail;
+         property       Pop:              T read DelTail;
+         property       Queue:            T read DelHead write AddTail;
+         property       Enqueue:          T write AddTail;
+         property       Dequeue:          T read DelHead;
+         property       Value:            T read GetCurrent write Replace;
+         property       Length:           Int32 read ListLength;
+   end; // generic tgDoubleLinkedList
 
 
 // ************************************************************************
@@ -485,9 +475,9 @@ function tgList.Length(): integer;
 // * GetEnumerator()  - Returns the enumerator
 // ************************************************************************
 
-function tgList.GetEnumerator():  tgListEnumerator;
+function tgList.GetEnumerator():  tEnumerator;
    begin
-      result:= tgListEnumerator.Create( Self);
+      result:= tEnumerator.Create( Self);
       CurrentIndex:= -1;
       MyForward:= true;
    end; // GetEnumerator()
@@ -497,22 +487,22 @@ function tgList.GetEnumerator():  tgListEnumerator;
 // * Reverse()  - Returns the enumerator
 // ************************************************************************
 
-function tgList.Reverse():  tgListEnumerator;
+function tgList.Reverse():  tEnumerator;
    begin
-      result:= tgListEnumerator.Create( Self);
+      result:= tEnumerator.Create( Self);
       CurrentIndex:= -1;
       MyForward:= false;
    end; // Reverse()
 
 
 // ------------------------------------------------------------------------
-// -  tgListEnumerator
+// -  tEnumerator
 // ------------------------------------------------------------------------
 // ************************************************************************
 // * Create() - constructor
 // ************************************************************************
 
-constructor tgList.tgListEnumerator.Create( List: tgList);
+constructor tgList.tEnumerator.Create( List: tgList);
    begin
       inherited Create;
       List.CurrentIndex:= -1;
@@ -524,7 +514,7 @@ constructor tgList.tgListEnumerator.Create( List: tgList);
 // * GetCurrent() - Return the current list element
 // ************************************************************************
 
-function tgList.tgListEnumerator.GetCurrent(): T;
+function tgList.tEnumerator.GetCurrent(): T;
    begin
       result:= MyList.Items[ MyList.CurrentIndex];
    end; // GetCurrent()
@@ -534,7 +524,7 @@ function tgList.tgListEnumerator.GetCurrent(): T;
 // * MoveNext() - Move to the next element in the list
 // ************************************************************************
 
-function tgList.tgListEnumerator.MoveNext(): T;
+function tgList.tEnumerator.MoveNext(): T;
    begin
       result:= MyList.Next;
    end; // MoveNext()
@@ -542,19 +532,53 @@ function tgList.tgListEnumerator.MoveNext(): T;
 
 
 // ========================================================================
-// = tgListNode generic class
+// = tgDoubleLinkedList.tListNode generic class
 // ========================================================================
 // ************************************************************************
 // * Constructors
 // ************************************************************************
 
-constructor tgListNode.Create( MyItem: T = Default( T));
+constructor tgDoubleLinkedList.tListNode.Create( MyItem: T = Default( T));
   // Makes a new and empty List
   begin
      Item:= MyItem;
      Prev:= nil;
      Next:= nil;
   end; // Create()
+
+
+// ========================================================================
+// = tgDoubleLinkedList.tEnumerator generic class
+// ========================================================================
+// ************************************************************************
+// * Create() - constructor
+// ************************************************************************
+
+constructor tgDoubleLinkedList.tEnumerator.Create( List: T);
+   begin
+      MyList:= List;
+   end; // Create()
+
+
+// ************************************************************************
+// * GetCurrent() - Return the current list element
+// ************************************************************************
+
+function tgDoubleLinkedList.tEnumerator.GetCurrent(): T;
+   begin
+      result:= MyList.CurrentNode.Item;
+   end; // GetCurrent()
+
+
+// ************************************************************************
+// * MoveNext() - Move to the next element in the list
+// ************************************************************************
+
+function tgDoubleLinkedList.tEnumerator.MoveNext(): T;
+   begin
+      result:= MyList.Next;
+   end; // MoveNext()
+
 
 
 // ========================================================================
@@ -944,9 +968,9 @@ function tgDoubleLinkedList.GetCurrent(): T;
 // * GetEnumerator()  - Returns the enumerator
 // ************************************************************************
 
-function tgDoubleLinkedList.GetEnumerator():  tListEnumerator;
+function tgDoubleLinkedList.GetEnumerator():  tEnumerator;
    begin
-      result:= tListEnumerator.Create( Self);
+      result:= tEnumerator.Create( Self);
       CurrentNode:= nil;
       MyForward:= true;
    end; // GetEnumerator()
@@ -956,46 +980,13 @@ function tgDoubleLinkedList.GetEnumerator():  tListEnumerator;
 // * Reverse()  - Returns the enumerator
 // ************************************************************************
 
-function tgDoubleLinkedList.Reverse():  tListEnumerator;
+function tgDoubleLinkedList.Reverse():  tEnumerator;
    begin
-      result:= tListEnumerator.Create( Self);
+      result:= tEnumerator.Create( Self);
       CurrentNode:= nil;
       MyForward:= false;
    end; // Reverse()
 
-
-
-// ========================================================================
-// = tgDLListEnumerator generic class
-// ========================================================================
-// ************************************************************************
-// * Create() - constructor
-// ************************************************************************
-
-constructor tgDLListEnumerator.Create( List: tObject);
-   begin
-      MyList:= List;
-   end; // Create()
-
-
-// ************************************************************************
-// * GetCurrent() - Return the current list element
-// ************************************************************************
-
-function tgDLListEnumerator.GetCurrent(): T;
-   begin
-      result:= tgDoubleLinkedList( MyList).CurrentNode.Item;
-   end; // GetCurrent()
-
-
-// ************************************************************************
-// * MoveNext() - Move to the next element in the list
-// ************************************************************************
-
-function tgDLListEnumerator.MoveNext(): T;
-   begin
-      result:= tgDoubleLinkedList( MyList).Next;
-   end; // MoveNext()
 
 
 // ************************************************************************
