@@ -175,12 +175,12 @@ procedure EnqueueDequeue( L: CharList; Debug: boolean = False);
       while( not L.IsEmpty) do begin
          Len:= L.Length;
          if( Debug) then begin
-            if( L.IsFull)  then writeln( '   Full.  Length = ', Len)  else;
+            if( L.IsFull)  then writeln( '   Full.         Length = ', Len)  else;
          end; // if Debug
          C:= L.Queue;
          if( Debug) then begin
-            writeln( '   Dequeued #', Len, ' - ', C);
-            if( L.IsEmpty) then writeln( '   Empty.  Length = ', L.Length);
+            writeln( '   Dequeued - ', C, '  Length was ', Len);
+            if( L.IsEmpty) then writeln( '   Empty.        Length = ', L.Length);
 
          end; // if Debug
       end;
@@ -235,7 +235,7 @@ procedure QueuePeek( L: CharList; Debug: boolean = False);
       for i:= 1 to Len do begin
          C:= L.Peek[ i];
          if( Debug) then begin
-            writeln( '   Peeked at #', i, ' - ', C);
+            writeln( '   Peeked at [ ', i, '] - ', C);
          end; // if Debug
       end;
       L.Empty;

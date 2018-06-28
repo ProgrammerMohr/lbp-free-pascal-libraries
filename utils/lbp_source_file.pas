@@ -44,62 +44,88 @@ interface
 {$LONGSTRINGS ON}
 
 uses
+   lbp_argv,
+   lbp_types,
+{$ifdef UNIX}
+   baseunix,
+   termio,
+{$endif}
    lbp_generic_lists;
 
 // ************************************************************************
 
 type
-   tCharList = specialize tgList< char>;
-
-type
-   tSourceFile: class( tObject)
+   tSourceFile = class( tObject)
+      private type
+         tCharList = specialize tgList< char>;
       private
          MyFile:  file of char;
          MyQ:     tCharList;
       public
+         constructor Create( iFileName: string = '');
+         destructor  Destroy; override;
+         function    GetChar: char; virtual;
+         function    Peek( i: integer): char;
+      end; // tSourceFile
+
 
 // ************************************************************************
-// * tCharBuff 
+
+var
+   SourceFile: tSourceFile = nil;
+
 // ************************************************************************
 
-type
-    TBuffer = record
-          Data:    array[ 0..BuffSize+1] of char;
-          Head:    tpChar;
-          Tail:    tpChar;
-          Reload:  boolean;  { if true, the buffer will be reloaded from }
-       end; { TBuffer }      { the file when a Get_Char function moves   }
-                             { to this buffer. }
-          { 8192 characters for the buffer.  We also need check  }
-          { characters on each end the the actual buffer.  Head  }
-          { and Tail will always point to the check characters.  }
+implementation
 
-    TBuffered_File = record
-          Buffer:    array[ 0..1] of TBuffer;
-          InFile:    file;      { Turbo pascal supports untyped files }
-                                { and low level IO on these files.    }
-       end; { Buffered_File }
+// ************************************************************************
+// * IsATTY() - Returns true if the passed file handle is a terminal as
+// *            opposed to a file or pipe.
+// ************************************************************************
 
-{ ************************************************************************ }
+{$ifdef UNIX}
+function IsATTY( Handle: Longint): Boolean;
+   var
+      t : Termios;
+   begin
+      result:= (TCGetAttr( Handle, t) = 0);
+   end;
+{$endif}
 
-function Open_File( var BF: TBuffered_File; FileName: string): tpChar;
-   { Opens a buffered file for input. }
-   { Returns a pointer to character that should be used as the initial }
-   { value passed as a parameter to the first call to Get_Char.        }
 
-procedure Close_File( var BF: TBuffered_File);
-   { Closes buffered file. }
+// ========================================================================
+// = tSourceFile class
+// ========================================================================
+// ************************************************************************
+// * Create() - constructor
+// ************************************************************************
 
-Procedure Get_Chr( var BF: TBuffered_File; var C: tpChar);
-   { Points C to the next character in the buffered file.  Reloads the }
-   { individual buffers from the file when needed. }
+constructor tSourceFile.Create( iFileName: string);
+   begin
+      if( (iFileName = '') and (not IsATTY( 0))) then begin
+         MyFile:= Input;
+      end else begin
+         AssignFile( MyFile, iFileName);
+         RestFile( MyFile);
+      end;
+   end; // Create()
 
-Procedure Unget_Chr( var BF: TBuffered_File; var C: tpChar);
-   { Points C to the previous character in the buffered file. }
 
-{ ************************************************************************ }
-implementation  { This section defines the hidden portions of this module }
-{ ************************************************************************ }
+// ************************************************************************
+// * Destroy() - destructor
+// ************************************************************************
+
+
+// ************************************************************************
+// * GetChar() - Get the next character from the source
+// ************************************************************************
+
+
+// ************************************************************************
+// * Peek() - Look ahead in the source
+// ************************************************************************
+
+
 
 function Open_File( var BF: TBuffered_File; FileName: string): tpChar;
    { Opens a buffered file for input. }

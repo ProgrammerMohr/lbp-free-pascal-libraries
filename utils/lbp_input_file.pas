@@ -48,6 +48,7 @@ uses
    baseunix,
    termio,
 {$endif}
+   classes, // tHandleStream
    lbp_argv;
 
 
@@ -55,6 +56,7 @@ uses
 
 var
    InputFile:       text;
+   InputStream:     tHandleStream;
    InputFileHandle: tHandle;  // the UNIX or Windows file handle associated with InputFile
 
 
@@ -191,6 +193,7 @@ procedure ParseArgv();
       // Get the UNIX or windows file handle of InputFile
       if( Available) then begin
          InputFileHandle:= TextRec( InputFile).Handle;
+         InputStream:= tHandleStream.Create( InputFileHandle);
       end;
       if( lbp_types.show_init) then writeln( 'lbp_input_file.ParseArgV:  end');
    end; // ParseArgV
@@ -214,6 +217,7 @@ finalization
    begin
       if( lbp_types.show_init) then writeln( 'lbp_input_file.finalization:  begin');
       if( Opened) then close( InputFile);
+      if( Available) then InputStream.Destroy;
       if( lbp_types.show_init) then writeln( 'lbp_input_file.finalization:  end');
    end;
 

@@ -43,15 +43,16 @@ interface
 
 uses
    lbp_types,
-   lbp_argv;
+   lbp_argv,
+   classes; // tHandleStream
 
 
 // ************************************************************************
 
 var
    OutputFile:       text;
+   OutputStream:     tHandleStream;
    OutputFileHandle: tHandle;  // the UNIX or Windows file handle associated with OutputFile
-
 
 // ************************************************************************
 
@@ -160,6 +161,7 @@ procedure ParseArgv();
       // Get the UNIX or windows file handle of OutputFile
       if( Available) then begin
          OutputFileHandle:= TextRec( OutputFile).Handle;
+         OutputStream:= tHandleStream.Create( OutputFileHandle);
       end;
       if( lbp_types.show_init) then writeln( 'lbp_output_file.ParseArgV:  end');
    end; // ParseArgV
@@ -184,6 +186,7 @@ finalization
       if( lbp_types.show_init) then writeln( 'lbp_output_file.finalization:  begin');
       flush( OutputFile);
       if( Opened) then close( OutputFile);
+      if( Available) then OutputStream.Destroy;
       if( lbp_types.show_init) then writeln( 'lbp_output_file.finalization:  end');
    end;
 
