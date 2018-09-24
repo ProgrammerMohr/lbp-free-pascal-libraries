@@ -95,7 +95,7 @@ procedure InitArgvParser();
       InsertUsage( 'Options:');
       InsertUsage( '   Start date is optional.  Today''s date is used if none is specified.');
       InsertUsage( '');
-      InsertParam( ['n', 'number-of-days'], true, '', 'The number of days to print.  Defaults to 8');
+      InsertParam( ['n', 'd', 'number-of-days'], true, '', 'The number of days to print.  Defaults to 8');
       AddPostParseProcedure( @ParseArgv);
       ParseParams();
    end; // InitArgvParser()
