@@ -1,10 +1,13 @@
 {* ***************************************************************************
 
 Copyright (c) 2017 by Lloyd B. Park
+Copyright (c) 2008 by Mattias Gaertner
 
-AVL and Red Black trees which use generics
+AVL (Average Level) tree which uses generics
 The AVL Tree is my attempt to make a generic version of Mattias Gaertner's
-tAVLTree in the AVL_Tree unit included with Free Pascal. 
+tAVLTree in the AVL_Tree unit included with Free Pascal.  Since I had written
+my own AVL tree very shortly before Mattias' was released, I combined features
+of both into this one. 
 
 
 This file is part of Lloyd's Free Pascal Libraries (LFPL).
@@ -69,7 +72,7 @@ type
 // ************************************************************************
 
 type
-   generic tgAvlTreeNode< T> = class( tObject)
+   generic tgAvlTreeNode< T> = class
       protected
          Parent:   tgAvlTreeNode;
          Left:     tgAvlTreeNode;
@@ -77,10 +80,17 @@ type
          Balance:  integer;
          Data:     T;
       public
-         constructor Create( MyData: T);
-         function TreeDepth: integer; // longest WAY down. e.g. only one node => 0 !
+         procedure Clear;
+         function TreeDepth(): integer; // longest WAY down. e.g. only one node => 0 !
       end; // tgAvlTreeNode
 
+
+type
+   tgBaseAvlTreeNodeManager< T> = class
+      public
+      procedure DisposeNode(ANode: TAVLTreeNode); virtual; abstract;
+      function NewNode: TAVLTreeNode; virtual; abstract;
+   end; // tgBaseAVLTreeNodeManager
 
 // ************************************************************************
 

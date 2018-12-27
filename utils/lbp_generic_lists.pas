@@ -148,7 +148,7 @@ type
          tEnumerator = class(tObject)
             public
                MyList: tgDoubleLinkedList;
-               constructor Create( List: T);
+               constructor Create( List: tgDoubleLinkedList);
                function GetCurrent(): T;
                function MoveNext(): boolean;
                property Current: T read GetCurrent;
@@ -554,7 +554,7 @@ constructor tgDoubleLinkedList.tListNode.Create( MyItem: T = Default( T));
 // * Create() - constructor
 // ************************************************************************
 
-constructor tgDoubleLinkedList.tEnumerator.Create( List: T);
+constructor tgDoubleLinkedList.tEnumerator.Create( List: tgDoubleLinkedList);
    begin
       MyList:= List;
    end; // Create()
