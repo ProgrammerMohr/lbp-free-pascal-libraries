@@ -54,7 +54,7 @@ interface
 uses
    sysutils,      // Exceptions
    lbp_types,     // lbp_excpetion
-   lbp_utils,     // PadLeft()
+   lbp_utils,     // PadLeft() - Only used to print debug information
    lbp_generic_lists;
 //   lbp_vararray;  // Int64SortElement
 
@@ -70,9 +70,11 @@ type
    lbp_container_exception = class( lbp_exception);
 
 // ************************************************************************
+// * tgAvlTreeNode - Support class.
+// ************************************************************************
 
 type
-   generic tgAvlTreeNode< T> = class
+   generic tgAvlTreeNode< T> = class( tObject)
       protected
          Parent:   tgAvlTreeNode;
          Left:     tgAvlTreeNode;
@@ -85,13 +87,21 @@ type
       end; // tgAvlTreeNode
 
 
-type
-   tgBaseAvlTreeNodeManager< T> = class
-      public
-      procedure DisposeNode(ANode: TAVLTreeNode); virtual; abstract;
-      function NewNode: TAVLTreeNode; virtual; abstract;
-   end; // tgBaseAVLTreeNodeManager
+// ************************************************************************
+// * tgBaseAvlTreeNodeManager - Support class to control memory management 
+// * (Add this when the rest of the unit is working)
+// ************************************************************************
 
+// type
+//    tgBaseAvlTreeNodeManager< N> = class
+//       public
+//          procedure DisposeNode(ANode: TAVLTreeNode); virtual; abstract;
+//          function NewNode: TAVLTreeNode; virtual; abstract;
+//    end; // tgBaseAVLTreeNodeManager
+
+
+// ************************************************************************
+// * tgAvlTree
 // ************************************************************************
 
 type
@@ -152,22 +162,6 @@ implementation
 // ========================================================================
 // = tgAvlTreeNode generic class
 // ========================================================================
-// ************************************************************************
-// * Constructors
-// ************************************************************************
-
-constructor tgAvlTreeNode.Create( MyData: T);
-  // Makes a new and empty List
-  begin
-     inherited Create;
-     Parent:=   nil;
-     Left:=     nil;
-     Right:=    nil;
-     Balance:=  0;
-     Data:=     MyData;
-  end; // Create()
-
-
 // ************************************************************************
 // * TreeDepth() - Returns the depth of this node.
 // ************************************************************************
@@ -502,7 +496,8 @@ procedure tgAvlTree.RemoveSubtree( StRoot: tAvlTreeNode; DestroyElements: boolea
       if( StRoot.RightChild <> nil) then begin 
          RemoveSubtree( StRoot.RightChild, DestroyElements);
       end;
-      if( DestroyElements) then StRoot.Data.Destroy;
+      if( (pTypeInfo( TypeInfo( T))^.Kind = tkClass) and DestroyElements) then begin
+         StRoot.Data.Destroy;
       StRoot.Destroy;
    end; // RemoveSubtree()
 
