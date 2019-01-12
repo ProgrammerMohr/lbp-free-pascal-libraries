@@ -33,44 +33,44 @@ uses
 
 // ************************************************************************
 
-type
-   tStringClass = class( tObject)
-   public
-      Value: String;
-      Constructor Create( MyValue: string);
-   end; // tStringClass
+// type
+//    tStringClass = class( tObject)
+//    public
+//       Value: String;
+//       Constructor Create( MyValue: string);
+//    end; // tStringClass
 
 
-constructor tStringClass.Create( MyValue: string);
-   begin
-      Value:= MyValue;
-   end;
+// constructor tStringClass.Create( MyValue: string);
+//    begin
+//       Value:= MyValue;
+//    end;
 
 
 // ************************************************************************
 
 type
-   tStringTree = specialize tgAvlTree< test_trees.tStringClass>;
+   tStringTree = specialize tgAvlTree< string>;
 
 var
-   A: tStringClass;
-   B: tStringClass;
-   C: tStringClass;
-   D: tStringClass;
-   E: tStringClass;
-   F: tStringClass;
-   G: tStringClass;
+   A: string = 'a';
+   B: string = 'b';
+   C: string = 'c';
+   D: string = 'd';
+   E: string = 'e';
+   F: string = 'f';
+   G: string = 'g';
 
 
 // *************************************************************************
 // * CompareStrings - global function used only by tStringTree
 // *************************************************************************
 
-function CompareStrings(  S1: tStringClass; S2: tStringClass): integer;
+function CompareStrings(  S1: string; S2: string): integer;
    begin
-      if( S1.Value > S2.Value) then begin
+      if( S1 > S2) then begin
          result:= 1;
-      end else if( S1.Value < S2.Value) then begin
+      end else if( S1 < S2) then begin
          result:= -1;
       end else begin
          result:= 0;
@@ -82,114 +82,82 @@ function CompareStrings(  S1: tStringClass; S2: tStringClass): integer;
 // * NodeToString - global function used only by tStringTree
 // *************************************************************************
 
-function NodeToString( Data1: tStringClass): string;
+function NodeToString( S: string): string;
    begin
-      result:= Data1.Value
+      result:= S;
    end; // NodeToString;
-
-
-// ************************************************************************
-// * CreateStrings()
-// ************************************************************************
-
-procedure CreateStrings();
-   begin
-      A:= tStringClass.Create( 'A');
-      B:= tStringClass.Create( 'B');
-      C:= tStringClass.Create( 'C');
-      D:= tStringClass.Create( 'D');
-      E:= tStringClass.Create( 'E');
-      F:= tStringClass.Create( 'F');
-      G:= tStringClass.Create( 'G');
-   end; // CreateStrings()
-
-
-// ************************************************************************
-// * DestroyStrings()
-// ************************************************************************
-
-procedure DestroyStrings();
-   begin
-      A.Destroy;
-      B.Destroy;
-      C.Destroy;
-      D.Destroy;
-      E.Destroy;
-      F.Destroy;
-      G.Destroy;
-   end; // DestroyStrings;
 
 
 // ************************************************************************
 // * FirstNextTest() - Test the First(), Next() functions
 // ************************************************************************
 
-procedure FirstNextTest();
-   var
-     T: tStringTree;
-     S: tStringClass;
-   begin
-      CreateStrings;
-      T:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
-      T.NodeToString:= tStringTree.tNodeToStringFunction( @NodeToString);
+// procedure FirstNextTest();
+//    var
+//      T: tStringTree;
+//      S: tStringClass;
+//    begin
+//       CreateStrings;
+//       T:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
+//       T.NodeToString:= tStringTree.tNodeToStringFunction( @NodeToString);
 
-      T.Add( D);
-      T.Add( B);
-      T.Add( F);
-      T.Add( A);
-      T.Add( C);
-      T.Add( E);
-      T.Add( G);
+//       T.Add( D);
+//       T.Add( B);
+//       T.Add( F);
+//       T.Add( A);
+//       T.Add( C);
+//       T.Add( E);
+//       T.Add( G);
 
-      writeln( '------ Testing AVL Tree First() and Next() functions. ------');
-      S:= T.First;
-      while( S <> nil) do begin
-         Writeln( '   ', S.Value);
-         S:= T.Next;
-      end; 
-      writeln;
+//       writeln( '------ Testing AVL Tree First() and Next() functions. ------');
+//       S:= T.First;
+//       while( S <> nil) do begin
+//          Writeln( '   ', S.Value);
+//          S:= T.Next;
+//       end; 
+//       writeln;
 
-      writeln( '------ Testing AVL Tree Dump procedure. ------');
-      T.Dump;
-      writeln;
+//       writeln( '------ Testing AVL Tree Dump procedure. ------');
+//       T.Dump;
+//       writeln;
 
-      T.Destroy;
-      DestroyStrings;
-   end; // FirstNextTest()
+//       T.Destroy;
+//       DestroyStrings;
+//    end; // FirstNextTest()
 
 
 // ************************************************************************
 // * LastPreviouTest() - Test the Last(), Previous() functions
 // ************************************************************************
 
-procedure LastPreviousTest();
-   var
-     T: tStringTree;
-     S: tStringClass;
-   begin
-      CreateStrings;
-      T:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
+// procedure LastPreviousTest();
+//    var
+//      T: tStringTree;
+//      S: tStringClass;
+//    begin
+//       CreateStrings;
+//       T:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
 
      
-      T.Add( D);
-      T.Add( B);
-      T.Add( F);
-      T.Add( A);
-      T.Add( C);
-      T.Add( E);
-      T.Add( G);
+//       T.Add( D);
+//       T.Add( B);
+//       T.Add( F);
+//       T.Add( A);
+//       T.Add( C);
+//       T.Add( E);
+//       T.Add( G);
 
-      writeln( '------ Testing AVL Tree Last() and Previous() functions. ------');
-      S:= T.Last;
-      while( S <> nil) do begin
-         Writeln( '   ', S.Value);
-         S:= T.Previous;
-      end; 
-      writeln;
+//       writeln( '------ Testing AVL Tree Last() and Previous() functions. ------');
+//       S:= T.Last;
+//       while( S <> nil) do begin
+//          Writeln( '   ', S.Value);
+//          S:= T.Previous;
+//       end; 
+//       writeln;
 
-      T.Destroy;
-      DestroyStrings;
-   end; // LastPreviousTest()
+//       T.Destroy;
+//       DestroyStrings;
+//    end; // LastPreviousTest()
 
 
 // ************************************************************************
@@ -197,9 +165,8 @@ procedure LastPreviousTest();
 // ************************************************************************
 
 begin
-   FirstNextTest;
-   LastPreviousTest;
+   // FirstNextTest;
+   // LastPreviousTest;
 
    writeln( '------ Testing AVL Tree Dump() debugging function. ------')
 end.  // test_trees
-

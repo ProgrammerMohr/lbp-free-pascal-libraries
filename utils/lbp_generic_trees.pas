@@ -55,7 +55,8 @@ uses
    sysutils,      // Exceptions
    lbp_types,     // lbp_excpetion
    lbp_utils,     // PadLeft() - Only used to print debug information
-   lbp_generic_lists;
+   lbp_generic_lists,
+   typinfo;
 //   lbp_vararray;  // Int64SortElement
 
 // *******************************************************
@@ -76,11 +77,11 @@ type
 type
    generic tgAvlTreeNode< T> = class( tObject)
       protected
-         Parent:   tgAvlTreeNode;
-         Left:     tgAvlTreeNode;
-         Right:    tgAvlTreeNode;
-         Balance:  integer;
-         Data:     T;
+         Parent:      tgAvlTreeNode;
+         LeftChild:   tgAvlTreeNode;
+         RightChild:  tgAvlTreeNode;
+         Balance:     integer;
+         Data:         T;
       public
          procedure Clear;
          function TreeDepth(): integer; // longest WAY down. e.g. only one node => 0 !
@@ -135,23 +136,23 @@ type
       protected
          function    IsEmpty():  boolean; virtual;
          procedure   RemoveSubtree( StRoot: tAvlTreeNode; DestroyElements: boolean);
-         procedure   AddBalance( N: tAVLTreeNode; Balance: integer);
-         procedure   RemoveBalance( N: tAVLTreeNode; Balance: integer);
-         procedure   RotateLeft( N: tAVLTreeNode);
-         procedure   RotateLeftRight( N: tAVLTreeNode);
-         procedure   RotateRight( N: tAVLTreeNode);
-         procedure   RotateRightLeft( N: tAVLTreeNode);
+//          procedure   AddBalance( N: tAVLTreeNode; Balance: integer);
+//          procedure   RemoveBalance( N: tAVLTreeNode; Balance: integer);
+//          procedure   RotateLeft( N: tAVLTreeNode);
+//          procedure   RotateLeftRight( N: tAVLTreeNode);
+//          procedure   RotateRight( N: tAVLTreeNode);
+//          procedure   RotateRightLeft( N: tAVLTreeNode);
 
-//         procedure   Rebalance( N: Node);
-      public
-         property    AllowDuplicates: boolean
-                                read DuplicateOK write DuplicateOK;
-         property    Empty: boolean read IsEmpty write RemoveAll;
-         property    Count: integer read MyCount;
-         property    Root:  tAvlTreeNode read MyRoot;
-         property    Name:  string  read MyName write MyName;
-         property    Compare: tCompareFunction read MyCompare write MyCompare;
-         property    NodeToString:  tNodeToStringFunction read MyNodeToString write MyNodeToString;
+// //         procedure   Rebalance( N: Node);
+//       public
+//          property    AllowDuplicates: boolean
+//                                 read DuplicateOK write DuplicateOK;
+//          property    Empty: boolean read IsEmpty write RemoveAll;
+//          property    Count: integer read MyCount;
+//          property    Root:  tAvlTreeNode read MyRoot;
+//          property    Name:  string  read MyName write MyName;
+//          property    Compare: tCompareFunction read MyCompare write MyCompare;
+//          property    NodeToString:  tNodeToStringFunction read MyNodeToString write MyNodeToString;
       end; // tgAvlTree
 
 
@@ -163,23 +164,36 @@ implementation
 // = tgAvlTreeNode generic class
 // ========================================================================
 // ************************************************************************
+// * Clear() - Zero out the fields 
+// ************************************************************************
+
+procedure tgAvlTreeNode.Clear();
+   begin
+       Parent:= nil;
+       LeftChild:= nil;
+       RightChild:= nil;
+       Balance:= 0;
+       Data:= Default( T);
+   end;
+
+// ************************************************************************
 // * TreeDepth() - Returns the depth of this node.
 // ************************************************************************
 
-function tgAvlTreeNode.TreeDepth: integer;
+function tgAvlTreeNode.TreeDepth(): integer;
 // longest WAY down. e.g. only one node => 0 !
 var 
    LeftDepth:  integer;
    RightDepth: integer;
 begin
-  if Left<>nil then begin
-    LeftDepth:=Left.TreeDepth+1
+  if LeftChild<>nil then begin
+    LeftDepth:=LeftChild.TreeDepth+1
   end else begin
     LeftDepth:=0;
   end;
 
-  if Right<>nil then begin
-    RightDepth:=Right.TreeDepth+1
+  if RightChild<>nil then begin
+    RightDepth:=RightChild.TreeDepth+1
   end else begin
     RightDepth:=0;
   end;
@@ -204,8 +218,8 @@ constructor tgAvlTree.Create( iCompare:     tCompareFunction;
    begin
       inherited Create;
       MyRoot:= nil;
-      Compare:= iCompare;
-      NodeToString:= nil;
+      MyCompare:= iCompare;
+      MyNodeToString:= nil;
       DuplicateOK:= iAllowDuplicates;
       CurrentNode:= nil;
       MyName:= '';
@@ -239,154 +253,154 @@ procedure tgAvlTree.RemoveAll( DestroyElements: boolean);
 // * Add() - Add an element to the tree
 // ************************************************************************
 
-procedure tgAvlTree.Add( Data: T);
-   var
-      Child:          tAvlTreeNode;
-      Parent:         tAvlTreeNode;
-      CompareResult:  integer;
-   begin
-      Child:= tAvlTreeNode.Create( Data);
+// procedure tgAvlTree.Add( Data: T);
+//    var
+//       Child:          tAvlTreeNode;
+//       Parent:         tAvlTreeNode;
+//       CompareResult:  integer;
+//    begin
+//       Child:= tAvlTreeNode.Create( Data);
 
-      if( MyRoot = nil) then begin
-         // Special case of an empty tree
-         MyRoot:= Child;
-      end else begin
-         Parent:= MyRoot;
-         while( Parent <> nil) do begin
-            CompareResult:= Compare( Child.Data, Parent.Data);
-            if( (CompareResult = 0) and (not DuplicateOK)) then begin 
-               Child.Destroy;
-               raise lbp_container_exception.create( 
-               'Duplicate records violate the constraints of this AVL tree!');
-            end else if( CompareResult > 0) then begin
-               // Right path
-               if( Parent.RightChild = nil) then begin
-                  // Add as right child
-                  Parent.RightChild:= Child;
-                  Child.Parent:= Parent;
-                  AddBalance( Parent, 1);
-                  exit;
-               end else begin
-                  Parent:= Parent.RightChild;
-               end;
-            end else begin
-               // Left path
-               if( Parent.LeftChild = nil) then begin
-                  // Add as left child
-                  Parent.LeftChild:= Child;
-                  Child.Parent:= Parent;
-                  AddBalance( Parent, -1);
-                  exit;
-               end else begin
-                  Parent:= Parent.LeftChild;
-               end;
-            end;
-         end; // while
-      end; // else non-empty tree
-      inc( MyCount);
-   end; // Add()
+//       if( MyRoot = nil) then begin
+//          // Special case of an empty tree
+//          MyRoot:= Child;
+//       end else begin
+//          Parent:= MyRoot;
+//          while( Parent <> nil) do begin
+//             CompareResult:= Compare( Child.Data, Parent.Data);
+//             if( (CompareResult = 0) and (not DuplicateOK)) then begin 
+//                Child.Destroy;
+//                raise lbp_container_exception.create( 
+//                'Duplicate records violate the constraints of this AVL tree!');
+//             end else if( CompareResult > 0) then begin
+//                // Right path
+//                if( Parent.RightChild = nil) then begin
+//                   // Add as right child
+//                   Parent.RightChild:= Child;
+//                   Child.Parent:= Parent;
+//                   AddBalance( Parent, 1);
+//                   exit;
+//                end else begin
+//                   Parent:= Parent.RightChild;
+//                end;
+//             end else begin
+//                // Left path
+//                if( Parent.LeftChild = nil) then begin
+//                   // Add as left child
+//                   Parent.LeftChild:= Child;
+//                   Child.Parent:= Parent;
+//                   AddBalance( Parent, -1);
+//                   exit;
+//                end else begin
+//                   Parent:= Parent.LeftChild;
+//                end;
+//             end;
+//          end; // while
+//       end; // else non-empty tree
+//       inc( MyCount);
+//    end; // Add()
 
 
 // ************************************************************************
 // * First() - Return the first or smallest element in the tree
 // ************************************************************************
 
-function tgAvlTree.First(): T;
-   begin
-      // Check for empty tree
-      if( MyRoot = nil) then begin
-         result:= nil;
-         CurrentNode:= nil;
-      end else begin
-         CurrentNode:= MyRoot;
-         while( CurrentNode.LeftChild <> nil) do begin 
-            CurrentNode:= CurrentNode.LeftChild;
-         end;
-         result:= CurrentNode.Data;
-      end;
-   end; // First()
+// function tgAvlTree.First(): T;
+//    begin
+//       // Check for empty tree
+//       if( MyRoot = nil) then begin
+//          result:= nil;
+//          CurrentNode:= nil;
+//       end else begin
+//          CurrentNode:= MyRoot;
+//          while( CurrentNode.LeftChild <> nil) do begin 
+//             CurrentNode:= CurrentNode.LeftChild;
+//          end;
+//          result:= CurrentNode.Data;
+//       end;
+//    end; // First()
 
 
 // ************************************************************************
 // * Last() - Return the last or largest element in the tree
 // ************************************************************************
 
-function tgAvlTree.Last(): T;
-   begin
-       // Check for empty tree
-      if( MyRoot = nil) then begin
-         result:= nil;
-         CurrentNode:= nil;
-      end else begin
-         CurrentNode:= MyRoot;
-         while( CurrentNode.RightChild <> nil) do begin 
-            CurrentNode:= CurrentNode.RightChild;
-         end;
-         result:= CurrentNode.Data;
-      end;
-   end; // Last()
+// function tgAvlTree.Last(): T;
+//    begin
+//        // Check for empty tree
+//       if( MyRoot = nil) then begin
+//          result:= nil;
+//          CurrentNode:= nil;
+//       end else begin
+//          CurrentNode:= MyRoot;
+//          while( CurrentNode.RightChild <> nil) do begin 
+//             CurrentNode:= CurrentNode.RightChild;
+//          end;
+//          result:= CurrentNode.Data;
+//       end;
+//    end; // Last()
 
 
 // ************************************************************************
 // * Previous() - Return the previous element in the tree.
 // ************************************************************************
 
-function tgAvlTree.Previous(): T;
-   var
-      PreviousNode:  tAvlTreeNode;
-   begin
-      if( CurrentNode = nil) then begin
-         result:= Last();
-         exit;
-      end;
-      // Do I have a left child?
-      if( CurrentNode.LeftChild <> nil) then begin
-         // Start traversing the right subtree
-         CurrentNode:= CurrentNode.LeftChild;
-         // Find the rightmost child if any
-         while( CurrentNode.RightChild <> nil) do begin
-            CurrentNode:= CurrentNode.RightChild;
-         end;
+// function tgAvlTree.Previous(): T;
+//    var
+//       PreviousNode:  tAvlTreeNode;
+//    begin
+//       if( CurrentNode = nil) then begin
+//          result:= Last();
+//          exit;
+//       end;
+//       // Do I have a left child?
+//       if( CurrentNode.LeftChild <> nil) then begin
+//          // Start traversing the right subtree
+//          CurrentNode:= CurrentNode.LeftChild;
+//          // Find the rightmost child if any
+//          while( CurrentNode.RightChild <> nil) do begin
+//             CurrentNode:= CurrentNode.RightChild;
+//          end;
 
-      end else repeat
-         // Move toward the root
-         PreviousNode:= CurrentNode;
-         CurrentNode:= CurrentNode.Parent;
-      until( (CurrentNode = nil) or (CurrentNode.RightChild = PreviousNode)); 
+//       end else repeat
+//          // Move toward the root
+//          PreviousNode:= CurrentNode;
+//          CurrentNode:= CurrentNode.Parent;
+//       until( (CurrentNode = nil) or (CurrentNode.RightChild = PreviousNode)); 
 
-      if( CurrentNode = nil) then result:= nil else result:= CurrentNode.Data;
-   end; // Previous()
+//       if( CurrentNode = nil) then result:= nil else result:= CurrentNode.Data;
+//    end; // Previous()
 
 
 // ************************************************************************
 // * Next() - Return the next element in the tree
 // ************************************************************************
 
-function tgAvlTree.Next(): T;
-   var
-      PreviousNode:  tAvlTreeNode;
-   begin
-      if( CurrentNode = nil) then begin
-         result:= First();
-         exit;
-      end;
-      // Do I have a right child?
-      if( CurrentNode.RightChild <> nil) then begin
-         // Start traversing the right subtree
-         CurrentNode:= CurrentNode.RightChild;
-         // Find the leftmost child if any
-         while( CurrentNode.LeftChild <> nil) do begin
-            CurrentNode:= CurrentNode.LeftChild;
-         end;
+// function tgAvlTree.Next(): T;
+//    var
+//       PreviousNode:  tAvlTreeNode;
+//    begin
+//       if( CurrentNode = nil) then begin
+//          result:= First();
+//          exit;
+//       end;
+//       // Do I have a right child?
+//       if( CurrentNode.RightChild <> nil) then begin
+//          // Start traversing the right subtree
+//          CurrentNode:= CurrentNode.RightChild;
+//          // Find the leftmost child if any
+//          while( CurrentNode.LeftChild <> nil) do begin
+//             CurrentNode:= CurrentNode.LeftChild;
+//          end;
 
-      end else repeat
-         // Move toward the root
-         PreviousNode:= CurrentNode;
-         CurrentNode:= CurrentNode.Parent;
-      until( (CurrentNode = nil) or (CurrentNode.LeftChild = PreviousNode)); 
+//       end else repeat
+//          // Move toward the root
+//          PreviousNode:= CurrentNode;
+//          CurrentNode:= CurrentNode.Parent;
+//       until( (CurrentNode = nil) or (CurrentNode.LeftChild = PreviousNode)); 
 
-      if( CurrentNode = nil) then result:= nil else result:= CurrentNode.Data;
-   end; // Next()
+//       if( CurrentNode = nil) then result:= nil else result:= CurrentNode.Data;
+//    end; // Next()
 
 
 // ************************************************************************
@@ -403,6 +417,9 @@ procedure tgAvlTree.Dump( N:       tAvlTreeNode = nil;
    var
       Temp: string;
    begin
+      if( MyNodeToString = nil) then 
+         writeln( 'The tree can not be dumped because ''NodeToString'' has not be set!');
+
       // Take care of the start condition and the empty cases
       if( N = nil) then begin
          if( MyRoot = nil) then exit;
@@ -410,7 +427,7 @@ procedure tgAvlTree.Dump( N:       tAvlTreeNode = nil;
       end;
 
       // Convert the data to something printable
-      Temp:= NodeToString( N.Data);
+      Temp:= MyNodeToString( N.Data);
       if( Length( Temp) > 4) then SetLength( Temp, 4);
       PadLeft( Temp, 4);
 
@@ -430,7 +447,7 @@ procedure tgAvlTree.Dump( N:       tAvlTreeNode = nil;
          write( Prefix, '    \-> ');
          Dump( N.RightChild, Prefix + '        ');
       end;
-   end; // DumpNodes
+   end; // Dump
 
 
 // procedure tgAvlTree.DumpNodes();
@@ -498,6 +515,7 @@ procedure tgAvlTree.RemoveSubtree( StRoot: tAvlTreeNode; DestroyElements: boolea
       end;
       if( (pTypeInfo( TypeInfo( T))^.Kind = tkClass) and DestroyElements) then begin
          StRoot.Data.Destroy;
+      end;
       StRoot.Destroy;
    end; // RemoveSubtree()
 
@@ -506,82 +524,82 @@ procedure tgAvlTree.RemoveSubtree( StRoot: tAvlTreeNode; DestroyElements: boolea
 // * AddBalance() - Rebalance the tree after an Add()
 // ************************************************************************
 
-procedure tgAvlTree.AddBalance( N: tAVLTreeNode; Balance: integer);
-   var
-      Parent: tAVLTreeNode;
-   begin
-      while( N <> nil) do begin
-         Balance:= Balance + N.Balance;
-         N.Balance:= Balance;
-         if(Balance = 0) then begin
-            exit;
-         end else if( Balance = -2) then begin
-            if( N.LeftChild.Balance= -1) then begin
-               RotateRight( N);
-            end else begin
-               RotateLeftRight( N);
-            end;
-            exit;
-         end else if( Balance = 2) then begin
-            if( N.RightChild.Balance = 1) then begin
-               RotateLeft( N);
-            end else begin
-               RotateRightLeft( N);
-            end;
-            exit;
-         end;
-         Parent:= N.Parent;
-         if( Parent <> nil) then begin
-            if( Parent.LeftChild = N) then Balance:= -1 else Balance:= 1;
-         end;
-         N:= Parent;
-      end;
-   end; // AddBalance()
+// procedure tgAvlTree.AddBalance( N: tAVLTreeNode; Balance: integer);
+//    var
+//       Parent: tAVLTreeNode;
+//    begin
+//       while( N <> nil) do begin
+//          Balance:= Balance + N.Balance;
+//          N.Balance:= Balance;
+//          if(Balance = 0) then begin
+//             exit;
+//          end else if( Balance = -2) then begin
+//             if( N.LeftChild.Balance= -1) then begin
+//                RotateRight( N);
+//             end else begin
+//                RotateLeftRight( N);
+//             end;
+//             exit;
+//          end else if( Balance = 2) then begin
+//             if( N.RightChild.Balance = 1) then begin
+//                RotateLeft( N);
+//             end else begin
+//                RotateRightLeft( N);
+//             end;
+//             exit;
+//          end;
+//          Parent:= N.Parent;
+//          if( Parent <> nil) then begin
+//             if( Parent.LeftChild = N) then Balance:= -1 else Balance:= 1;
+//          end;
+//          N:= Parent;
+//       end;
+//    end; // AddBalance()
 
 
 // ************************************************************************
 // * RemoveBalance() - Rebalance the tree after a Remove()
 // ************************************************************************
 
-procedure tgAvlTree.RemoveBalance( N: tAVLTreeNode; Balance: integer);
-   begin
-   end; // RemoveBalance()
+// procedure tgAvlTree.RemoveBalance( N: tAVLTreeNode; Balance: integer);
+//    begin
+//    end; // RemoveBalance()
 
 
 // ************************************************************************
 // * RotateLeft()
 // ************************************************************************
 
-procedure tgAvlTree.RotateLeft( N: tAVLTreeNode);
-   begin
-   end; // RotateLeft();
+// procedure tgAvlTree.RotateLeft( N: tAVLTreeNode);
+//    begin
+//    end; // RotateLeft();
 
 
 // ************************************************************************
 // * RotateLeftRight()
 // ************************************************************************
 
-procedure tgAvlTree.RotateLeftRight( N: tAVLTreeNode);
-   begin
-   end; // RotateLeftRight();
+// procedure tgAvlTree.RotateLeftRight( N: tAVLTreeNode);
+//    begin
+//    end; // RotateLeftRight();
 
 
 // ************************************************************************
 // * RotateRight()
 // ************************************************************************
 
-procedure tgAvlTree.RotateRight( N: tAVLTreeNode);
-   begin
-   end; // RotateRight();
+// procedure tgAvlTree.RotateRight( N: tAVLTreeNode);
+//    begin
+//    end; // RotateRight();
 
 
 // ************************************************************************
 // * RotatRightLeft()
 // ************************************************************************
 
-procedure tgAvlTree.RotateRightLeft( N: tAVLTreeNode);
-   begin
-   end; // RotateRightLeft();
+// procedure tgAvlTree.RotateRightLeft( N: tAVLTreeNode);
+//    begin
+//    end; // RotateRightLeft();
 
 
 // ************************************************************************
