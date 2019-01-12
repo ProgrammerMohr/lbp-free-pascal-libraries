@@ -92,38 +92,37 @@ function NodeToString( S: string): string;
 // * FirstNextTest() - Test the First(), Next() functions
 // ************************************************************************
 
-// procedure FirstNextTest();
-//    var
-//      T: tStringTree;
-//      S: tStringClass;
-//    begin
-//       CreateStrings;
-//       T:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
-//       T.NodeToString:= tStringTree.tNodeToStringFunction( @NodeToString);
+procedure FirstNextTest();
+   var
+     T: tStringTree;
+     S: string;
+   begin
+      T:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
+      T.NodeToString:= tStringTree.tNodeToStringFunction( @NodeToString);
 
-//       T.Add( D);
-//       T.Add( B);
-//       T.Add( F);
-//       T.Add( A);
-//       T.Add( C);
-//       T.Add( E);
-//       T.Add( G);
+      T.Add( D);
+      T.Add( B);
+      T.Add( F);
+      T.Add( A);
+      T.Add( C);
+      T.Add( E);
+      T.Add( G);
 
-//       writeln( '------ Testing AVL Tree First() and Next() functions. ------');
-//       S:= T.First;
-//       while( S <> nil) do begin
-//          Writeln( '   ', S.Value);
-//          S:= T.Next;
-//       end; 
-//       writeln;
+      writeln( '------ Testing AVL Tree First() and Next() functions. ------');
+      S:= T.First;
+      while( S <> nil) do begin
+         Writeln( '   ', S);
+         S:= T.Next;
+      end; 
+      writeln;
 
-//       writeln( '------ Testing AVL Tree Dump procedure. ------');
-//       T.Dump;
-//       writeln;
+      writeln( '------ Testing AVL Tree Dump procedure. ------');
+      T.Dump;
+      writeln;
 
-//       T.Destroy;
-//       DestroyStrings;
-//    end; // FirstNextTest()
+      T.Destroy;
+      DestroyStrings;
+   end; // FirstNextTest()
 
 
 // ************************************************************************
