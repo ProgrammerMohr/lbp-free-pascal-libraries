@@ -607,141 +607,141 @@ procedure tgAvlTree.RebalanceAfterAdd( N: tAVLTreeNode);
       if( OldParent = nil) then exit;
       if( OldParent.LeftChild = N) then begin
          // Node is left son
-         dec(OldParent.Balance);
-         if (OldParent.Balance=0) then exit;
-         if (OldParent.Balance=-1) then begin
+         dec( OldParent.Balance);
+         if( OldParent.Balance = 0) then exit;
+         if( OldParent.Balance = -1) then begin
             RebalanceAfterAdd( OldParent);
             exit;
          end;
          // OldParent.Balance=-2
-         if( N.Balance=-1) then begin
+         if( N.Balance = -1) then begin
             // rotate
-            OldRight:=N.RightChild;
-            OldParentParent:=OldParent.Parent;
-            if (OldParentParent<>nil) then begin
+            OldRight:= N.RightChild;
+            OldParentParent:= OldParent.Parent;
+            if( OldParentParent <> nil) then begin
                // OldParent has GrandParent. GrandParent gets new child
-               if (OldParentParent.LeftChild=OldParent) then
-                  OldParentParent.LeftChild:=N
+               if( OldParentParent.LeftChild = OldParent) then
+                  OldParentParent.LeftChild:= N
                else
-                  OldParentParent.RightChild:=N;
+                  OldParentParent.RightChild:= N;
             end else begin
                // OldParent was root node. New root node
-               MyRoot:=N;
+               MyRoot:= N;
             end;
-            N.Parent:=OldParentParent;
-            N.RightChild:=OldParent;
-            OldParent.Parent:=N;
-            OldParent.LeftChild:=OldRight;
-            if (OldRight<>nil) then
+            N.Parent:= OldParentParent;
+            N.RightChild:= OldParent;
+            OldParent.Parent:= N;
+            OldParent.LeftChild:= OldRight;
+            if( OldRight <> nil) then
                OldRight.Parent:=OldParent;
-            N.Balance:=0;
-            OldParent.Balance:=0;
+            N.Balance:= 0;
+            OldParent.Balance:= 0;
          end else begin
             // Node.Balance = +1
             // double rotate
-            OldParentParent:=OldParent.Parent;
-            OldRight:=N.RightChild;
-            OldRightLeft:=OldRight.LeftChild;
-            OldRightRight:=OldRight.RightChild;
-            if (OldParentParent<>nil) then begin
+            OldParentParent:= OldParent.Parent;
+            OldRight:= N.RightChild;
+            OldRightLeft:= OldRight.LeftChild;
+            OldRightRight:= OldRight.RightChild;
+            if( OldParentParent <> nil) then begin
                // OldParent has GrandParent. GrandParent gets new child
-               if (OldParentParent.LeftChild=OldParent) then
-                  OldParentParent.LeftChild:=OldRight
+               if( OldParentParent.LeftChild = OldParent) then
+                  OldParentParent.LeftChild:= OldRight
                else
-                  OldParentParent.RightChild:=OldRight;
+                  OldParentParent.RightChild:= OldRight;
             end else begin
                // OldParent was root node. new root node
-               MyRoot:=OldRight;
+               MyRoot:= OldRight;
             end;
-            OldRight.Parent:=OldParentParent;
-            OldRight.LeftChild:=N;
-            OldRight.RightChild:=OldParent;
-            N.Parent:=OldRight;
-            N.RightChild:=OldRightLeft;
-            OldParent.Parent:=OldRight;
-            OldParent.LeftChild:=OldRightRight;
-            if (OldRightLeft<>nil) then
-               OldRightLeft.Parent:=N;
-            if (OldRightRight<>nil) then
-               OldRightRight.Parent:=OldParent;
-            if (OldRight.Balance<=0) then
-               N.Balance:=0
+            OldRight.Parent:= OldParentParent;
+            OldRight.LeftChild:= N;
+            OldRight.RightChild:= OldParent;
+            N.Parent:= OldRight;
+            N.RightChild:= OldRightLeft;
+            OldParent.Parent:= OldRight;
+            OldParent.LeftChild:= OldRightRight;
+            if( OldRightLeft <> nil) then
+               OldRightLeft.Parent:= N;
+            if( OldRightRight <> nil) then
+               OldRightRight.Parent:= OldParent;
+            if( OldRight.Balance <= 0) then
+               N.Balance:= 0
             else
-               N.Balance:=-1;
-            if (OldRight.Balance=-1) then
-               OldParent.Balance:=1
+               N.Balance:= -1;
+            if( OldRight.Balance = -1) then
+               OldParent.Balance:= 1
             else
-               OldParent.Balance:=0;
-            OldRight.Balance:=0;
+               OldParent.Balance:= 0;
+            OldRight.Balance:= 0;
          end;
       end else begin
          // Node is right son
          Inc(OldParent.Balance);
-         if (OldParent.Balance=0) then exit;
-         if (OldParent.Balance=+1) then begin
+         if( OldParent.Balance = 0) then exit;
+         if( OldParent.Balance = +1) then begin
             RebalanceAfterAdd( OldParent);
             exit;
          end;
          // OldParent.Balance = +2
-         if(N.Balance=+1) then begin
+         if( N.Balance = +1) then begin
             // rotate
-            OldLeft:=N.LeftChild;
-            OldParentParent:=OldParent.Parent;
-            if (OldParentParent<>nil) then begin
+            OldLeft:= N.LeftChild;
+            OldParentParent:= OldParent.Parent;
+            if( OldParentParent <> nil) then begin
                // Parent has GrandParent . GrandParent gets new child
-               if(OldParentParent.LeftChild=OldParent) then
-                  OldParentParent.LeftChild:=N
+               if( OldParentParent.LeftChild = OldParent) then
+                  OldParentParent.LeftChild:= N
                else
-                  OldParentParent.RightChild:=N;
+                  OldParentParent.RightChild:= N;
             end else begin
                // OldParent was root node . new root node
-               MyRoot:=N;
+               MyRoot:= N;
             end;
-            N.Parent:=OldParentParent;
-            N.LeftChild:=OldParent;
-            OldParent.Parent:=N;
-            OldParent.RightChild:=OldLeft;
-            if (OldLeft<>nil) then
-               OldLeft.Parent:=OldParent;
-            N.Balance:=0;
-            OldParent.Balance:=0;
+            N.Parent:= OldParentParent;
+            N.LeftChild:= OldParent;
+            OldParent.Parent:= N;
+            OldParent.RightChild:= OldLeft;
+            if( OldLeft <> nil) then
+               OldLeft.Parent:= OldParent;
+            N.Balance:= 0;
+            OldParent.Balance:= 0;
          end else begin
             // Node.Balance = -1
             // double rotate
-            OldLeft:=N.LeftChild;
-            OldParentParent:=OldParent.Parent;
-            OldLeftLeft:=OldLeft.LeftChild;
-            OldLeftRight:=OldLeft.RightChild;
-            if (OldParentParent<>nil) then begin
+            OldLeft:= N.LeftChild;
+            OldParentParent:= OldParent.Parent;
+            OldLeftLeft:= OldLeft.LeftChild;
+            OldLeftRight:= OldLeft.RightChild;
+            if( OldParentParent <> nil) then begin
                // OldParent has GrandParent . GrandParent gets new child
-               if (OldParentParent.LeftChild=OldParent) then
-                  OldParentParent.LeftChild:=OldLeft
+               if( OldParentParent.LeftChild = OldParent) then
+                  OldParentParent.LeftChild:= OldLeft
                else
-                  OldParentParent.RightChild:=OldLeft;
+                  OldParentParent.RightChild:= OldLeft;
             end else begin
                // OldParent was root node . new root node
-               MyRoot:=OldLeft;
+               MyRoot:= OldLeft;
             end;
-            OldLeft.Parent:=OldParentParent;
-            OldLeft.LeftChild:=OldParent;
-            OldLeft.RightChild:=N;
-            N.Parent:=OldLeft;
-            N.LeftChild:=OldLeftRight;
-            OldParent.Parent:=OldLeft;
-            OldParent.RightChild:=OldLeftLeft;
-            if (OldLeftLeft<>nil) then
-               OldLeftLeft.Parent:=OldParent;
-            if (OldLeftRight<>nil) then
-               OldLeftRight.Parent:=N;
-            if (OldLeft.Balance>=0) then
-               N.Balance:=0
+            OldLeft.Parent:= OldParentParent;
+            OldLeft.LeftChild:= OldParent;
+            OldLeft.RightChild:= N;
+            N.Parent:= OldLeft;
+            N.LeftChild:= OldLeftRight;
+            OldParent.Parent:= OldLeft;
+            OldParent.RightChild:= OldLeftLeft;
+            if( OldLeftLeft <> nil) then
+               OldLeftLeft.Parent:= OldParent;
+            if( OldLeftRight <> nil) then
+               OldLeftRight.Parent:= N;
+            if( OldLeft.Balance >= 0) then
+               N.Balance:= 0
             else
-               N.Balance:=+1;
-            if (OldLeft.Balance=+1) then
-               OldParent.Balance:=-1
+               N.Balance:= +1;
+            if(OldLeft.Balance = +1) then
+               OldParent.Balance:= -1
             else
-               OldParent.Balance:=0;
-            OldLeft.Balance:=0;
+               OldParent.Balance:= 0;
+            OldLeft.Balance:= 0;
          end;
       end;
    end; // RebalanceAfterAdd()
