@@ -95,7 +95,6 @@ function NodeToString( S: string): string;
 procedure FirstNextTest();
    var
      T: tStringTree;
-     S: string;
    begin
       T:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
       T.NodeToString:= tStringTree.tNodeToStringFunction( @NodeToString);
@@ -109,10 +108,9 @@ procedure FirstNextTest();
       T.Add( G);
 
       writeln( '------ Testing AVL Tree First() and Next() functions. ------');
-      S:= T.First;
-      while( S <> nil) do begin
-         Writeln( '   ', S);
-         S:= T.Next;
+      T.StartEnumeration;
+      while( T.Next) do begin
+         Writeln( '   ', T.CurrentNode.Data);
       end; 
       writeln;
 
@@ -121,7 +119,6 @@ procedure FirstNextTest();
       writeln;
 
       T.Destroy;
-      DestroyStrings;
    end; // FirstNextTest()
 
 
