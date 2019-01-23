@@ -127,6 +127,7 @@ procedure DestroyStrings();
 procedure FirstNextTest();
    var
      T: tStringTree;
+     S: tStringClass;
    begin
       CreateStrings;
       T:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
@@ -147,11 +148,14 @@ procedure FirstNextTest();
       end; 
       writeln;
 
+      writeln( '------ Testing AVL Tree for .. in functionality. ------');
+      for S in T do Writeln( '   ', S.Value);
+      writeln;
+
       writeln( '------ Testing AVL Tree Dump procedure. ------');
       T.Dump;
       writeln;
 
-//      T.RemoveAll( True);
       T.Destroy;
       DestroyStrings;
    end; // FirstNextTest()
@@ -164,9 +168,11 @@ procedure FirstNextTest();
 procedure LastPreviousTest();
    var
      T: tStringTree;
+     S: tStringClass;
    begin
       CreateStrings;
       T:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
+      T.NodeToString:= tStringTree.tNodeToStringFunction( @NodeToString);
 
      
       T.Add( D);
@@ -183,6 +189,15 @@ procedure LastPreviousTest();
          Writeln( '   ', T.Value.Value);
       end; 
       writeln;
+
+      writeln( '------ Testing AVL Tree for .. in functionality. ------');
+      for S in T.Reverse do Writeln( '   ', S.Value);
+      writeln;
+
+      writeln( '------ Testing AVL Tree Dump procedure. ------');
+      T.Dump;
+      writeln;
+
 
 //      T.RemoveAll( true);
       T.Destroy;

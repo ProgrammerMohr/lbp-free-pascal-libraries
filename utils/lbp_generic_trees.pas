@@ -78,32 +78,45 @@ type
    generic tgAvlTree< T: tObject> = class( tObject)
       private type
       // ---------------------------------------------------------------
-      tNode = class( tObject)
-         protected
-            Parent:      tNode;
-            LeftChild:   tNode;
-            RightChild:  tNode;
-            Balance:     integer;
-            Value:       T;
-         public
-            constructor  Create( Data: T);
-            procedure Clear;
-            function TreeDepth(): integer; // longest WAY down. e.g. only one tNode => 0 !
-            function First():    tNode;
-            function Last():     tNode;
-            function Next():     tNode;
-            function Previous(): tNode;
-         end; // tNode class
+         tNode = class( tObject)
+            protected
+               Parent:      tNode;
+               LeftChild:   tNode;
+               RightChild:  tNode;
+               Balance:     integer;
+               Value:       T;
+            public
+               constructor  Create( Data: T);
+               procedure    Clear;
+               function     TreeDepth(): integer; // longest WAY down. e.g. only one tNode => 0 !
+               function     First():    tNode;
+               function     Last():     tNode;
+               function     Next():     tNode;
+               function     Previous(): tNode;
+            end; // tNode class
       // ---------------------------------------------------------------
-      // tEnumerator< T: tObject> = class( tObject)
-      //    private
-      //       MyTree:    tgAvlTree;
-      //       MyReverse: boolean;
-      //    public
-      //       constructor Create( Tree: TAVLTree, Reverse: boolean);
-      //       function MoveNext: Boolean;
-      //       function Current(): T;
-      //    end; // tEnumerator class
+      private type
+         tEnumerator = class( tObject)
+            private
+               Tree:    tgAvlTree;
+               Node:    tNode;
+            public
+               constructor Create( iTree: tgAvlTree);
+               function    MoveNext: Boolean;
+               property    Current: T read Node.Value;
+            end; // enumerator class
+      // ---------------------------------------------------------------
+      private type
+         tReverseEnumerator = class( tObject)
+            private
+               Tree:    tgAvlTree;
+               Node:    tNode;
+            public
+               constructor Create( iTree: tgAvlTree);
+               function    MoveNext: Boolean;
+               function    GetEnumerator(): tReverseEnumerator;
+               property    Current: T read Node.Value;
+            end; // enumerator class
       // ---------------------------------------------------------------
 
 
@@ -111,7 +124,7 @@ type
          type
             tCompareFunction = function( const Data1, Data2: T): Integer;
             tNodeToStringFunction = function( const Data: T): string;  
-      public
+      private
          MyRoot:          tNode;
          DuplicateOK:     boolean;
          MyForward:       boolean; // Iterator direction
@@ -132,9 +145,11 @@ type
          function    Previous():  boolean; virtual;
          function    Next():      boolean; virtual;
          function    Value(): T; virtual;
+         function    GetEnumerator(): tEnumerator;
+         function    Reverse(): tReverseEnumerator;
          procedure   Dump( N:       tNode = nil; 
                            Prefix:  string = ''); virtual;  // Debug code
-      protected
+      private
          function    FindNode( Data:T): tNode; virtual;
          procedure   RemoveNode( N: tNode);  virtual; // Remove the passed node
          function    IsEmpty():  boolean; virtual;
@@ -142,8 +157,6 @@ type
          function    FindInsertPosition( Data: T): tNode; virtual;
          procedure   RebalanceAfterAdd( N: tNode); virtual;
          procedure   RebalanceAfterRemove( N: tNode); virtual;
-
-// //         procedure   Rebalance( N: Node);
       public
          property    AllowDuplicates: boolean
                                 read DuplicateOK write DuplicateOK;
@@ -161,7 +174,7 @@ type
 implementation
 
 // ========================================================================
-// = Node generic class
+// = tNode generic class
 // ========================================================================
 // ************************************************************************
 // * Create() - constructor
@@ -289,6 +302,81 @@ function tgAvlTree.tNode.Previous(): tNode;
          while( result.RightChild <> nil) do result:= result.RightChild;
       end;     
    end; // Previous()
+
+
+
+// ========================================================================
+// = tEnumerator class
+// ========================================================================
+// ************************************************************************
+// * Create() - constructor
+// ************************************************************************
+
+constructor tgAvlTree.tEnumerator.Create( iTree: tgAvlTree);
+   begin
+      Tree:=    iTree;
+      Node:=    nil;    
+   end; // Create()
+
+
+// ************************************************************************
+// * MoveNext()
+// ************************************************************************
+
+function tgAvlTree.tEnumerator.MoveNext(): boolean;
+   begin
+      // Starting a new iteration?
+      if( (Node = nil) and (Tree.MyRoot <> nil)) then begin
+         Node:= Tree.MyRoot.First;
+      end else if( Node <> nil) then begin
+         Node:= Node.Next;
+      end;
+
+      result:= (Node <> nil)
+   end; // MoveNext()
+
+
+
+// ========================================================================
+// = tReverseEnumerator class
+// ========================================================================
+// ************************************************************************
+// * Create() - constructor
+// ************************************************************************
+
+constructor tgAvlTree.tReverseEnumerator.Create( iTree: tgAvlTree);
+   begin
+      Tree:=    iTree;
+      Node:=    nil;    
+   end; // Create()
+
+
+// ************************************************************************
+// * MoveNext()
+// ************************************************************************
+
+function tgAvlTree.tReverseEnumerator.MoveNext(): boolean;
+   begin
+      // Starting a new iteration?
+      if( (Node = nil) and (Tree.MyRoot <> nil)) then begin
+         Node:= Tree.MyRoot.Last;
+      end else if( Node <> nil) then begin
+         Node:= Node.Previous;
+      end;
+
+      result:= (Node <> nil)
+   end; // MoveNext()
+
+
+// ************************************************************************
+// * GenEnumerator()
+// ************************************************************************
+
+function tgAvlTree.tReverseEnumerator.GetEnumerator: tReverseEnumerator;
+   begin
+      result:= self;  
+   end; // GetEnumerator()
+
 
 
 // ========================================================================
@@ -482,6 +570,26 @@ function tgAvlTree.Value(): T;
       end;
       result:= CurrentNode.Value;
    end; /// Value()
+
+
+// ************************************************************************
+// * GetEnumerator()
+// ************************************************************************
+
+function tgAvlTree.GetEnumerator(): tEnumerator;
+   begin
+      result:= tEnumerator.Create( Self);
+   end; // GetEnumerator()
+
+
+// ************************************************************************
+// * Reverse() - Gets the reverse order enumerator
+// ************************************************************************
+
+function tgAvlTree.Reverse(): tReverseEnumerator;
+   begin
+      result:= tReverseEnumerator.Create( Self);
+   end; // Reverse()
 
 
 // ************************************************************************
@@ -1064,41 +1172,5 @@ procedure tgAvlTree.RebalanceAfterRemove( N: tNode);
 
 
 // ************************************************************************
-// * RotateLeft()
-// ************************************************************************
 
-// procedure tgAvlTree.RotateLeft( N: tNode);
-//    begin
-//    end; // RotateLeft();
-
-
-// ************************************************************************
-// * RotateLeftRight()
-// ************************************************************************
-
-// procedure tgAvlTree.RotateLeftRight( N: tNode);
-//    begin
-//    end; // RotateLeftRight();
-
-
-// ************************************************************************
-// * RotateRight()
-// ************************************************************************
-
-// procedure tgAvlTree.RotateRight( N: tNode);
-//    begin
-//    end; // RotateRight();
-
-
-// ************************************************************************
-// * RotatRightLeft()
-// ************************************************************************
-
-// procedure tgAvlTree.RotateRightLeft( N: tNode);
-//    begin
-//    end; // RotateRightLeft();
-
-
-// ************************************************************************
-
-end. // lbp_generic_lists unit
+end. // lbp_generic_trees unit
