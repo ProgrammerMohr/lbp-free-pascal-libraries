@@ -141,6 +141,7 @@ type
          procedure   Add( Data: T); virtual;
          procedure   RemoveCurrent(); virtual; // Remove the Current Node from the tree
          procedure   Remove( Data: T);  virtual; // Remove the node which contains T
+         function    Find( Data: T): boolean; virtual;
          procedure   StartEnumeration(); virtual;
          function    Previous():  boolean; virtual;
          function    Next():      boolean; virtual;
@@ -150,7 +151,7 @@ type
          procedure   Dump( N:       tNode = nil; 
                            Prefix:  string = ''); virtual;  // Debug code
       private
-         function    FindNode( Data:T): tNode; virtual;
+         function    FindNode( Data: T): tNode; virtual;
          procedure   RemoveNode( N: tNode);  virtual; // Remove the passed node
          function    IsEmpty():  boolean; virtual;
          procedure   RemoveSubtree( StRoot: tNode; DestroyElements: boolean); virtual;
@@ -511,6 +512,18 @@ procedure tgAvlTree.Remove( Data: T);
       end;
       RemoveNode( N);
    end; // Remove()
+
+
+// ************************************************************************
+// * Find() - returns true if the passed data is found in the tree
+// *          Call Value() to get the found data.
+// ************************************************************************
+
+function tgAvlTree.Find( Data: T): boolean;
+   begin
+      CurrentNode:= FindNode( Data);
+      result:= (CurrentNode <> nil);
+   end; // Find()
 
 
 // ************************************************************************

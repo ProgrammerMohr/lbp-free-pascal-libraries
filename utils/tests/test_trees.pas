@@ -60,7 +60,7 @@ var
    E: tStringClass;
    F: tStringClass;
    G: tStringClass;
-
+   Search: tStringClass;
 
 // *************************************************************************
 // * CompareStrings - global function used only by tStringTree
@@ -101,6 +101,7 @@ procedure CreateStrings();
       E:= tStringClass.Create( 'E');
       F:= tStringClass.Create( 'F');
       G:= tStringClass.Create( 'G');
+      Search:= tStringClass.Create( 'E');
    end; // CreateStrings()
 
 
@@ -117,6 +118,7 @@ procedure DestroyStrings();
       E.Destroy;
       F.Destroy;
       G.Destroy;
+      Search.Destroy;
    end; // DestroyStrings;
 
 
@@ -140,6 +142,10 @@ procedure FirstNextTest();
       T.Add( D);
       T.Add( E);
       T.Add( C);
+
+      writeln( '------ Testing AVL Tree Find() function. ------');
+      if( T.Find( Search)) then writeln( '   Found: ', T.Value.Value);
+      
 
       writeln( '------ Testing AVL Tree First() and Next() functions. ------');
       T.StartEnumeration();

@@ -43,7 +43,7 @@ unit lbp_binary_trees;
 interface
 
 uses
-   SysUtils,      // Format() - string format function
+   sysutils,      // Format() - string format function
    lbp_lists,
    lbp_types;      // int32, lbp_exception
 
