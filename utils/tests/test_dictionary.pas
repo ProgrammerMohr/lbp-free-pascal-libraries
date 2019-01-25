@@ -66,11 +66,11 @@ var
 // * CompareStrings - global function used only by tStringTree
 // *************************************************************************
 
-function CompareStrings(  S1: tStringClass; S2: tStringClass): integer;
+function CompareStrings(  S1: string; S2: string): integer;
    begin
-      if( S1.Value > S2.Value) then begin
+      if( S1 > S2) then begin
          result:= 1;
-      end else if( S1.Value < S2.Value) then begin
+      end else if( S1 < S2) then begin
          result:= -1;
       end else begin
          result:= 0;
@@ -82,9 +82,9 @@ function CompareStrings(  S1: tStringClass; S2: tStringClass): integer;
 // * NodeToString - global function used only by tStringTree
 // *************************************************************************
 
-function NodeToString( Data1: tStringClass): string;
+function NodeToString( S: string): string;
    begin
-      result:= Data1.Value
+      result:= S;
    end; // NodeToString;
 
 
@@ -129,12 +129,12 @@ procedure DestroyStrings();
 procedure FirstNextTest();
    var
      Dict: tStringDictionary;
-     S: tStringClass;
+     V:    tStringClass;
+     S:    string;
    begin
       CreateStrings;
       Dict:= tStringDictionary.Create( tStringDictionary.tCompareFunction( @CompareStrings));
       Dict.NodeToString:= tStringDictionary.tNodeToStringFunction( @NodeToString);
-      writeln( 'FirstNextTest(): 1');
 
       Dict.Add( 'A', A);
       Dict.Add( 'B', B);
@@ -144,21 +144,22 @@ procedure FirstNextTest();
       Dict.Add( 'E', E);
       Dict.Add( 'C', C);
 
-      writeln( 'FirstNextTest(): 2');
       writeln( '------ Testing AVL Tree Find() function. ------');
       if( Dict.Find( 'F')) then writeln( '   Found: ', Dict.Value.Value);
-      writeln( 'FirstNextTest(): 3');
 
-
-      writeln( '------ Testing AVL Tree First() and Next() functions. ------');
+      writeln( '------ Testing AVL Tree StartEnumeration() and Next() functions. ------');
       Dict.StartEnumeration();
       while( Dict.Next) do begin
-         Writeln( '   ', Dict.Key);
+         Writeln( '   ', Dict.Key, ' - ', Dict.Value.Value);
       end; 
       writeln;
 
-      writeln( '------ Testing AVL Tree for .. in functionality. ------');
-      for S in Dict do Writeln( '   ', S.Value);
+      writeln( '------ Testing for Value in Dictionary functionality. ------');
+      for V in Dict do Writeln( '   ', V.Value);
+      writeln;
+
+      writeln( '------ Testing for Key in Dictionary functionality. ------');
+      for S in Dict.KeyEnum do Writeln( '   ', S);
       writeln;
 
       writeln( '------ Testing AVL Tree Dump procedure. ------');
@@ -171,47 +172,48 @@ procedure FirstNextTest();
 
 
 // ************************************************************************
-// * LastPreviouTest() - Test the Last(), Previous() functions
+// * LastPreviouTest() - Test the StartEnumeration(), Previous() functions
 // ************************************************************************
 
-// procedure LastPreviousTest();
-//    var
-//      T: tStringTree;
-//      S: tStringClass;
-//    begin
-//       CreateStrings;
-//       T:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
-//       T.NodeToString:= tStringTree.tNodeToStringFunction( @NodeToString);
+procedure LastPreviousTest();
+   var
+      Dict: tStringDictionary;
+      V:    tStringClass;
+      S:    string;
+   begin
+      CreateStrings;
+      Dict:= tStringDictionary.Create( tStringDictionary.tCompareFunction( @CompareStrings));
+      Dict.NodeToString:= tStringDictionary.tNodeToStringFunction( @NodeToString);
 
-     
-//       T.Add( D);
-//       T.Add( B);
-//       T.Add( F);
-//       T.Add( A);
-//       T.Add( C);
-//       T.Add( E);
-//       T.Add( G);
+      Dict.Add( 'A', A);
+      Dict.Add( 'B', B);
+      Dict.Add( 'F', F);
+      Dict.Add( 'G', G);
+      Dict.Add( 'D', D);
+      Dict.Add( 'E', E);
+      Dict.Add( 'C', C);
 
-//       writeln( '------ Testing AVL Tree Last() and Previous() functions. ------');
-//       T.StartEnumeration;
-//       while( T.Previous) do begin
-//          Writeln( '   ', T.Value.Value);
-//       end; 
-//       writeln;
+      writeln( '------ Testing AVL Tree StartEnumeration() and Previous() functions. ------');
+      Dict.StartEnumeration();
+      while( Dict.Previous) do begin
+         Writeln( '   ', Dict.Key, ' - ', Dict.Value.Value);
+      end; 
+      writeln;
 
-//       writeln( '------ Testing AVL Tree for .. in functionality. ------');
-//       for S in T.Reverse do Writeln( '   ', S.Value);
-//       writeln;
+      writeln( '------ Testing for Value in Dictionary functionality. ------');
+      for V in Dict.Reverse do Writeln( '   ', V.Value);
+      writeln;
 
-//       writeln( '------ Testing AVL Tree Dump procedure. ------');
-//       T.Dump;
-//       writeln;
+      writeln( '------ Testing for Key in Dictionary functionality. ------');
+      for S in Dict.ReverseKeyEnum do Writeln( '   ', S);
+      writeln;
 
-
-// //      T.RemoveAll( true);
-//       T.Destroy;
-//       DestroyStrings;
-//    end; // LastPreviousTest()
+      // Remove all the StringObjects
+      Search.Destroy();
+      Dict.RemoveAll( true);
+      // Remove the tree from memory also
+      Dict.Destroy;
+   end; // LastPreviousTest()
 
 
 // ************************************************************************
@@ -220,7 +222,7 @@ procedure FirstNextTest();
 
 begin
    FirstNextTest;
-//   LastPreviousTest;
+   LastPreviousTest;
 
    writeln( '------ Testing AVL Tree Dump() debugging function. ------')
 end.  // test_dictionary

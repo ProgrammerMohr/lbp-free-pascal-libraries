@@ -118,12 +118,36 @@ type
                property    Current: V read Node.Value;
             end; // enumerator class
       // ---------------------------------------------------------------
+      private type
+         tKeyEnumerator = class( tObject)
+            private
+               Tree:    tgDictionary;
+               Node:    tNode;
+            public
+               constructor Create( iTree: tgDictionary);
+               function    MoveNext: Boolean;
+               function    GetEnumerator(): tKeyEnumerator;
+               property    Current: K read Node.Key;
+            end; // enumerator class
+      // ---------------------------------------------------------------
+      private type
+         tReverseKeyEnumerator = class( tObject)
+            private
+               Tree:    tgDictionary;
+               Node:    tNode;
+            public
+               constructor Create( iTree: tgDictionary);
+               function    MoveNext: Boolean;
+               function    GetEnumerator(): tReverseKeyEnumerator;
+               property    Current: K read Node.Key;
+            end; // enumerator class
+      // ---------------------------------------------------------------
 
 
       public
          type
-            tCompareFunction = function( const iValue1, iValue2: K): Integer;
-            tNodeToStringFunction = function( const iValue: K): string;  
+            tCompareFunction = function( const iKey1, iKey2: K): Integer;
+            tNodeToStringFunction = function( const iKey: K): string;  
       private
          MyRoot:          tNode;
          DuplicateOK:     boolean;
@@ -149,7 +173,9 @@ type
          function    Value(): V; virtual;
          function    GetEnumerator(): tEnumerator;
          function    Reverse(): tReverseEnumerator;
-         procedure   Dump( N:       tNode = nil; 
+         function    KeyEnum(): tKeyEnumerator;
+         function    ReverseKeyEnum():  tReverseKeyEnumerator;
+         procedure   Dump( N:       tNode  = nil; 
                            Prefix:  string = ''); virtual;  // Debug code
       private
          function    FindNode( iKey: K): tNode; virtual;
@@ -191,6 +217,7 @@ constructor tgDictionary.tNode.Create( iKey: K; iValue: V);
       Value:=      iValue;
    end; // Create()
 
+
 // ************************************************************************
 // * Clear() - Zero out the fields 
 // ************************************************************************
@@ -201,6 +228,7 @@ procedure tgDictionary.tNode.Clear();
       LeftChild:= nil;
       RightChild:= nil;
       Balance:= 0;
+      Key:= Default( K);
       Value:= nil;
    end; // Clear()
 
@@ -372,10 +400,94 @@ function tgDictionary.tReverseEnumerator.MoveNext(): boolean;
 
 
 // ************************************************************************
-// * GenEnumerator()
+// * GetEnumerator()
 // ************************************************************************
 
 function tgDictionary.tReverseEnumerator.GetEnumerator: tReverseEnumerator;
+   begin
+      result:= self;  
+   end; // GetEnumerator()
+
+
+
+// ========================================================================
+// = tKeyEnumerator class
+// ========================================================================
+// ************************************************************************
+// * Create() - constructor
+// ************************************************************************
+
+constructor tgDictionary.tKeyEnumerator.Create( iTree: tgDictionary);
+   begin
+      Tree:=    iTree;
+      Node:=    nil;    
+   end; // Create()
+
+
+// ************************************************************************
+// * MoveNext()
+// ************************************************************************
+
+function tgDictionary.tKeyEnumerator.MoveNext(): boolean;
+   begin
+      // Starting a new iteration?
+      if( (Node = nil) and (Tree.MyRoot <> nil)) then begin
+         Node:= Tree.MyRoot.First;
+      end else if( Node <> nil) then begin
+         Node:= Node.Next;
+      end;
+
+      result:= (Node <> nil)
+   end; // MoveNext()
+
+
+// ************************************************************************
+// * GetEnumerator()
+// ************************************************************************
+
+function tgDictionary.tKeyEnumerator.GetEnumerator: tKeyEnumerator;
+   begin
+      result:= self;  
+   end; // GetEnumerator()
+
+
+
+// ========================================================================
+// = tReverseKeyEnumerator class
+// ========================================================================
+// ************************************************************************
+// * Create() - constructor
+// ************************************************************************
+
+constructor tgDictionary.tReverseKeyEnumerator.Create( iTree: tgDictionary);
+   begin
+      Tree:=    iTree;
+      Node:=    nil;    
+   end; // Create()
+
+
+// ************************************************************************
+// * MoveNext()
+// ************************************************************************
+
+function tgDictionary.tReverseKeyEnumerator.MoveNext(): boolean;
+   begin
+      // Starting a new iteration?
+      if( (Node = nil) and (Tree.MyRoot <> nil)) then begin
+         Node:= Tree.MyRoot.Last;
+      end else if( Node <> nil) then begin
+         Node:= Node.Previous;
+      end;
+
+      result:= (Node <> nil)
+   end; // MoveNext()
+
+
+// ************************************************************************
+// * GetEnumerator()
+// ************************************************************************
+
+function tgDictionary.tReverseKeyEnumerator.GetEnumerator: tReverseKeyEnumerator;
    begin
       result:= self;  
    end; // GetEnumerator()
@@ -428,7 +540,7 @@ procedure tgDictionary.RemoveAll( DestroyElements: boolean);
 
 
 // ************************************************************************
-// * FindInsertPosition() - Find the node to which this new iValue will be 
+// * FindInsertPosition() - Find the node to which this new iKey will be 
 // *                        a child.
 // ************************************************************************
 
@@ -460,7 +572,6 @@ procedure tgDictionary.Add( iKey: K; iValue: V);
       Comp:        integer;
       NewNode:     tNode;
    begin
-      writeln( 'tgDictionary.Add(): ', iKey);
       NewNode:= tNode.create( iKey, iValue);
       inc( MyCount);
       if MyRoot <> nil then begin
@@ -483,7 +594,6 @@ procedure tgDictionary.Add( iKey: K; iValue: V);
       end else begin
          MyRoot:=NewNode;
       end;
-      writeln( 'Finished adding ', iKey);
    end; // tgDictionary.Add()
 
 
@@ -502,7 +612,7 @@ procedure tgDictionary.RemoveCurrent();
 
 
 // ************************************************************************
-// * Remove() - Find a node which contains iValue and remove it.
+// * Remove() - Find a node which contains iKey and remove it.
 // ************************************************************************
 
 procedure tgDictionary.Remove( iKey: K);
@@ -512,14 +622,14 @@ procedure tgDictionary.Remove( iKey: K);
       CurrentNode:= nil;
       N:= FindNode( iKey);
       if( N = nil) then begin
-         raise lbp_container_exception.Create( 'The passed Value was not found in the tree.');
+         raise lbp_container_exception.Create( 'The passed key was not found in the tree.');
       end;
       RemoveNode( N);
    end; // Remove()
 
 
 // ************************************************************************
-// * Find() - returns true if the passed value is found in the tree
+// * Find() - returns true if the passed iKey is found in the tree
 // *          Call Value() to get the found value.
 // ************************************************************************
 
@@ -583,7 +693,7 @@ function tgDictionary.Key(): K;
    begin
       // Starting a new iteration?
       if( CurrentNode = nil) then begin
-         raise lbp_container_exception.Create( 'Attempt to access the current tree node''s value outside of an enumeration.');
+         raise lbp_container_exception.Create( 'Attempt to access the current tree node''s key outside of an enumeration.');
       end;
       result:= CurrentNode.Key;
    end; // Key()
@@ -624,7 +734,27 @@ function tgDictionary.Reverse(): tReverseEnumerator;
 
 
 // ************************************************************************
-// * DumpNOdes
+// * KeyEnum() - Gets the Key enumerator
+// ************************************************************************
+
+function tgDictionary.KeyEnum(): tKeyEnumerator;
+   begin
+      result:= tKeyEnumerator.Create( Self);
+   end; // KeyEnum()
+
+
+// ************************************************************************
+// * ReverseKeyEnum() - Gets the reverse order enumerator
+// ************************************************************************
+
+function tgDictionary.ReverseKeyEnum(): tReverseKeyEnumerator;
+   begin
+      result:= tReverseKeyEnumerator.Create( Self);
+   end; // Reverse()
+
+
+// ************************************************************************
+// * Dump() - prints the tree for troubleshooting
 // ************************************************************************
 
 
