@@ -146,6 +146,7 @@ procedure FirstNextTest();
 
       writeln( '------ Testing AVL Tree Find() function. ------');
       if( Dict.Find( 'F')) then writeln( '   Found: ', Dict.Value.Value);
+      writeln( 'Find C using Dict[''C'']:  ',  Dict[ 'C'].Value);
 
       writeln( '------ Testing AVL Tree StartEnumeration() and Next() functions. ------');
       Dict.StartEnumeration();

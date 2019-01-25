@@ -179,6 +179,7 @@ type
                            Prefix:  string = ''); virtual;  // Debug code
       private
          function    FindNode( iKey: K): tNode; virtual;
+         function    FindItem( iKey: K): V; virtual; // used by the index property
          procedure   RemoveNode( N: tNode);  virtual; // Remove the passed node
          function    IsEmpty():  boolean; virtual;
          procedure   RemoveSubtree( StRoot: tNode; DestroyElements: boolean); virtual;
@@ -194,6 +195,7 @@ type
          property    Name:  string  read MyName write MyName;
          property    Compare: tCompareFunction read MyCompare write MyCompare;
          property    NodeToString:  tNodeToStringFunction read MyNodeToString write MyNodeToString;
+         property    Items[ iKey: K]: V read FindItem; default;
       end; // tgDictionary
 
 
@@ -816,6 +818,21 @@ function tgDictionary.FindNode( iKey: K): tNode;
          end;
       end; // while
    end; // FindNode()
+
+
+// ************************************************************************
+// * FindItem() - Returns a node which contains iKey.  Return nil if no
+// *              node is found.  Used internally.
+// ************************************************************************
+
+function tgDictionary.FindItem( iKey: K): V;
+   var
+      N: tNode;
+   begin
+      N:= FindNode( iKey);
+      if( N = nil) then raise lbp_container_exception.create( 'Index key does not exist in this Dictionary!');
+      result:= N.Value;
+   end; // FindItem()
 
 
 // ************************************************************************
