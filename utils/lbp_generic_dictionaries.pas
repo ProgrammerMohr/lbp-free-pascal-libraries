@@ -3,11 +3,10 @@
 Copyright (c) 2017 by Lloyd B. Park
 Copyright (c) 2008 by Mattias Gaertner
 
-AVL (Average Level) tree which uses generics
-The AVL Tree is my attempt to make a generic version of Mattias Gaertner's
-tAVLTree in the AVL_Tree unit included with Free Pascal.  Since I had written
-my own AVL tree very shortly before Mattias' was released, I combined features
-of both into this one. 
+This dictionary class is based on my AVL (Average Level) tree which in turn was
+based on Mattias Gaertner's tAVLTree in the AVL_Tree unit included with Free 
+Pascal.  Since I had written my own AVL tree very shortly before Mattias' was 
+released, I combined features of both into this one. 
 
 
 This file is part of Lloyd's Free Pascal Libraries (LFPL).
@@ -40,7 +39,7 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 
 *************************************************************************** *}
 
-unit lbp_generic_trees;
+unit lbp_generic_dictionaries;
 
 interface
 
@@ -71,11 +70,11 @@ type
    lbp_container_exception = class( lbp_exception);
 
 // ************************************************************************
-// * tgAvlTree
+// * tgDictionary
 // ************************************************************************
 
 type
-   generic tgAvlTree< V: tObject> = class( tObject)
+   generic tgDictionary< K, V> = class( tObject)
       private type
       // ---------------------------------------------------------------
          tNode = class( tObject)
@@ -84,9 +83,10 @@ type
                LeftChild:   tNode;
                RightChild:  tNode;
                Balance:     integer;
+               Key:         K;
                Value:       V;
             public
-               constructor  Create( iValue: V);
+               constructor  Create( iKey: K; iValue: V);
                procedure    Clear;
                function     TreeDepth(): integer; // longest WAY down. e.g. only one tNode => 0 !
                function     First():    tNode;
@@ -98,10 +98,10 @@ type
       private type
          tEnumerator = class( tObject)
             private
-               Tree:    tgAvlTree;
+               Tree:    tgDictionary;
                Node:    tNode;
             public
-               constructor Create( iTree: tgAvlTree);
+               constructor Create( iTree: tgDictionary);
                function    MoveNext: Boolean;
                property    Current: V read Node.Value;
             end; // enumerator class
@@ -109,10 +109,10 @@ type
       private type
          tReverseEnumerator = class( tObject)
             private
-               Tree:    tgAvlTree;
+               Tree:    tgDictionary;
                Node:    tNode;
             public
-               constructor Create( iTree: tgAvlTree);
+               constructor Create( iTree: tgDictionary);
                function    MoveNext: Boolean;
                function    GetEnumerator(): tReverseEnumerator;
                property    Current: V read Node.Value;
@@ -122,8 +122,8 @@ type
 
       public
          type
-            tCompareFunction = function( const iValue1, iValue2: V): Integer;
-            tNodeToStringFunction = function( const iValue: V): string;  
+            tCompareFunction = function( const iValue1, iValue2: K): Integer;
+            tNodeToStringFunction = function( const iValue: K): string;  
       private
          MyRoot:          tNode;
          DuplicateOK:     boolean;
@@ -138,24 +138,25 @@ type
                              iAllowDuplicates: boolean = false);
          Destructor  Destroy(); override;
          procedure   RemoveAll( DestroyElements: boolean = false); virtual;
-         procedure   Add( iValue: V); virtual;
+         procedure   Add( iKey: K; iValue: V); virtual;
          procedure   RemoveCurrent(); virtual; // Remove the Current Node from the tree
-         procedure   Remove( iValue: V);  virtual; // Remove the node which contains T
-         function    Find( iValue: V): boolean; virtual;
+         procedure   Remove( iKey: K);  virtual; // Remove the node which contains T
+         function    Find( iKey: K): boolean; virtual;
          procedure   StartEnumeration(); virtual;
          function    Previous():  boolean; virtual;
          function    Next():      boolean; virtual;
+         function    Key(): K; virtual;
          function    Value(): V; virtual;
          function    GetEnumerator(): tEnumerator;
          function    Reverse(): tReverseEnumerator;
          procedure   Dump( N:       tNode = nil; 
                            Prefix:  string = ''); virtual;  // Debug code
       private
-         function    FindNode( iValue: V): tNode; virtual;
+         function    FindNode( iKey: K): tNode; virtual;
          procedure   RemoveNode( N: tNode);  virtual; // Remove the passed node
          function    IsEmpty():  boolean; virtual;
          procedure   RemoveSubtree( StRoot: tNode; DestroyElements: boolean); virtual;
-         function    FindInsertPosition( iValue: V): tNode; virtual;
+         function    FindInsertPosition( iKey: K): tNode; virtual;
          procedure   RebalanceAfterAdd( N: tNode); virtual;
          procedure   RebalanceAfterRemove( N: tNode); virtual;
       public
@@ -167,7 +168,7 @@ type
          property    Name:  string  read MyName write MyName;
          property    Compare: tCompareFunction read MyCompare write MyCompare;
          property    NodeToString:  tNodeToStringFunction read MyNodeToString write MyNodeToString;
-      end; // tgAvlTree
+      end; // tgDictionary
 
 
 // ************************************************************************
@@ -180,33 +181,34 @@ implementation
 // ************************************************************************
 // * Create() - constructor
 // ************************************************************************
-constructor tgAvlTree.tNode.Create( iValue: V);
+constructor tgDictionary.tNode.Create( iKey: K; iValue: V);
    begin
-      Parent:= nil;
-      LeftChild:= nil;
+      Parent:=     nil;
+      LeftChild:=  nil;
       RightChild:= nil;
-      Balance:= 0;
-      Value:= iValue;
-   end;
+      Balance:=    0;
+      Key:=        iKey;
+      Value:=      iValue;
+   end; // Create()
 
 // ************************************************************************
 // * Clear() - Zero out the fields 
 // ************************************************************************
 
-procedure tgAvlTree.tNode.Clear();
+procedure tgDictionary.tNode.Clear();
    begin
       Parent:= nil;
       LeftChild:= nil;
       RightChild:= nil;
       Balance:= 0;
       Value:= nil;
-   end;
+   end; // Clear()
 
 // ************************************************************************
 // * TreeDepth() - Returns the depth of this node.
 // ************************************************************************
 
-function tgAvlTree.tNode.TreeDepth(): integer;
+function tgDictionary.tNode.TreeDepth(): integer;
 // longest WAY down. e.g. only one node => 0 !
 var 
    LeftDepth:  integer;
@@ -236,7 +238,7 @@ end; // TreeDepth
 // *           subtree. 
 // ************************************************************************
 
-function tgAvlTree.tNode.First(): tNode;
+function tgDictionary.tNode.First(): tNode;
    begin
       result:= Self;
       while( result.LeftChild <> nil) do result:= result.LeftChild;
@@ -248,7 +250,7 @@ function tgAvlTree.tNode.First(): tNode;
 // *          subtree. 
 // ************************************************************************
 
-function tgAvlTree.tNode.Last(): tNode;
+function tgDictionary.tNode.Last(): tNode;
    begin
       result:= Self;
       while( result.RightChild <> nil) do result:= result.RightChild;
@@ -259,7 +261,7 @@ function tgAvlTree.tNode.Last(): tNode;
 // * Next() - Return the next node in the tree
 // ************************************************************************
 
-function tgAvlTree.tNode.Next(): tNode;
+function tgDictionary.tNode.Next(): tNode;
    var
       PreviousNode: tNode;
    begin
@@ -284,7 +286,7 @@ function tgAvlTree.tNode.Next(): tNode;
 // * Previous() - Return the previous node in the tree
 // ************************************************************************
 
-function tgAvlTree.tNode.Previous(): tNode;
+function tgDictionary.tNode.Previous(): tNode;
    var
       PreviousNode: tNode;
    begin
@@ -313,7 +315,7 @@ function tgAvlTree.tNode.Previous(): tNode;
 // * Create() - constructor
 // ************************************************************************
 
-constructor tgAvlTree.tEnumerator.Create( iTree: tgAvlTree);
+constructor tgDictionary.tEnumerator.Create( iTree: tgDictionary);
    begin
       Tree:=    iTree;
       Node:=    nil;    
@@ -324,7 +326,7 @@ constructor tgAvlTree.tEnumerator.Create( iTree: tgAvlTree);
 // * MoveNext()
 // ************************************************************************
 
-function tgAvlTree.tEnumerator.MoveNext(): boolean;
+function tgDictionary.tEnumerator.MoveNext(): boolean;
    begin
       // Starting a new iteration?
       if( (Node = nil) and (Tree.MyRoot <> nil)) then begin
@@ -345,7 +347,7 @@ function tgAvlTree.tEnumerator.MoveNext(): boolean;
 // * Create() - constructor
 // ************************************************************************
 
-constructor tgAvlTree.tReverseEnumerator.Create( iTree: tgAvlTree);
+constructor tgDictionary.tReverseEnumerator.Create( iTree: tgDictionary);
    begin
       Tree:=    iTree;
       Node:=    nil;    
@@ -356,7 +358,7 @@ constructor tgAvlTree.tReverseEnumerator.Create( iTree: tgAvlTree);
 // * MoveNext()
 // ************************************************************************
 
-function tgAvlTree.tReverseEnumerator.MoveNext(): boolean;
+function tgDictionary.tReverseEnumerator.MoveNext(): boolean;
    begin
       // Starting a new iteration?
       if( (Node = nil) and (Tree.MyRoot <> nil)) then begin
@@ -373,7 +375,7 @@ function tgAvlTree.tReverseEnumerator.MoveNext(): boolean;
 // * GenEnumerator()
 // ************************************************************************
 
-function tgAvlTree.tReverseEnumerator.GetEnumerator: tReverseEnumerator;
+function tgDictionary.tReverseEnumerator.GetEnumerator: tReverseEnumerator;
    begin
       result:= self;  
    end; // GetEnumerator()
@@ -381,14 +383,14 @@ function tgAvlTree.tReverseEnumerator.GetEnumerator: tReverseEnumerator;
 
 
 // ========================================================================
-// = tgAvlTree generic class
+// = tgDictionary generic class
 // ========================================================================
 // ************************************************************************
 // * Create() - Constructors
 // ************************************************************************
 
-constructor tgAvlTree.Create( iCompare:     tCompareFunction;
-                                  iAllowDuplicates: boolean = false);
+constructor tgDictionary.Create( iCompare:     tCompareFunction;
+                                 iAllowDuplicates: boolean = false);
    begin
       inherited Create;
       MyRoot:= nil;
@@ -406,7 +408,7 @@ constructor tgAvlTree.Create( iCompare:     tCompareFunction;
 // * Destroy() - Destructor
 // ************************************************************************
 
-Destructor tgAvlTree.Destroy();
+Destructor tgDictionary.Destroy();
    begin
       RemoveAll;
       inherited Destroy();
@@ -418,7 +420,7 @@ Destructor tgAvlTree.Destroy();
 // *               Destroy() the elements.
 // ************************************************************************
 
-procedure tgAvlTree.RemoveAll( DestroyElements: boolean);
+procedure tgDictionary.RemoveAll( DestroyElements: boolean);
    begin
       if( MyRoot <> nil) then RemoveSubtree( MyRoot, DestroyElements);
       MyRoot:= nil;
@@ -430,13 +432,13 @@ procedure tgAvlTree.RemoveAll( DestroyElements: boolean);
 // *                        a child.
 // ************************************************************************
 
-function tgAvlTree.FindInsertPosition( iValue: V): tNode;
+function tgDictionary.FindInsertPosition( iKey: K): tNode;
    var 
       Comp: integer;
    begin
       Result:= MyRoot;
       while( Result <> nil) do begin
-         Comp:= MyCompare( iValue, Result.Value);
+         Comp:= MyCompare( iKey, Result.Key);
          if Comp < 0 then begin
             if Result.LeftChild <> nil then Result:=Result.LeftChild
             else exit;
@@ -452,17 +454,18 @@ function tgAvlTree.FindInsertPosition( iValue: V): tNode;
 // * Add() - Add an element to the tree
 // ************************************************************************
 
-procedure tgAvlTree.Add( iValue: V);
+procedure tgDictionary.Add( iKey: K; iValue: V);
    var 
       InsertPos:   tNode;
       Comp:        integer;
       NewNode:     tNode;
    begin
-      NewNode:= tNode.create( iValue);
+      writeln( 'tgDictionary.Add(): ', iKey);
+      NewNode:= tNode.create( iKey, iValue);
       inc( MyCount);
       if MyRoot <> nil then begin
-         InsertPos:= FindInsertPosition( iValue);
-         Comp:= MyCompare( iValue, InsertPos.Value);
+         InsertPos:= FindInsertPosition( iKey);
+         Comp:= MyCompare( iKey, InsertPos.Key);
          NewNode.Parent:= InsertPos;
          if( Comp < 0) then begin
             // insert to the left
@@ -480,14 +483,15 @@ procedure tgAvlTree.Add( iValue: V);
       end else begin
          MyRoot:=NewNode;
       end;
-   end; // TgAvlTree.Add()
+      writeln( 'Finished adding ', iKey);
+   end; // tgDictionary.Add()
 
 
 // ************************************************************************
 // * Remove() - Remove the current node from the tree
 // ************************************************************************
 
-procedure tgAvlTree.RemoveCurrent();
+procedure tgDictionary.RemoveCurrent();
    begin
       if( CurrentNode = nil) then begin
          raise lbp_container_exception.Create( 'Attempting to delete the current node from the tree when it is empty!');
@@ -501,12 +505,12 @@ procedure tgAvlTree.RemoveCurrent();
 // * Remove() - Find a node which contains iValue and remove it.
 // ************************************************************************
 
-procedure tgAvlTree.Remove( iValue: V);
+procedure tgDictionary.Remove( iKey: K);
    var
       N: tNode;
    begin
       CurrentNode:= nil;
-      N:= FindNode( iValue);
+      N:= FindNode( iKey);
       if( N = nil) then begin
          raise lbp_container_exception.Create( 'The passed Value was not found in the tree.');
       end;
@@ -519,9 +523,9 @@ procedure tgAvlTree.Remove( iValue: V);
 // *          Call Value() to get the found value.
 // ************************************************************************
 
-function tgAvlTree.Find( iValue: V): boolean;
+function tgDictionary.Find( iKey: K): boolean;
    begin
-      CurrentNode:= FindNode( iValue);
+      CurrentNode:= FindNode( iKey);
       result:= (CurrentNode <> nil);
    end; // Find()
 
@@ -530,7 +534,7 @@ function tgAvlTree.Find( iValue: V): boolean;
 // * StartEnumeration() - Prepare for a new enmeration.
 // ************************************************************************
 
-procedure tgAvlTree.StartEnumeration();
+procedure tgDictionary.StartEnumeration();
    begin
       CurrentNode:= nil;
    end; /// StartEnumeration()
@@ -541,7 +545,7 @@ procedure tgAvlTree.StartEnumeration();
 // *              successful.
 // ************************************************************************
 
-function tgAvlTree.Previous(): boolean;
+function tgDictionary.Previous(): boolean;
    begin
       // Starting a new iteration?
       if( (CurrentNode = nil) and (MyRoot <> nil)) then begin
@@ -558,7 +562,7 @@ function tgAvlTree.Previous(): boolean;
 // * Next()) - Move to the Next node in the tree and return true if successful.
 // ************************************************************************
 
-function tgAvlTree.Next(): boolean;
+function tgDictionary.Next(): boolean;
    begin
       // Starting a new iteration?
       if( (CurrentNode = nil) and (MyRoot <> nil)) then begin
@@ -572,10 +576,24 @@ function tgAvlTree.Next(): boolean;
 
 
 // ************************************************************************
+// * Key() - Return the Key of the current node in the tree.True
+// ************************************************************************
+
+function tgDictionary.Key(): K;
+   begin
+      // Starting a new iteration?
+      if( CurrentNode = nil) then begin
+         raise lbp_container_exception.Create( 'Attempt to access the current tree node''s value outside of an enumeration.');
+      end;
+      result:= CurrentNode.Key;
+   end; // Key()
+
+
+// ************************************************************************
 // * Value() - Return the value of the current node in the tree.True
 // ************************************************************************
 
-function tgAvlTree.Value(): V;
+function tgDictionary.Value(): V;
    begin
       // Starting a new iteration?
       if( CurrentNode = nil) then begin
@@ -589,7 +607,7 @@ function tgAvlTree.Value(): V;
 // * GetEnumerator()
 // ************************************************************************
 
-function tgAvlTree.GetEnumerator(): tEnumerator;
+function tgDictionary.GetEnumerator(): tEnumerator;
    begin
       result:= tEnumerator.Create( Self);
    end; // GetEnumerator()
@@ -599,7 +617,7 @@ function tgAvlTree.GetEnumerator(): tEnumerator;
 // * Reverse() - Gets the reverse order enumerator
 // ************************************************************************
 
-function tgAvlTree.Reverse(): tReverseEnumerator;
+function tgDictionary.Reverse(): tReverseEnumerator;
    begin
       result:= tReverseEnumerator.Create( Self);
    end; // Reverse()
@@ -609,12 +627,8 @@ function tgAvlTree.Reverse(): tReverseEnumerator;
 // * DumpNOdes
 // ************************************************************************
 
-//  d - b - a
-//  |    \- c
-//   \- f - e
-//       \- g
 
-procedure tgAvlTree.Dump( N:       tNode = nil;
+procedure tgDictionary.Dump( N:       tNode = nil;
                           Prefix:  string       = ''); 
    var
       Temp: string;
@@ -629,7 +643,7 @@ procedure tgAvlTree.Dump( N:       tNode = nil;
       end;
 
       // Convert the value to something printable
-      Temp:= MyNodeToString( N.Value);
+      Temp:= MyNodeToString( N.Key);
       if( Length( Temp) > 4) then SetLength( Temp, 4);
       PadLeft( Temp, 4);
 
@@ -653,17 +667,17 @@ procedure tgAvlTree.Dump( N:       tNode = nil;
 
 
 // ************************************************************************
-// * FindNode() - Returns a node which contains iValue.  Return nil if no
+// * FindNode() - Returns a node which contains iKey.  Return nil if no
 // *              node is found.  Used internally.
 // ************************************************************************
 
-function tgAvlTree.FindNode( iValue: V): tNode;
+function tgDictionary.FindNode( iKey: K): tNode;
    var 
       Comp: integer;
    begin
       Result:=MyRoot;
       while( Result <> nil) do begin
-        Comp:= MyCompare( iValue, Result.Value);
+        Comp:= MyCompare( iKey, Result.Key);
         if Comp=0 then exit;
         if Comp<0 then begin
             Result:=Result.LeftChild;
@@ -678,7 +692,7 @@ function tgAvlTree.FindNode( iValue: V): tNode;
 // * RemoveNode() - Remove the passed node from the tree
 // ************************************************************************
 
-procedure tgAvlTree.RemoveNode( N: tNode);
+procedure tgDictionary.RemoveNode( N: tNode);
    var 
       OldParent:     tNode;
       OldLeft:       tNode;
@@ -811,7 +825,7 @@ end; // RemoveNode()
 // * IsEmpty() - Returns true if the tree is empty.
 // ************************************************************************
 
-function tgAvlTree.IsEmpty(): V;
+function tgDictionary.IsEmpty(): V;
    begin
       result:= (MyCount = 0);
    end; // First()
@@ -821,7 +835,7 @@ function tgAvlTree.IsEmpty(): V;
 // * RemoveSubtree() - Helper for RemoveAll
 // ************************************************************************
 
-procedure tgAvlTree.RemoveSubtree( StRoot: tNode; DestroyElements: boolean);
+procedure tgDictionary.RemoveSubtree( StRoot: tNode; DestroyElements: boolean);
    begin
       if( StRoot.LeftChild <> nil) then begin
          RemoveSubtree( StRoot.LeftChild, DestroyElements);
@@ -838,7 +852,7 @@ procedure tgAvlTree.RemoveSubtree( StRoot: tNode; DestroyElements: boolean);
 // * RebalanceAfterAdd() - Rebalance the tree after an Add()
 // ************************************************************************
 
-procedure tgAvlTree.RebalanceAfterAdd( N: tNode);
+procedure tgDictionary.RebalanceAfterAdd( N: tNode);
    var 
       OldParent:       tNode;
       OldParentParent: tNode;
@@ -997,7 +1011,7 @@ procedure tgAvlTree.RebalanceAfterAdd( N: tNode);
 // * RebalanceAfterRemove() - Rebalance the tree after a Remove()
 // ************************************************************************
 
-procedure tgAvlTree.RebalanceAfterRemove( N: tNode);
+procedure tgDictionary.RebalanceAfterRemove( N: tNode);
    var 
       OldParent:         tNode;
       OldRight:          tNode;
@@ -1145,4 +1159,4 @@ procedure tgAvlTree.RebalanceAfterRemove( N: tNode);
 
 // ************************************************************************
 
-end. // lbp_generic_trees unit
+end. // lbp_generic_Dictionaries unit
