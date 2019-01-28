@@ -38,6 +38,20 @@ unit lbp_name_value_pair_trees;
 // Creates a balanced binary tree of Name/Value string pairs.  The tree is
 // sorted and searched by Name and Value is retrieved using the Value property. 
 
+{* ***************************************************************************
+
+Redo this using both an AVL tree and a double linked list to hold the NvPair.
+The NVPair object should contain the double linked list node so 
+
+*************************************************************************** *}
+
+
+
+
+
+
+
+
 {$include lbp_standard_modes.inc}
 
 interface
@@ -62,7 +76,7 @@ type
          constructor Create( iName: string; iValue: T = Default( T));
          property    Name:  string read GetName  write SetName;
          property    Value: T      read GetValue write SetValue;            
-      end; // 53
+      end; //
 
 
 

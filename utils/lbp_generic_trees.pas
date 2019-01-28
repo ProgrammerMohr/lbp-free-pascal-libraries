@@ -68,7 +68,7 @@ uses
 // ************************************************************************
 
 type
-   lbp_container_exception = class( lbp_exception);
+   lbpContainerException = class( lbp_exception);
 
 // ************************************************************************
 // * tgAvlTree
@@ -471,7 +471,7 @@ procedure tgAvlTree.Add( iValue: V);
             // Check for unallowed duplicate
             if( (Comp = 0) and DuplicateOK) then begin
               NewNode.Destroy(); // Clean up
-              raise lbp_container_exception.Create( 'Duplicate key values are not allowed in this AVL Tree!');
+              raise lbpContainerException.Create( 'Duplicate key values are not allowed in this AVL Tree!');
             end;
             // insert to the right
             InsertPos.RightChild:= NewNode;
@@ -490,7 +490,7 @@ procedure tgAvlTree.Add( iValue: V);
 procedure tgAvlTree.RemoveCurrent();
    begin
       if( CurrentNode = nil) then begin
-         raise lbp_container_exception.Create( 'Attempting to delete the current node from the tree when it is empty!');
+         raise lbpContainerException.Create( 'Attempting to delete the current node from the tree when it is empty!');
       end;
       RemoveNode( CurrentNode);
       CurrentNode:=nil;
@@ -508,7 +508,7 @@ procedure tgAvlTree.Remove( iValue: V);
       CurrentNode:= nil;
       N:= FindNode( iValue);
       if( N = nil) then begin
-         raise lbp_container_exception.Create( 'The passed Value was not found in the tree.');
+         raise lbpContainerException.Create( 'The passed Value was not found in the tree.');
       end;
       RemoveNode( N);
    end; // Remove()
@@ -579,7 +579,7 @@ function tgAvlTree.Value(): V;
    begin
       // Starting a new iteration?
       if( CurrentNode = nil) then begin
-         raise lbp_container_exception.Create( 'Attempt to access the current tree node''s value outside of an enumeration.');
+         raise lbpContainerException.Create( 'Attempt to access the current tree node''s value outside of an enumeration.');
       end;
       result:= CurrentNode.Value;
    end; /// Value()

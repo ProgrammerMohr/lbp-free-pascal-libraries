@@ -67,7 +67,7 @@ uses
 // ************************************************************************
 
 type
-   lbp_container_exception = class( lbp_exception);
+   lbpContainerException = class( lbp_exception);
 
 // ************************************************************************
 // * tgDictionary
@@ -587,7 +587,7 @@ procedure tgDictionary.Add( iKey: K; iValue: V);
             // Check for unallowed duplicate
             if( (Comp = 0) and DuplicateOK) then begin
               NewNode.Destroy(); // Clean up
-              raise lbp_container_exception.Create( 'Duplicate key values are not allowed in this AVL Tree!');
+              raise lbpContainerException.Create( 'Duplicate key values are not allowed in this AVL Tree!');
             end;
             // insert to the right
             InsertPos.RightChild:= NewNode;
@@ -606,7 +606,7 @@ procedure tgDictionary.Add( iKey: K; iValue: V);
 procedure tgDictionary.RemoveCurrent();
    begin
       if( CurrentNode = nil) then begin
-         raise lbp_container_exception.Create( 'Attempting to delete the current node from the tree when it is empty!');
+         raise lbpContainerException.Create( 'Attempting to delete the current node from the tree when it is empty!');
       end;
       RemoveNode( CurrentNode);
       CurrentNode:=nil;
@@ -624,7 +624,7 @@ procedure tgDictionary.Remove( iKey: K);
       CurrentNode:= nil;
       N:= FindNode( iKey);
       if( N = nil) then begin
-         raise lbp_container_exception.Create( 'The passed key was not found in the tree.');
+         raise lbpContainerException.Create( 'The passed key was not found in the tree.');
       end;
       RemoveNode( N);
    end; // Remove()
@@ -695,7 +695,7 @@ function tgDictionary.Key(): K;
    begin
       // Starting a new iteration?
       if( CurrentNode = nil) then begin
-         raise lbp_container_exception.Create( 'Attempt to access the current tree node''s key outside of an enumeration.');
+         raise lbpContainerException.Create( 'Attempt to access the current tree node''s key outside of an enumeration.');
       end;
       result:= CurrentNode.Key;
    end; // Key()
@@ -709,7 +709,7 @@ function tgDictionary.Value(): V;
    begin
       // Starting a new iteration?
       if( CurrentNode = nil) then begin
-         raise lbp_container_exception.Create( 'Attempt to access the current tree node''s value outside of an enumeration.');
+         raise lbpContainerException.Create( 'Attempt to access the current tree node''s value outside of an enumeration.');
       end;
       result:= CurrentNode.Value;
    end; /// Value()
@@ -830,7 +830,7 @@ function tgDictionary.FindItem( iKey: K): V;
       N: tNode;
    begin
       N:= FindNode( iKey);
-      if( N = nil) then raise lbp_container_exception.create( 'Index key does not exist in this Dictionary!');
+      if( N = nil) then raise lbpContainerException.create( 'Index key does not exist in this Dictionary!');
       result:= N.Value;
    end; // FindItem()
 

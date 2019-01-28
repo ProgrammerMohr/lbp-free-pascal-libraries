@@ -2,7 +2,8 @@
 
 Copyright (c) 2017 by Lloyd B. Park
 
-Parse URLs.
+Simple program to read and write XML data.  It tries to represent XML in an
+ElementTree like the Python lxml package.  
 
 This file is part of Lloyd's Free Pascal Libraries (LFPL).
 
@@ -45,16 +46,39 @@ interface
 uses
    lbp_types,
    lbp_utils,  // lbp_exceptions
-   lbp_name_value_pair_trees;
+   lbp_generic_containers;
 
+// Add my name value pair unit.  It needs modified to use generic containters.
+
+
+// ************************************************************************
+// * tXmlAttribute Class
+// ************************************************************************
+
+type 
+   tXmlAttribute = class( // Extend Name Value Pair tree)
+      // Add parse and write functions
+      public
+         Name:  string;
+         Value: string;
+         // Access by 
+      end; // tXmlAttribute
+      
+      
 // ************************************************************************
 // * tXmlElement Class
 // ************************************************************************
 
 type 
-   tXmlAttribute = class (ttNVPNode)
+   tXmlElement = class (ttNVPNode)
       private
-
+         // Define the Child and attribute trees
+      public
+         Tag:  string;
+         Head: string;
+         Tail: string;
+         Attrib: class that contains a list and a tree of the name/value pairs.
+      end; // tXmlElement
 
 // ************************************************************************
 

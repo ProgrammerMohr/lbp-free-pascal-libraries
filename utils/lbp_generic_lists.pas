@@ -60,7 +60,7 @@ uses
 // ************************************************************************
 
 type
-   lbpListException = class( lbp_exception);
+   lbpContainerException = class( lbp_exception);
 
 // ************************************************************************
 
@@ -253,7 +253,7 @@ function tgList.DecIndex( I: integer): integer;
 procedure tgList.AddHead( Item: T);
    begin
       if( IsFull) then begin
-         raise lbpListException.Create( 'An attempt was made to add an item to a circular list which is full!');
+         raise lbpContainerException.Create( 'An attempt was made to add an item to a circular list which is full!');
       end;
 
       Items[ MyHead]:= Item;
@@ -269,7 +269,7 @@ procedure tgList.AddHead( Item: T);
 function tgList.GetHead(): T;
    begin
       if( IsEmpty) then begin
-         raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
+         raise lbpContainerException.Create( 'An attempt was made to get an item from an empty list');
       end;
       CurrentIndex:= -1;
       result:= Items[ IncIndex( MyHead)];
@@ -283,7 +283,7 @@ function tgList.GetHead(): T;
 function tgList.RemoveHead(): T;
    begin
       if( IsEmpty) then begin
-         raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
+         raise lbpContainerException.Create( 'An attempt was made to get an item from an empty list');
       end;
       MyHead:= IncIndex( MyHead);
       result:= Items[ MyHead];
@@ -298,7 +298,7 @@ function tgList.RemoveHead(): T;
 procedure tgList.AddTail( Item: T);
    begin
       if( IsFull) then begin
-         raise lbpListException.Create( 'An attempt was made to add an item to a circular list which is full!');
+         raise lbpContainerException.Create( 'An attempt was made to add an item to a circular list which is full!');
       end;
 
       Items[ MyTail]:= Item;
@@ -314,7 +314,7 @@ procedure tgList.AddTail( Item: T);
 function tgList.GetTail(): T;
    begin
       if( IsEmpty) then begin
-         raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
+         raise lbpContainerException.Create( 'An attempt was made to get an item from an empty list');
       end;
       CurrentIndex:= -1;
       result:= Items[ DecIndex( MyTail)];
@@ -328,7 +328,7 @@ function tgList.GetTail(): T;
 function tgList.RemoveTail(): T;
    begin
       if( IsEmpty) then begin
-         raise lbpListException.Create( 'An attempt was made to get an item from an empty list');
+         raise lbpContainerException.Create( 'An attempt was made to get an item from an empty list');
       end;
       MyTail:= DecIndex( MyTail);
       result:= Items[ MyTail];
@@ -343,7 +343,7 @@ function tgList.RemoveTail(): T;
 function tgList.GetByIndex( i: integer): T;
    begin
       if( (i <= 0) or (i > Length)) then begin
-         raise lbpListException.Create( 'tgList index out of bounds!');
+         raise lbpContainerException.Create( 'tgList index out of bounds!');
       end;
 
       result:= Items[ (MyHead + i) mod MySize];
@@ -608,7 +608,7 @@ destructor tgDoubleLinkedList.Destroy;
 
    begin
       if( FirstNode <> nil) then begin
-         raise lbpListException.Create(
+         raise lbpContainerException.Create(
             'List ' + Name + ' is not empty and can not be destroyed!');
       end;
       inherited Destroy;
@@ -643,7 +643,7 @@ procedure tgDoubleLinkedList.AddHead( Item: T);
 function tgDoubleLinkedList.GetHead(): T;
    begin
       if( FirstNode = nil) then begin
-         raise lbpListException.Create( 'Attempt to get an element from an empty list!');
+         raise lbpContainerException.Create( 'Attempt to get an element from an empty list!');
       end else begin
          result:= FirstNode.Item;
       end;
@@ -659,7 +659,7 @@ function tgDoubleLinkedList.DelHead(): T;
       N: tListNode;
    begin
       if( LastNode = nil) then begin
-         raise lbpListException.Create( 'Attempt to get an element from an empty list!');
+         raise lbpContainerException.Create( 'Attempt to get an element from an empty list!');
       end else begin
          N:= FirstNode;
          // Adjust Pointers
@@ -710,7 +710,7 @@ procedure tgDoubleLinkedList.AddTail( Item: T);
 function tgDoubleLinkedList.GetTail: T;
    begin
       if( LastNode = nil) then begin
-         raise lbpListException.Create( 'Attempt to get an element from an empty list!');
+         raise lbpContainerException.Create( 'Attempt to get an element from an empty list!');
       end else begin
          result:= LastNode.Item;
       end; // if Empty
@@ -727,7 +727,7 @@ function tgDoubleLinkedList.DelTail: T;
       N: tListNode;
    begin
       if( LastNode = nil) then begin
-         raise lbpListException.Create( 'Attempt to get an element from an empty list!');
+         raise lbpContainerException.Create( 'Attempt to get an element from an empty list!');
       end else begin
          N:= LastNode;
          // Adjust Pointers
@@ -805,14 +805,14 @@ procedure tgDoubleLinkedList.Replace( OldItem, NewItem: T);
       N: tListNode;
    begin
       if( FirstNode = nil) then
-         raise lbpListException.Create( 'Old Item not found in list')
+         raise lbpContainerException.Create( 'Old Item not found in list')
       else begin
          // Find the node
          N:= FirstNode;
          while (N <> nil) and (N.Item <> OldItem) do
             N:= N.Next;
          if (N = nil) then
-            raise lbpListException.Create( 'Old Item not found in list')
+            raise lbpContainerException.Create( 'Old Item not found in list')
          else
             N.Item:= NewItem;
          CurrentNode:= nil;
@@ -839,14 +839,14 @@ procedure tgDoubleLinkedList.Remove( Item: T);
       N: tListNode;
    begin
       if( FirstNode = nil) then
-         raise lbpListException.Create( 'Item not found in list')
+         raise lbpContainerException.Create( 'Item not found in list')
       else begin
          // Find the node
          N:= FirstNode;
          while (N <> nil) and (N.Item <> Item) do
             N:= N.Next;
          if (N = nil) then
-            raise lbpListException.Create( 'Old Item not found in list');
+            raise lbpContainerException.Create( 'Old Item not found in list');
 
          // Adjust Pointers
          if N.Next = nil then LastNode:= N.Prev
@@ -865,7 +865,7 @@ procedure tgDoubleLinkedList.Remove( Item: T);
 procedure tgDoubleLinkedList.Remove();
    begin
       if (CurrentNode = nil) then exit;
-         raise lbpListException.Create( 'The is no current item to remove from the list.');
+         raise lbpContainerException.Create( 'The is no current item to remove from the list.');
 
       // Adjust Pointers
       if CurrentNode.Next = Nil then LastNode:= CurrentNode.Prev
@@ -958,7 +958,7 @@ function tgDoubleLinkedList.IsLast(): boolean;
 function tgDoubleLinkedList.GetCurrent(): T;
    begin
       if CurrentNode = nil then
-         raise lbpListException.Create( 'The is no current item to remove from the list.')
+         raise lbpContainerException.Create( 'The is no current item to remove from the list.')
       else
          result:= CurrentNode.Item;
    End; // GetCurrent()

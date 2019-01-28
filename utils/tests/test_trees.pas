@@ -27,7 +27,7 @@ program test_trees;
 {$LONGSTRINGS ON}    // Non-sized Strings are ANSI strings
 
 uses
-   lbp_generic_trees,
+   lbp_generic_containers,
    lbp_types;
 
 
@@ -60,6 +60,7 @@ var
    E: tStringClass;
    F: tStringClass;
    G: tStringClass;
+   H: tStringClass;
    Search: tStringClass;
 
 // *************************************************************************
@@ -101,6 +102,7 @@ procedure CreateStrings();
       E:= tStringClass.Create( 'E');
       F:= tStringClass.Create( 'F');
       G:= tStringClass.Create( 'G');
+      H:= tStringClass.Create( 'H');
       Search:= tStringClass.Create( 'E');
    end; // CreateStrings()
 
@@ -118,6 +120,7 @@ procedure DestroyStrings();
       E.Destroy;
       F.Destroy;
       G.Destroy;
+      H.Destroy;
       Search.Destroy;
    end; // DestroyStrings;
 
@@ -138,6 +141,7 @@ procedure FirstNextTest();
       T.Add( A);
       T.Add( B);
       T.Add( F);
+      T.Add( H);
       T.Add( G);
       T.Add( D);
       T.Add( E);
