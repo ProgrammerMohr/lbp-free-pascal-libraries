@@ -104,6 +104,8 @@ type
          function       GetTail(): T; virtual;      // Return the tail element
          function       RemoveTail(): T; virtual;      // Return the tail element and remove it from the list.
          function       GetByIndex( i: integer): T; virtual;
+         procedure      DestroyValue( Args: array of const); virtual;
+         procedure      RemoveAll( DestroyElements: boolean = false); virtual; // Remove all elements from the list.
       public
          procedure      Empty(); virtual;
          procedure      StartIteration( Forward: boolean = true); virtual;
@@ -181,16 +183,18 @@ type
          procedure      Replace( NewItem: T); virtual;
          procedure      Remove( Item: T); virtual;
          procedure      Remove(); virtual;
-         procedure      RemoveAll(); virtual;
          procedure      StartIteration( Forward: boolean = true); virtual;
          function       Next():           boolean; virtual;
-//            procedure      RemoveAll( DestroyElements: boolean = false); virtual; // Remove all elements from the list.
+         procedure      RemoveAll( DestroyElements: boolean = false); virtual; // Remove all elements from the list.
          function       IsEmpty():        boolean; virtual;
          function       IsFirst():        boolean; virtual; // True if CurrentNode is First
          function       IsLast():         boolean; virtual;
          function       GetCurrent():     T virtual; // Returns the data pointer at CurrentNode
          function       GetEnumerator():  tEnumerator;
          function       Reverse():        tEnumerator;
+      private
+         procedure      DestroyValue( Args: array of const);
+      public
          property       Head:             T read DelHead write AddHead;
          property       Tail:             T read DelTail write AddTail;
          property       Stack:            T read DelTail write AddTail;
@@ -209,7 +213,7 @@ type
 // ************************************************************************
 
 type
-   generic tgAvlTree< V: tObject> = class( tObject)
+   generic tgAvlTree< V> = class( tObject)
       private type
       // ---------------------------------------------------------------
          tNode = class( tObject)
@@ -292,6 +296,7 @@ type
          function    FindInsertPosition( iValue: V): tNode; virtual;
          procedure   RebalanceAfterAdd( N: tNode); virtual;
          procedure   RebalanceAfterRemove( N: tNode); virtual;
+         procedure   DestroyValue( Args: array of const);
       public
          property    AllowDuplicates: boolean
                                 read DuplicateOK write DuplicateOK;
@@ -421,6 +426,7 @@ type
          function    FindInsertPosition( iKey: K): tNode; virtual;
          procedure   RebalanceAfterAdd( N: tNode); virtual;
          procedure   RebalanceAfterRemove( N: tNode); virtual;
+         procedure   DestroyValue( Args: array of const);
       public
          property    AllowDuplicates: boolean
                                 read DuplicateOK write DuplicateOK;
@@ -584,8 +590,36 @@ function tgList.GetByIndex( i: integer): T;
 
 
 // ************************************************************************
-// * RemoveAll() - Remove all elements from the list.  No destructors are
-//                 called!
+// * DestroyValue() - If the passed value is a class, call its destructor
+// *                  This should only be used internally and will always
+// *                  be passed a single value.
+// ************************************************************************
+
+procedure tgList.DestroyValue( Args: array of const);
+   begin
+      if( Args[ 0].vtype = vtClass) then tObject( Args[ 0].vClass).Destroy();
+   end; // DestroyValue;
+
+
+// ************************************************************************
+// * RemoveAll()  - Removes all elements from the list.  If DestroyElements
+// *                is true, each element's destructor will be called.
+// ************************************************************************
+
+procedure tgList.RemoveAll( DestroyElements: boolean);
+   var
+      N: T;
+   begin
+      while( not IsEmpty) do begin
+         N:= Queue;
+         if( DestroyElements) then DestroyValue( [N]);
+      end;
+   end; // RemoveAll()
+
+
+// ************************************************************************
+// * Empty() - Remove all elements from the list.  No destructors are
+//             called!
 // ************************************************************************
 
 procedure tgList.Empty;
@@ -1112,17 +1146,18 @@ procedure tgDoubleLinkedList.Remove();
 
 
 // ************************************************************************
-// * RemoveAll()  - Removes all elements from the list.  It is up to the
-// *                user to make sure each element is properly discarded.
-// *                If DestroyElements is true, it is assumed each element
-// *                is an instance of some class.
+// * RemoveAll()  - Removes all elements from the list.  If DestroyElements
+// *                is true, each element's destructor will be called.
 // ************************************************************************
 
-procedure tgDoubleLinkedList.RemoveAll();
+procedure tgDoubleLinkedList.RemoveAll( DestroyElements: boolean);
+   var
+      N: tListNode;
    begin
       StartIteration;
       while( FirstNode <> nil) do begin
-         Dequeue;
+         N:= Dequeue;
+         if( DestroyElements) then DestroyValue( [N.Item]);
       end;
    end; // RemoveAll()
 
@@ -1219,6 +1254,18 @@ function tgDoubleLinkedList.Reverse():  tEnumerator;
       CurrentNode:= nil;
       MyForward:= false;
    end; // Reverse()
+
+
+// ************************************************************************
+// * DestroyValue() - If the passed value is a class, call its destructor
+// *                  This should only be used internally and will always
+// *                  be passed a single value.
+// ************************************************************************
+
+procedure tgDoubleLinkedList.DestroyValue( Args: array of const);
+   begin
+      if( Args[ 0].vtype = vtClass) then tObject( Args[ 0].vClass).Destroy();
+   end; // DestroyValue;
 
 
 
@@ -1877,7 +1924,7 @@ procedure tgAvlTree.RemoveSubtree( StRoot: tNode; DestroyElements: boolean);
       if( StRoot.RightChild <> nil) then begin 
          RemoveSubtree( StRoot.RightChild, DestroyElements);
       end;
-      if( DestroyElements) then StRoot.Value.Destroy;
+      if( DestroyElements) then DestroyValue( [StRoot.Value]);
       StRoot.Destroy;
    end; // RemoveSubtree()
 
@@ -2191,6 +2238,19 @@ procedure tgAvlTree.RebalanceAfterRemove( N: tNode);
    end; // RebalanceAfterRemove()
 
 
+// ************************************************************************
+// * DestroyValue() - If the passed value is a class, call its destructor
+// *                  This should only be used internally and will always
+// *                  be passed a single value.
+// ************************************************************************
+
+procedure tgAvlTree.DestroyValue( Args: array of const);
+   begin
+      if( Args[ 0].vtype = vtClass) then tObject( Args[ 0].vClass).Destroy();
+   end; // DestroyValue;
+
+
+
 // ========================================================================
 // = tNode generic class
 // ========================================================================
@@ -2219,7 +2279,7 @@ procedure tgDictionary.tNode.Clear();
       RightChild:= nil;
       Balance:= 0;
       Key:= Default( K);
-      Value:= nil;
+      Value:= Default( V);
    end; // Clear()
 
 // ************************************************************************
@@ -2978,7 +3038,7 @@ procedure tgDictionary.RemoveSubtree( StRoot: tNode; DestroyElements: boolean);
       if( StRoot.RightChild <> nil) then begin 
          RemoveSubtree( StRoot.RightChild, DestroyElements);
       end;
-      if( DestroyElements) then StRoot.Value.Destroy;
+      if( DestroyElements) then DestroyValue( [StRoot.Value]);
       StRoot.Destroy;
    end; // RemoveSubtree()
 
@@ -3290,6 +3350,19 @@ procedure tgDictionary.RebalanceAfterRemove( N: tNode);
          end;
       end;
    end; // RebalanceAfterRemove()
+
+
+// ************************************************************************
+// * DestroyValue() - If the passed value is a class, call its destructor
+// *                  This should only be used internally and will always
+// *                  be passed a single value.
+// ************************************************************************
+
+procedure tgDictionary.DestroyValue( Args: array of const);
+   begin
+      if( Args[ 0].vtype = vtClass) then tObject( Args[ 0].vClass).Destroy();
+   end; // DestroyValue;
+
 
 
 // ************************************************************************
