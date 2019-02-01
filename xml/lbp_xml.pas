@@ -43,6 +43,13 @@ unit lbp_xml;
 
 interface
 
+{$include lbp_standard_modes.inc}
+//{$V-}    //Added by LP because it says so below
+//{$R-}    //Range checking off
+//{$S-}    //Stack checking off
+//{$I-}    //I/O checking off
+{$LONGSTRINGS ON}    // Non-sized Strings are ANSI strings
+
 uses
    lbp_types,
    lbp_utils,  // lbp_exceptions
@@ -56,12 +63,23 @@ uses
 // ************************************************************************
 
 type 
-   tXmlAttribute = class( // Extend Name Value Pair tree)
+   tSubXmlAttribute = specialize tgDictionary< string, string>;
+
+   tXmlAttribute = class( tSubXmlAttribute) // Extend Name Value Pair tree)
       // Add parse and write functions
-      public
-         Name:  string;
-         Value: string;
-         // Access by 
+      protected type
+         tNodeList = specialize tgDoubleLinkedList< tNode>;
+      protected
+         NodeList:  tNodeList;
+      public 
+         constructor Create();
+         destructor  Destroy(); Override;
+         procedure   Add( iKey: K; iValue: V); override;
+      private
+         procedure   RemoveNode( N: tNode);  virtual; // Remove the passed node
+         function    IsEmpty():  boolean; virtual;
+         procedure   RemoveSubtree( StRoot: tNode; DestroyElements: boolean); virtual;
+
       end; // tXmlAttribute
       
       
@@ -69,23 +87,47 @@ type
 // * tXmlElement Class
 // ************************************************************************
 
-type 
-   tXmlElement = class (ttNVPNode)
-      private
-         // Define the Child and attribute trees
-      public
-         Tag:  string;
-         Head: string;
-         Tail: string;
-         Attrib: class that contains a list and a tree of the name/value pairs.
-      end; // tXmlElement
+// type 
+//    tXmlElement = class (ttNVPNode)
+//       private
+//          // Define the Child and attribute trees
+//       public
+//          Tag:  string;
+//          Head: string;
+//          Tail: string;
+//          Attrib: class that contains a list and a tree of the name/value pairs.
+//       end; // tXmlElement
 
 // ************************************************************************
 
 implementation
 
 // ========================================================================
-// = tURL Class
+// = tXmlAattribute class
 // ========================================================================
+// ************************************************************************
+// * Constructors
+// ************************************************************************
+
+constructor tXmlAttribute.Create();
+  begin
+     inherited Create( tXmlAttribute.tCompareFunction( @CompareStrings), True);
+     NodeList:= tNodeList.Create();
+  end; // Create()
+
+
+// ************************************************************************
+// * Destructor
+// ************************************************************************
+
+destructor tXmlAttribute.Destroy;
+
+   begin
+      NodeList.RemoveAll;
+      NodeList.Destroy;
+      inherited Destroy;
+   end; // Destroy();
+
+
 
 end. //unit lbp_xml

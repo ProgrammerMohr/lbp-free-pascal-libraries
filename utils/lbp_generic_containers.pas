@@ -60,8 +60,13 @@ uses
    
 // ************************************************************************
 
+function CompareStrings(  S1: string; S2: string): integer;
+
+// ************************************************************************
+
 type
    lbpContainerException = class( lbp_exception);
+
 
 // ************************************************************************
 // * tgList class - Uses a fixed size array to implement a circular list
@@ -108,7 +113,7 @@ type
          procedure      RemoveAll( DestroyElements: boolean = false); virtual; // Remove all elements from the list.
       public
          procedure      Empty(); virtual;
-         procedure      StartIteration( Forward: boolean = true); virtual;
+         procedure      StartEnumeration( Forward: boolean = true); virtual;
          function       Next():           boolean; virtual;
          function       IsEmpty():        boolean; virtual;
          function       IsFull():         boolean; virtual;
@@ -140,7 +145,7 @@ type
 type
    generic tgDoubleLinkedList< T> = class( tObject)
          //public type tListNodePtr = ^tListNode;
-      private type
+      protected type
          // ---------------------------------------------------------------
          tListNode = class( tObject)
             protected
@@ -183,7 +188,7 @@ type
          procedure      Replace( NewItem: T); virtual;
          procedure      Remove( Item: T); virtual;
          procedure      Remove(); virtual;
-         procedure      StartIteration( Forward: boolean = true); virtual;
+         procedure      StartEnumeration( Forward: boolean = true); virtual;
          function       Next():           boolean; virtual;
          procedure      RemoveAll( DestroyElements: boolean = false); virtual; // Remove all elements from the list.
          function       IsEmpty():        boolean; virtual;
@@ -214,7 +219,7 @@ type
 
 type
    generic tgAvlTree< V> = class( tObject)
-      private type
+      protected type
       // ---------------------------------------------------------------
          tNode = class( tObject)
             protected
@@ -445,6 +450,25 @@ type
 implementation
 
 // ========================================================================
+// = Global functions
+// ========================================================================
+// *************************************************************************
+// * CompareStrings - The most common compare function used by containers
+// *************************************************************************
+
+function CompareStrings(  S1: string; S2: string): integer;
+   begin
+      if( S1 > S2) then begin
+         result:= 1;
+      end else if( S1 < S2) then begin
+         result:= -1;
+      end else begin
+         result:= 0;
+      end;
+   end; // CompareStrings()
+
+
+// ========================================================================
 // = tgList generic class
 // ========================================================================
 // ************************************************************************
@@ -632,14 +656,14 @@ procedure tgList.Empty;
 
 
 // ************************************************************************
-// * StartIteration() - Begin the iteration
+// * StartEnumeration() - Begin the iteration
 // ************************************************************************
 
-procedure tgList.StartIteration( Forward: boolean);
+procedure tgList.StartEnumeration( Forward: boolean);
    begin
       MyForward:= Forward;  // Set the direction
       CurrentIndex:= -1;
-   end; // StartIteration
+   end; // StartEnumeration
 
 
 // ************************************************************************
@@ -1152,25 +1176,25 @@ procedure tgDoubleLinkedList.Remove();
 
 procedure tgDoubleLinkedList.RemoveAll( DestroyElements: boolean);
    var
-      N: tListNode;
+      Item: T;
    begin
-      StartIteration;
+      StartEnumeration;
       while( FirstNode <> nil) do begin
-         N:= Dequeue;
-         if( DestroyElements) then DestroyValue( [N.Item]);
+         Item:= Dequeue;
+         if( DestroyElements) then DestroyValue( [Item]);
       end;
    end; // RemoveAll()
 
 
 // ************************************************************************
-// * StartIteration() - Begin the iteration
+// * StartEnumeration() - Begin the iteration
 // ************************************************************************
 
-procedure tgDoubleLinkedList.StartIteration( Forward: boolean);
+procedure tgDoubleLinkedList.StartEnumeration( Forward: boolean);
    begin
       MyForward:= Forward;  // Set the direction
       CurrentNode:= nil;
-   end; // StartIteration
+   end; // StartEnumeration
 
 // ************************************************************************
 // * Next() -

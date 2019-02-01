@@ -222,6 +222,4 @@ procedure LastPreviousTest();
 begin
    FirstNextTest;
    LastPreviousTest;
-
-   writeln( '------ Testing AVL Tree Dump() debugging function. ------')
 end.  // test_trees
