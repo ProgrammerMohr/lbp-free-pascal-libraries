@@ -163,12 +163,48 @@ procedure LastPreviousTest();
 
 
 // ************************************************************************
+// * DuplicateTest() - Test the StartEnumeration(), Next() functions
+// ************************************************************************
+
+procedure DuplicateTest();
+   var
+      Dict: tStringDictionary;
+      V:    string;
+      S:    string;
+   begin
+      Dict:= tStringDictionary.Create( tStringDictionary.tCompareFunction( @CompareStrings), true);
+      Dict.NodeToString:= tStringDictionary.tNodeToStringFunction( @NodeToString);
+
+      Dict.Add( 'A', A);
+      Dict.Add( 'A', B);
+      Dict.Add( 'A', F);
+      Dict.Add( 'A', G);
+      Dict.Add( 'A', D);
+      Dict.Add( 'A', E);
+      Dict.Add( 'A', C);
+
+      writeln( '------ Testing for allowing duplicate keys in an Dictionary ------');
+      Dict.StartEnumeration();
+      while( Dict.Previous) do begin
+         Writeln( '   ', Dict.Key, ' - ', Dict.Value);
+      end; 
+      writeln;
+
+      writeln( '------ Testing AVL Tree Dump procedure. ------');
+      Dict.Dump;
+      writeln;
+
+      // Remove the tree from memory also
+      Dict.Destroy;
+   end; // DuplicateTest()
+
+
+// ************************************************************************
 // * main()
 // ************************************************************************
 
 begin
    FirstNextTest;
    LastPreviousTest;
-
-   writeln( '------ Testing AVL Tree Dump() debugging function. ------')
+   DuplicateTest;
 end.  // test_dictionary2

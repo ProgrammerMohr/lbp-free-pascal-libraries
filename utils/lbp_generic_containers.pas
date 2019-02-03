@@ -1588,7 +1588,7 @@ procedure tgAvlTree.Add( iValue: V);
             InsertPos.LeftChild:= NewNode;
          end else begin
             // Check for unallowed duplicate
-            if( (Comp = 0) and DuplicateOK) then begin
+            if( (Comp = 0) and not DuplicateOK) then begin
               NewNode.Destroy(); // Clean up
               raise lbpContainerException.Create( 'Duplicate key values are not allowed in this AVL Tree!');
             end;
@@ -2576,7 +2576,7 @@ function tgDictionary.tReverseKeyEnumerator.GetEnumerator: tReverseKeyEnumerator
 // ************************************************************************
 
 constructor tgDictionary.Create( iCompare:     tCompareFunction;
-                                 iAllowDuplicates: boolean = false);
+                                 iAllowDuplicates: boolean);
    begin
       inherited Create;
       MyRoot:= nil;
@@ -2657,7 +2657,7 @@ procedure tgDictionary.Add( iKey: K; iValue: V);
             InsertPos.LeftChild:= NewNode;
          end else begin
             // Check for unallowed duplicate
-            if( (Comp = 0) and DuplicateOK) then begin
+            if( (Comp = 0) and not DuplicateOK) then begin
               NewNode.Destroy(); // Clean up
               raise lbpContainerException.Create( 'Duplicate key values are not allowed in this AVL Tree!');
             end;
