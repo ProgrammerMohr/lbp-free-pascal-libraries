@@ -157,6 +157,12 @@ procedure LastPreviousTest();
       for S in Dict.ReverseKeyEnum do Writeln( '   ', S);
       writeln;
 
+      writeln( '------ Testing Remove( Key) (D and F) functionality. ------');
+      Dict.Remove( 'D');
+      Dict.Remove( 'F');
+      Dict.Dump();
+      writeln;
+
       // Remove the tree from memory also
       Dict.Destroy;
    end; // LastPreviousTest()

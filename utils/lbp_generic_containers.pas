@@ -1613,6 +1613,7 @@ procedure tgAvlTree.RemoveCurrent();
       end;
       RemoveNode( CurrentNode);
       CurrentNode:=nil;
+      dec( MyCount);
    end; // Remove()
 
 
@@ -2610,6 +2611,7 @@ procedure tgDictionary.RemoveAll( DestroyElements: boolean);
    begin
       if( MyRoot <> nil) then RemoveSubtree( MyRoot, DestroyElements);
       MyRoot:= nil;
+      MyCount:= 0;
    end; // RemoveAll()
 
 
@@ -3064,6 +3066,7 @@ procedure tgDictionary.RemoveSubtree( StRoot: tNode; DestroyElements: boolean);
       end;
       if( DestroyElements) then DestroyValue( [StRoot.Value]);
       StRoot.Destroy;
+      Dec( MyCount);
    end; // RemoveSubtree()
 
 
