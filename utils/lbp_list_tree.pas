@@ -244,27 +244,27 @@ procedure tgListDictionary.tNode.Clear();
 
 function tgListDictionary.tNode.TreeDepth(): integer;
 // longest WAY down. e.g. only one node => 0 !
-var 
-   LeftDepth:  integer;
-   RightDepth: integer;
-begin
-  if LeftChild<>nil then begin
-    LeftDepth:=LeftChild.TreeDepth+1
-  end else begin
-    LeftDepth:=0;
-  end;
+   var 
+      LeftDepth:  integer;
+      RightDepth: integer;
+   begin
+   if LeftChild<>nil then begin
+      LeftDepth:=LeftChild.TreeDepth+1
+   end else begin
+      LeftDepth:=0;
+   end;
 
-  if RightChild<>nil then begin
-    RightDepth:=RightChild.TreeDepth+1
-  end else begin
-    RightDepth:=0;
-  end;
-  
-  if LeftDepth>RightDepth then
-    Result:=LeftDepth
-  else
-    Result:=RightDepth;
-end; // TreeDepth
+   if RightChild<>nil then begin
+      RightDepth:=RightChild.TreeDepth+1
+   end else begin
+      RightDepth:=0;
+   end;
+   
+   if LeftDepth>RightDepth then
+      Result:=LeftDepth
+   else
+      Result:=RightDepth;
+   end; // TreeDepth
 
 
 // ************************************************************************

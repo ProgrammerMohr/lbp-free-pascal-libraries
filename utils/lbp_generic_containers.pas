@@ -621,7 +621,7 @@ function tgList.GetByIndex( i: integer): T;
 
 procedure tgList.DestroyValue( Args: array of const);
    begin
-      if( Args[ 0].vtype = vtClass) then tObject( Args[ 0].vClass).Destroy();
+      if( Args[ 0].vtype = vtObject) then tObject( Args[ 0].vObject).Destroy();
    end; // DestroyValue;
 
 
@@ -1178,7 +1178,6 @@ procedure tgDoubleLinkedList.RemoveAll( DestroyElements: boolean);
    var
       Item: T;
    begin
-      StartEnumeration;
       while( FirstNode <> nil) do begin
          Item:= Dequeue;
          if( DestroyElements) then DestroyValue( [Item]);
@@ -1288,7 +1287,7 @@ function tgDoubleLinkedList.Reverse():  tEnumerator;
 
 procedure tgDoubleLinkedList.DestroyValue( Args: array of const);
    begin
-      if( Args[ 0].vtype = vtClass) then tObject( Args[ 0].vClass).Destroy();
+      if( Args[ 0].vtype = vtObject) then tObject( Args[ 0].vObject).Destroy();
    end; // DestroyValue;
 
 
@@ -2271,7 +2270,7 @@ procedure tgAvlTree.RebalanceAfterRemove( N: tNode);
 
 procedure tgAvlTree.DestroyValue( Args: array of const);
    begin
-      if( Args[ 0].vtype = vtClass) then tObject( Args[ 0].vClass).Destroy();
+      if( Args[ 0].vtype = vtObject) then tObject( Args[ 0].vObject).Destroy();
    end; // DestroyValue;
 
 
@@ -3387,7 +3386,7 @@ procedure tgDictionary.RebalanceAfterRemove( N: tNode);
 
 procedure tgDictionary.DestroyValue( Args: array of const);
    begin
-      if( Args[ 0].vtype = vtClass) then tObject( Args[ 0].vClass).Destroy();
+      if( Args[ 0].vtype = vtObject) then tObject( Args[ 0].vObject).Destroy();
    end; // DestroyValue;
 
 
