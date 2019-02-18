@@ -135,6 +135,7 @@ procedure AddParamAlias( Alias: string; Name: string);
 procedure AddPostParseProcedure( P: tArgVParseProc);
 function  GetParam( Name: string): string;
 procedure SetParam( Name: string; iValue: string; iIsSet: boolean);
+function  ParamNameIsValid( Name: string): boolean; // true when the Parameter name is valid
 function  ParamSet( Name: string): boolean;
 procedure ParseHelper( Name: string; var Value: string);
 procedure ParseHelper( Name: string; var Value: integer);
@@ -351,6 +352,15 @@ function GetParam( Name: string): string;
       result:= PV.Str;
    end; // GetParam()
 
+
+// ************************************************************************
+// * ParamNameIsValid() - Returns true if the parameter name is valid.
+// ************************************************************************
+
+function  ParamNameIsValid( Name: string): boolean;
+   begin
+      result:= (ParamValue( PVTree.Find( Name).auxpointer) <> nil);
+   end; // ParamNameIsValid()
 
 // ************************************************************************
 // * ParamSet() - Returns true if the parameter was set on the command line.
