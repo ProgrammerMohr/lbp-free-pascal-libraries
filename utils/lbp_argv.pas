@@ -66,8 +66,7 @@ interface
 
 uses
    lbp_types,
-   lbp_string_trees,
-   lbp_lists,
+   lbp_generic_containers,
    lbp_delayed_exceptions,
    sysutils;
 
@@ -79,9 +78,29 @@ type
 
 
 // ************************************************************************
+// * tParamValue - A class to hold the value of a parameter
+// ************************************************************************
 
+type
+   tParamValue = class
+//      private
+      public
+         Str:           string; // the string value
+         IsSet:         boolean; // true or false
+         ValueRequired: boolean;
+      public
+         constructor Create();
+      end;
+
+// ************************************************************************
+
+type
+   tPVDictionary = specialize tgDictionary< string, tParamValue>;
+   tPVList       = specialize tgDoubleLinkedList< tParamValue>;
+   tStringList   = specialize tgDoubleLinkedList< string>;
+   tProcList     = specialize tgDoubleLinkedList< tArgVParseProc>;
 var
-   PVTree:            tStringTree;       // A tree of named ParamValues for easy lookup.
+   PVDictionary:      tPVDictionary;  // A dictionary of named tParamValues for easy lookup.
    UnnamedParams:     array of string;
    
 
@@ -100,23 +119,6 @@ var
    // show_progress:  defined in lbp_types
    // show_debug:     defined in lbp_types
 
-   
-// ************************************************************************
-// * ParamValue - A class to hold the value of a parameter
-// ************************************************************************
-
-type
-   ParamValue = class
-//      private
-      public
-         Str:           string; // the string value
-         IsSet:         boolean; // true or false
-         ValueRequired: boolean;
-      public
-         constructor Create();
-      end;
-
-
 
 // ************************************************************************
 
@@ -126,11 +128,11 @@ procedure AddUsage( S: string = '');
 function  InsertParam( Names: array of string;
                        ValueRequired: boolean = false;
                        DefaultValue: string = '';
-                       Usage: string = ''): ParamValue;
+                       Usage: string = ''): tParamValue;
 function  AddParam( Names: array of string;
                     ValueRequired: boolean = false;
                     DefaultValue: string = '';
-                    Usage: string = ''): ParamValue;
+                    Usage: string = ''): tParamValue;
 procedure AddParamAlias( Alias: string; Name: string);
 procedure AddPostParseProcedure( P: tArgVParseProc);
 function  GetParam( Name: string): string;
@@ -160,7 +162,7 @@ implementation
 // = ParamNode Class
 // ========================================================================
 
-constructor ParamValue.Create();
+constructor tParamValue.Create();
    begin
       inherited Create();
       Str:=   '';
@@ -173,10 +175,10 @@ constructor ParamValue.Create();
 // ========================================================================
 
 var
-   UsageList1: DoubleLinkedList;  // A list of usage messages (used by InsertXXX)
-   UsageList2: DoubleLinkedList;  // A list of usage messages (used by AddXXX)
-   PVList:     DoubleLinkedList;  // A list of ParamValues
-   PostParse:  DoubleLinkedList;  // A list of post parse procedure to be run.
+   UsageList1: tStringList;  // A list of usage messages (used by InsertXXX)
+   UsageList2: tStringList;  // A list of usage messages (used by AddXXX)
+   PVList:     tPVList;      // A list of tParamValues
+   PostParse:  tProcList;    // A list of post parse procedure to be run.
    Cleaned:    boolean = false;   // CleanParams() has been called.
 
 
@@ -186,18 +188,10 @@ var
 
 procedure Usage( HaltProgram: boolean = false; Message: string = '');
    var
-      SP: StringPtr;
+      S:  string;
    begin
-      while( not UsageList1.Empty()) do begin
-         SP:= StringPtr( UsageList1.Dequeue);
-         writeln( SP^);
-         dispose( SP);
-      end;
-      while( not UsageList2.Empty()) do begin
-         SP:= StringPtr( UsageList2.Dequeue);
-         writeln( SP^);
-         dispose( SP);
-      end;
+      for S in UsageList1 do writeln( S);
+      for S in UsageList2 do writeln( S);
       if( length( Message) > 0) then begin
          writeln;
          writeln( Message);
@@ -215,12 +209,8 @@ procedure Usage( HaltProgram: boolean = false; Message: string = '');
 // ************************************************************************
 
 procedure AddUsage( S: string);
-   var
-      SP: StringPtr;
    begin
-      new( SP);
-      SP^:= S;
-      UsageList2.Enqueue( SP);
+      UsageList2.Queue:= S;
    end; // AddUsage();
 
 
@@ -229,12 +219,8 @@ procedure AddUsage( S: string);
 // ************************************************************************
 
 procedure InsertUsage( S: string);
-   var
-      SP: StringPtr;
    begin
-      new( SP);
-      SP^:= S;
-      UsageList1.Enqueue( SP);
+      UsageList1.Queue:= S;
    end; // InsertUsage();
 
 
@@ -246,18 +232,18 @@ function AddParamSub( Insert: boolean;
                       Names: array of string;
                       ValueRequired: boolean;
                       DefaultValue: string;
-                      Usage: string): ParamValue;
+                      Usage: string): tParamValue;
    var
       i:        integer;
       Max:      integer;
       Message:  string;
       PName:    string;
-      PV:       ParamValue;
+      PV:       tParamValue;
       Hyphens:  string;
    begin
       Max:= length( Names) - 1;
-      PV:= ParamValue.Create();
-      PVList.Enqueue( PV);
+      PV:= tParamValue.Create();
+      PVList.Queue:= PV;
       PV.Str:= DefaultValue;
       PV.ValueRequired:= ValueRequired;
       for i:= 0 to Max do begin
@@ -268,7 +254,7 @@ function AddParamSub( Insert: boolean;
             Hyphens:= '--';
          end;
 
-         PVTree.Add( PName, PV);
+         PVDictionary.Add( PName, PV);
          result:= PV;
 
          if( i = 0) then begin
@@ -293,7 +279,7 @@ function AddParamSub( Insert: boolean;
 function AddParam( Names: array of string;
                    ValueRequired: boolean = false;
                    DefaultValue: string = '';
-                   Usage: string = ''): ParamValue;
+                   Usage: string = ''): tParamValue;
    begin
       result:= AddParamSub( false, Names, ValueRequired, DefaultValue, Usage);
    end; // AddParam()
@@ -306,7 +292,7 @@ function AddParam( Names: array of string;
 function InsertParam( Names: array of string;
                       ValueRequired: boolean = false;
                       DefaultValue: string = '';
-                      Usage: string = ''): ParamValue;
+                      Usage: string = ''): tParamValue;
    begin
       result:= AddParamSub( true, Names, ValueRequired, DefaultValue, Usage);
    end; // InsertParam()
@@ -319,11 +305,13 @@ function InsertParam( Names: array of string;
 
 procedure AddParamAlias( Alias: string; Name: string);
    var
-      PV:  ParamValue;
+      PV:  tParamValue;
    begin
-      PV:= ParamValue( PVTree.Find( Name).auxpointer);
-      if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
-      PVTree.Add( Alias, PV);
+      if( not PVDictionary.Find( Name)) then begin
+         raise argv_exception.Create( Name + ' parameter is not available.');
+      end;
+      PV:= PVDictionary.Value;
+      PVDictionary.Add( Alias, PV);
    end; // AddParamAlias()
 
    
@@ -335,7 +323,7 @@ procedure AddParamAlias( Alias: string; Name: string);
 
 procedure AddPostParseProcedure( P: tArgVParseProc);
    begin
-      PostParse.Enqueue( P);
+      PostParse.Queue:= P;
    end; // AddPostParseProcedure();
 
 
@@ -344,12 +332,11 @@ procedure AddPostParseProcedure( P: tArgVParseProc);
 // ************************************************************************
 
 function GetParam( Name: string): string;
-   var
-      PV:   ParamValue;
    begin
-      PV:= ParamValue( PVTree.Find( Name).auxpointer);
-      if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
-      result:= PV.Str;
+      if( not PVDictionary.Find( Name)) then begin
+         raise argv_exception.Create( Name + ' parameter is not available.');
+      end;
+      result:= PVDictionary.Value.Str;
    end; // GetParam()
 
 
@@ -359,20 +346,20 @@ function GetParam( Name: string): string;
 
 function  ParamNameIsValid( Name: string): boolean;
    begin
-      result:= (ParamValue( PVTree.Find( Name).auxpointer) <> nil);
+      result:= PVDictionary.Find( Name);
    end; // ParamNameIsValid()
+
 
 // ************************************************************************
 // * ParamSet() - Returns true if the parameter was set on the command line.
 // ************************************************************************
 
 function ParamSet( Name: string): boolean;
-   var
-      PV:   ParamValue;
    begin
-      PV:= ParamValue( PVTree.Find( Name).auxpointer);
-      if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
-      result:= PV.IsSet;
+      if( not PVDictionary.Find( Name)) then begin
+         raise argv_exception.Create( Name + ' parameter is not available.');
+      end;
+      result:= PVDictionary.Value.IsSet;
    end; // ParamSet()
 
 
@@ -384,10 +371,12 @@ function ParamSet( Name: string): boolean;
 
 procedure SetParam( Name: string; iValue: string; iIsSet: boolean);
    var
-      PV:   ParamValue;
+      PV:   tParamValue;
    begin
-      PV:= ParamValue( PVTree.Find( Name).auxpointer);
-      if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
+      if( not PVDictionary.Find( Name)) then begin
+         raise argv_exception.Create( Name + ' parameter is not available.');
+      end;
+      PV:= PVDictionary.Value;
       PV.IsSet:= iIsSet;
       PV.Str:= iValue;
    end; // SetParam()
@@ -401,10 +390,12 @@ procedure SetParam( Name: string; iValue: string; iIsSet: boolean);
 
 procedure ParseHelper( Name: string; var Value: string);
    var
-      PV:   ParamValue;
+      PV:   tParamValue;
    begin
-      PV:= ParamValue( PVTree.Find( Name).auxpointer);
-      if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
+      if( not PVDictionary.Find( Name)) then begin
+         raise argv_exception.Create( Name + ' parameter is not available.');
+      end;
+      PV:= PVDictionary.Value;
       if( PV.IsSet) then Value:= PV.Str;
    end; // ParseHelper
 
@@ -413,12 +404,14 @@ procedure ParseHelper( Name: string; var Value: string);
 
 procedure ParseHelper( Name: string; var Value: integer);
    var
-      PV:    ParamValue;
+      PV:    tParamValue;
       Temp:  integer;
       Code:  word;
    begin
-      PV:= ParamValue( PVTree.Find( Name).auxpointer);
-      if( PV = nil) then raise argv_exception.Create( Name + ' parameter is not available.');
+      if( not PVDictionary.Find( Name)) then begin
+         raise argv_exception.Create( Name + ' parameter is not available.');
+      end;
+      PV:= PVDictionary.Value;
       if( PV.IsSet) then begin
          Val( PV.Str, Temp, Code);
          if( Code > 0) then raise argv_exception.Create( Name + ' parameter value is not a valid integer!');
@@ -435,10 +428,9 @@ procedure ParseParams();
    var
       P:          tArgVParseProc;
       iP:         integer;
-      PV:         ParamValue;
+      PV:         tParamValue;
       Name:       string;
       Value:      string;
-      Node:       tStringObj;
       i:          integer;
    begin
       Parsed:= true;
@@ -457,14 +449,11 @@ procedure ParseParams();
                   Value:= Copy( Name, i + 1, Length( Name));
                   Name:= Copy( Name, 1, i - 1);
                end;
-               Node:= PVTree.Find( Name);
-               if( Node = nil) then begin
+               if( not PVDictionary.Find( Name)) then begin
                   Usage();
                   raise argv_exception.Create( 'Unrecognized parameter ' + Name + ' on the command line!');
                end;
-
-               // We now know this is a valid named parameter
-               PV:= ParamValue( Node.auxpointer);
+               PV:= PVDictionary.Value;
 
                // Name=Value pair?
                if( i > 0) then begin
@@ -509,8 +498,8 @@ procedure ParseParams();
       end;
 
       // Handle post processing
-      while( not PostParse.Empty) do begin
-         P:= tArgVParseProc( PostParse.Dequeue);
+      while( not PostParse.IsEmpty) do begin
+         P:= PostParse.Queue;
          if( show_init) then begin
             P();
          end else begin
@@ -532,35 +521,14 @@ procedure ParseParams();
 // ************************************************************************
 
 procedure CleanParams();
-   var
-      SP:  StringPtr;
-      PV:  ParamValue;
    begin
       if Cleaned then exit;
 
-
-      while( not UsageList1.Empty()) do begin
-         SP:= StringPtr( UsageList1.Dequeue);
-         dispose( SP);
-      end;
       UsageList1.Destroy;
-
-      while( not UsageList2.Empty()) do begin
-         SP:= StringPtr( UsageList2.Dequeue);
-         dispose( SP);
-      end;
-      UsageList2.Destroy;
-
-      PVTree.RemoveAll( true);
-      PVTree.Destroy;
-
-      while( not PVList.Empty()) do begin
-         PV:= ParamValue( PVList.Dequeue);
-         PV.Destroy();
-      end;
+      UsageList2.Destroy();
+      PVDictionary.Destroy;
+      PVList.RemoveAll( true);
       PVList.Destroy();
-
-      while( not PostParse.Empty) do PostParse.Dequeue();
       PostParse.Destroy();
 
       Cleaned:= true;
@@ -575,17 +543,13 @@ procedure DumpParams();
    var
       i:  integer;
       L:  integer;
-      PV: ParamValue;
+      PV: tParamValue;
       S:  string;
-      T:  tStringTree;
    begin
       writeln( '====================================================');
       writeln( 'Command line parameter dump');
-      T:= tStringTree.Create( false);
-      PVTree.Copy( T);
-      S:= T.GetFirst();
-      while( Length( S) > 0) do begin
-         PV:= ParamValue( PVTree.Find( S).auxpointer);
+      for S in PVDictionary.KeyEnum do begin
+         PV:= PVDictionary.Value;
          if( PV.ValueRequired) then begin
             if( PV.IsSet) then begin
                writeln( '   ', S, '=', PV.Str);
@@ -597,10 +561,7 @@ procedure DumpParams();
                writeln( '   ', S, '=false');
             end;
          end;
-         S:= T.GetNext();
       end;
-      T.RemoveAll( false);
-      T.Destroy();
 
       L:= length( UnnamedParams) - 1;
       for i:= 0 to L do begin
@@ -691,11 +652,12 @@ initialization
       Preset_show_init();
       if( show_init) then writeln( 'lbp_argv.initialization:  show_init enabled');
       ParseProgramName;
-      UsageList1:= DoubleLinkedList.Create();
-      UsageList2:= DoubleLinkedList.Create();
-      PVList:=     DoubleLinkedList.Create();
-      PVTree:=     tStringTree.Create( False);
-      PostParse:=  DoubleLinkedList.Create();
+      UsageList1:=    tStringList.Create();
+      UsageList2:=    tStringList.Create();
+      PVList:=        tPVList.Create();
+      PVDictionary:=  tPVDictionary.Create( 
+                         tPVDictionary.tCompareFunction( @CompareStrings), False);
+      PostParse:=     tProcList.Create();
       setlength( UnnamedParams, 0);
       AddUsage( '   ========== General Parameters ==========');
       AddParam( ['?','help'], false, '', 'Display this help message and exit');

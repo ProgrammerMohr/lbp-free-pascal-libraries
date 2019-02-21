@@ -898,6 +898,7 @@ constructor tgDoubleLinkedList.Create( const iName: String);
 destructor tgDoubleLinkedList.Destroy;
 
    begin
+      RemoveAll();
       if( FirstNode <> nil) then begin
          raise lbpContainerException.Create(
             'List ' + Name + ' is not empty and can not be destroyed!');
