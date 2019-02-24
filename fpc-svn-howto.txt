@@ -29,7 +29,8 @@ How to install from SVN (Subversion)
 
 - Complile
    cd /opt/fpc/fixes_3_0/src
-   make zipinstall
+   make OPT='-g -gl -gw3 -n' zipinstall
+   
       
    **************************************************************
    * Old instructions for OS X to create a 64 bit instead of 32.
