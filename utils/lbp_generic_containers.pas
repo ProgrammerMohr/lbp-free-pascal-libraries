@@ -61,6 +61,9 @@ uses
 // ************************************************************************
 
 function CompareStrings(  S1: string; S2: string): integer;
+function CompareWord64s( W1: word64; W2: word64): integer;
+function CompareIntegers( I1: integer; I2: integer): integer;
+
 
 // ************************************************************************
 
@@ -466,6 +469,39 @@ function CompareStrings(  S1: string; S2: string): integer;
          result:= 0;
       end;
    end; // CompareStrings()
+
+
+// *************************************************************************
+// * CompareWord64s - A common compare function used by containers
+// *************************************************************************
+
+function CompareWord64s( W1: word64; W2: word64): integer;
+   begin
+      if( W1 > W2) then begin
+         result:= 1;
+      end else if( W1 < W2) then begin
+         result:= -1;
+      end else begin
+         result:= 0;
+      end;
+   end; // CompareWord64s()
+
+
+// *************************************************************************
+// * CompareIntegers - A Common compare function used by containers
+// *************************************************************************
+
+function CompareIntegers( I1: integer; I2: integer): integer;
+   begin
+      if( I1 > I2) then begin
+         result:= 1;
+      end else if( I1 < I2) then begin
+         result:= -1;
+      end else begin
+         result:= 0;
+      end;
+   end; // CompareIntegers()
+
 
 
 // ========================================================================
