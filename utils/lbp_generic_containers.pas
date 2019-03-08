@@ -2697,7 +2697,7 @@ procedure tgDictionary.Add( iKey: K; iValue: V);
             // Check for unallowed duplicate
             if( (Comp = 0) and not DuplicateOK) then begin
               NewNode.Destroy(); // Clean up
-              raise lbpContainerException.Create( 'Duplicate key values are not allowed in this AVL Tree!');
+              raise lbpContainerException.Create( 'Duplicate key values are not allowed in this dictionary!');
             end;
             // insert to the right
             InsertPos.RightChild:= NewNode;
