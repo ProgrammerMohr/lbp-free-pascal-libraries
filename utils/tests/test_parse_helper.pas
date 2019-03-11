@@ -2,7 +2,7 @@
 
 Copyright (c) 2017 by Lloyd B. Park
 
-test lbp_quoted_string
+test lbp_parse_helper
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@ test lbp_quoted_string
 
 *************************************************************************** *}
 
-program test_quoted_string;
+program test_parse_helper;
 
 {$include lbp_standard_modes.inc}
 
@@ -38,7 +38,7 @@ uses
 
 procedure InitArgvParser();
    begin
-      InsertUsage( 'test_quoted_string_reader is a simple test for my lbp_parse_helper unit.');
+      InsertUsage( 'test_parse_helper is a simple test for my lbp_parse_helper unit.');
       InsertUsage( '');
 
       SetInputFileParam( false, true, false);
@@ -76,10 +76,9 @@ procedure TestStreamParser();
 
 procedure TestStringParser();
    var
-      S: string;
-      P: tChrSource;
-      C: char;
-      Count: integer = 0;
+      S:  string;
+      CS: tChrSource;
+      C:  char;
    begin
       S:= 'This () tests parsing from a multi line string.' + System.LineEnding +
           'This is the second line.' + System.LineEnding + 
@@ -138,9 +137,6 @@ var
 begin
    InitArgvParser();
 //   TestStreamParser();
-//   TestStringParser();
-   TestFileParser(); 
-   AllowedChrs:= AlphaChrs + ['_'];
-   AlphaChrs:= ['*'];
-   writeln( char(127), char( 129));
-end. // test_quoted_string program
+   TestStringParser();
+//   TestFileParser(); 
+end. // test_parse_helper
