@@ -104,6 +104,7 @@ type
       private
          procedure Init();
       public
+         function  PeekChr(): char;
          function  GetChr(): char;
          procedure UngetChr( C: char);
          property  Chr: char read GetChr write UngetChr;
@@ -193,6 +194,29 @@ procedure tChrSource.Init();
       ChrBuffLen:= Stream.Read( ChrBuff, ParserBufferSize);
       ChrBuffPos:= 0;
    end; // Init()
+
+
+// *************************************************************************
+// * PeekChr() - Returns the next char in the stream
+// *************************************************************************
+
+function tChrSource.GetChr(): char;
+   begin
+      result:= EOFchr;
+      if( not UngetQ.IsEmpty()) then begin
+         result:= UngetQ.Queue;
+      end else begin
+         if( ChrBuffPos = ChrBuffLen) then begin
+            // Read another block into the buffer
+            ChrBuffLen:= Stream.Read( ChrBuff, ParserBufferSize);
+            ChrBuffPos:= 0;
+         end;
+         if( ChrBuffPos < ChrBuffLen) then begin
+           result:= ChrBuff[ ChrBuffPos];
+           inc( ChrBuffPos);
+         end;
+      end; 
+   end; // PeekChr();
 
 
 // *************************************************************************

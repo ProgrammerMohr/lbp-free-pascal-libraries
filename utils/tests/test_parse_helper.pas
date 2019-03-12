@@ -32,6 +32,9 @@ uses
    lbp_parse_helper;
 
 // ************************************************************************
+
+
+// ************************************************************************
 // * InitArgvParser() - Initialize the command line usage message and
 // *                    parse the command line.
 // ************************************************************************
@@ -127,6 +130,26 @@ procedure TestFileParser();
       writeln();
       P.Destroy;
    end; // TestFileParser();
+
+
+// ************************************************************************
+// * ReadCsv();
+// ************************************************************************
+
+procedure ReadCsv();
+   var
+      FileName: string = '/Users/lpark/Desktop/Managed Accounts List of EC2 Instances 03-06-2019 09_52_14_2019-03-07-13-39-44.csv';
+      CSVFile:  text;
+      CS:       tChrSource;
+      GetWhitespace: tParseElement;  
+   begin
+      assign( CsvFile, FileName);
+      reset( CsvFile);
+      CS:= tChrSource.Create( CsvFile);
+
+Test by adding 3 characters to the unget queue and then peek()
+      Close( CsvFile);
+   end; // ReadCsv()
 
 
 // ************************************************************************
