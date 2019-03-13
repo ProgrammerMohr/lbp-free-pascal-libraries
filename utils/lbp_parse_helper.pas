@@ -96,38 +96,27 @@ type
          UngetQ:         tCharList;
          Stream:         tStream;
          DestroyStream:  boolean;
+      protected
+         // Element Parsing variables;
+         S:              string;
+         SSize:          longint;
+         SLen:           longint;
       public
          constructor Create( iStream: tStream; iDestroyStream: boolean = true);
          constructor Create( iString: string);
          constructor Create( var iFile:   text);
          destructor  Destroy(); override;
-      private
-         procedure Init();
+      protected
+         procedure   Init(); virtual;
+         procedure   InitS();
+         procedure   ParseAddChr( C: char);
       public
-         function  PeekChr(): char;
-         function  GetChr(): char;
-         procedure UngetChr( C: char);
-         property  Chr: char read GetChr write UngetChr;
+         function    PeekChr(): char;
+         function    GetChr(): char;
+         procedure   UngetChr( C: char);
+         function    ParseElement( var AllowedChrs: tCharSet): string;
+         property    Chr: char read GetChr write UngetChr;
       end; // tChrSource class
-
-
-// ************************************************************************
-// * tParseElement()
-// ************************************************************************
-
-type
-   tParseElement = class( tObject)
-      private
-         MyAllowedChrs:  tCharSet;
-         S:              string;
-         SSize:          longint;
-         SLen:           longint;
-      public
-         constructor Create( var AllowedChrs: tCharSet);
-         procedure InitializeS();
-         procedure AddChr( C: char);
-         function  Parse( CS: tChrSource): string; virtual;
-   end; // tParseElement interface
 
 
 // ************************************************************************
@@ -196,15 +185,46 @@ procedure tChrSource.Init();
    end; // Init()
 
 
+// ************************************************************************
+// * InitS() - Set S's initial length and size
+// ************************************************************************
+
+procedure tChrSource.InitS();
+   begin
+      SSize:= 16;
+      SetLength( S, SSize);
+      SLen:= 0;      
+   end; // InitS()
+
+
+// ************************************************************************
+// * AddChr() - Add a character to S and resize as needed.
+// ************************************************************************
+
+procedure tChrSource.ParseAddChr( C: char);
+   begin
+      // If we used up all the space in S then double it's capacity.
+      if( SLen = SSize) then begin
+         SSize:= SSize SHL 1;
+         SetLength( S, SSize);
+      end;
+      inc( SLen);
+      S[ SLen]:= C; 
+   end; // ParseAddChar()
+
+
 // *************************************************************************
 // * PeekChr() - Returns the next char in the stream
 // *************************************************************************
 
-function tChrSource.GetChr(): char;
+function tChrSource.PeekChr(): char;
    begin
       result:= EOFchr;
       if( not UngetQ.IsEmpty()) then begin
-         result:= UngetQ.Queue;
+         UngetQ.StartEnumeration();
+         if( UngetQ.Next()) then begin
+            result:= UngetQ.GetCurrent();
+         end;
       end else begin
          if( ChrBuffPos = ChrBuffLen) then begin
             // Read another block into the buffer
@@ -213,7 +233,6 @@ function tChrSource.GetChr(): char;
          end;
          if( ChrBuffPos < ChrBuffLen) then begin
            result:= ChrBuff[ ChrBuffPos];
-           inc( ChrBuffPos);
          end;
       end; 
    end; // PeekChr();
@@ -252,72 +271,31 @@ procedure tChrSource.UngetChr( C: char);
    end; // UngetChr()
 
 
-
-// ========================================================================
-// = tParseElement class - 
-// ========================================================================
-// ************************************************************************
-// * Create() - constructor
-// ************************************************************************
-
-constructor tParseElement.Create( var AllowedChrs: tCharSet);
-   begin
-      MyAllowedChrs:= AllowedChrs;
-   end; // Create()
-
-
-// ************************************************************************
-// * InitializeS() - Set S's initial length and size
-// ************************************************************************
-
-procedure tParseElement.InitializeS();
-   begin
-      SSize:= 16;
-      SetLength( S, SSize);
-      SLen:= 0;      
-   end; // InitializeS()
-
-
-// ************************************************************************
-// * AddChr() - Add a character to S and resize as needed.
-// ************************************************************************
-
-procedure tParseElement.AddChr( C: char);
-   begin
-      // If we used up all the space in S then double it's capacity.
-      if( SLen = SSize) then begin
-         SSize:= SSize SHL 1;
-         SetLength( S, SSize);
-      end;
-      inc( SLen);
-      S[ SLen]:= C; 
-   end; // AddChar()
-
-
 // ************************************************************************
 // * Parse()
 // ************************************************************************
 
-function tParseElement.Parse( CS: tChrSource): string;
+function tChrSource.ParseElement( var AllowedChrs: tCharSet): string;
    var
       C: char;
    begin
-      InitializeS();
+      InitS();
 
-      C:= CS.GetChr();
-      while( C in MyAllowedChrs) do begin
-         AddChr( C);
-         C:= CS.GetChr();
+      C:= GetChr();
+      while( C in AllowedChrs) do begin
+         ParseAddChr( C);
+         C:= GetChr();
       end;
-      CS.UngetChr( C);
+      UngetChr( C);
       SetLength( S, SLen);
-      result:= '';
-   end; // Parse()
+      result:= S;
+   end; // ParseElement()
+
 
 
 // *************************************************************************
 
 begin
-   AsciiPrintableChrs:= (AsciiChrs - CtlChrs) + IntraLineWhiteChrs;
-   AnsiPrintableChrs:= (AnsiChrs - CtlChrs) + IntraLineWhiteChrs;
+   AsciiPrintableChrs:= (AsciiChrs - CtlChrs) + WhiteChrs;
+   AnsiPrintableChrs:= (AnsiChrs - CtlChrs) + WhiteChrs;
 end.  // lbp_parse_helper unit

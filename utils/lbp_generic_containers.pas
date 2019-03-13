@@ -183,8 +183,8 @@ type
          function       GetHead(): T; virtual;      // Return the head element.
          function       DelHead(): T; virtual;      // Return the head element and remove it from the list.
          procedure      AddTail( Item: T); virtual; // Add to the tail of the list
-         function       GetTail(): T; virtual;      // Return the head element
-         function       DelTail(): T; virtual;      // Return the head element and remove it from the list.
+         function       GetTail(): T; virtual;      // Return the tail element
+         function       DelTail(): T; virtual;      // Return the tail element and remove it from the list.
          procedure      InsertBeforeCurrent( Item: T); virtual;
          procedure      InsertAfterCurrent( Item: T); virtual;
          procedure      Replace( OldItem, NewItem: T); virtual;

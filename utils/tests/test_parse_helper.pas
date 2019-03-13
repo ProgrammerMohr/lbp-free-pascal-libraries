@@ -29,6 +29,7 @@ uses
    lbp_argv,
    lbp_types,
    lbp_input_file,
+   lbp_csv2,
    lbp_parse_helper;
 
 // ************************************************************************
@@ -79,32 +80,33 @@ procedure TestStreamParser();
 
 procedure TestStringParser();
    var
-      S:  string;
-      CS: tChrSource;
-      C:  char;
+      S:      string;
+      CS:     tChrSource;
+      C:      char;
+      Count:  integer = 0;
    begin
       S:= 'This () tests parsing from a multi line string.' + System.LineEnding +
           'This is the second line.' + System.LineEnding + 
           'And this is the third line.' + System.LineEnding;
 
-      P:= tChrSource.Create( S);
+      CS:= tChrSource.Create( S);
       writeln();
       writeln( '------------ Test String Parser ------------');
 
-      C:= P.GetChr();
+      C:= CS.GetChr();
       while( C <> EOFchr) do begin
          inc( Count);
          if( Count = 6) then begin
-            P.UngetChr( 'X');
-            P.UngetChr( 'Y');
-            P.UngetChr( 'Z');
+            CS.UngetChr( 'X');
+            CS.UngetChr( 'Y');
+            CS.UngetChr( 'Z');
          end;
          write( C);
-         C:= P.GetChr();
+         C:= CS.GetChr();
       end;
 
       writeln();
-      P.Destroy;
+      CS.Destroy;
    end; // TestStreamParser();
 
 
@@ -129,8 +131,7 @@ procedure TestFileParser();
 
       writeln();
       P.Destroy;
-   end; // TestFileParser();
-
+   end; // TestFileParser()
 
 // ************************************************************************
 // * ReadCsv();
@@ -139,27 +140,62 @@ procedure TestFileParser();
 procedure ReadCsv();
    var
       FileName: string = '/Users/lpark/Desktop/Managed Accounts List of EC2 Instances 03-06-2019 09_52_14_2019-03-07-13-39-44.csv';
-      CSVFile:  text;
-      CS:       tChrSource;
-      GetWhitespace: tParseElement;  
+      CsvFile:  text;
+      Csv:      tCsv;
    begin
       assign( CsvFile, FileName);
       reset( CsvFile);
-      CS:= tChrSource.Create( CsvFile);
+      Csv:= tCsv.Create( CsvFile);
+      
+      //CS.Chr:= 'A'; CS.Chr:= 'B'; CS.Chr:= 'C';
+      writeln( Csv.ParseCell());
+      
 
-Test by adding 3 characters to the unget queue and then peek()
+      Csv.Destroy();
       Close( CsvFile);
    end; // ReadCsv()
+
+
+// ************************************************************************
+// * ReadCsv2();
+// ************************************************************************
+
+procedure ReadCsv2();
+   var
+      CsvStr:   string = ' 1st unquoted String ,  ' +
+                         '''1st quoted string''  ,' +
+                         '''2nd quoted string with two lines' + LFchr +
+                         '    second line of the 2nd quoted string.'',' +
+                         '2nd  unquoted string, The next cell is empty,   ,,';
+      CsvFile:  text;
+      Csv:      tCsv;
+   begin
+      Csv:= tCsv.Create( CsvStr);
+      
+      while( not (Csv.PeekChr() = EOFchr)) do writeln( '>' ,Csv.ParseCell(), '<');
+      
+      Csv.Destroy();
+   end; // ReadCsv2()
 
 
 // ************************************************************************
 // * main()
 // ************************************************************************
 var
-   AllowedChrs: set of char;
+   A: tCsvStringArray;
+   B: tCsvStringArray;
 begin
    InitArgvParser();
 //   TestStreamParser();
-   TestStringParser();
+//   TestStringParser();
 //   TestFileParser(); 
+
+   //ReadCsv2();
+   SetLength( A, 3);
+   A[ 0]:= 'one';
+   A[ 1]:= 'two';
+   A[ 2]:= 'three';
+   B:= A;
+   writeln( B[ 2]);
+   writeln( SizeOf( tCsvStringArray));
 end. // test_parse_helper
