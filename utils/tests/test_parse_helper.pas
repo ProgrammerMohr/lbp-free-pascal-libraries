@@ -142,14 +142,17 @@ procedure ReadCsv();
       FileName: string = '/Users/lpark/Desktop/Managed Accounts List of EC2 Instances 03-06-2019 09_52_14_2019-03-07-13-39-44.csv';
       CsvFile:  text;
       Csv:      tCsv;
+      CA:       tCsvStringArray;
+      i:        integer;
+      iMax:     integer;
    begin
       assign( CsvFile, FileName);
       reset( CsvFile);
       Csv:= tCsv.Create( CsvFile);
       
-      //CS.Chr:= 'A'; CS.Chr:= 'B'; CS.Chr:= 'C';
-      writeln( Csv.ParseCell());
-      
+      CA:= Csv.ParseLine;
+      iMax:= Length( CA) - 1;
+      for i:= 0 to iMax do writeln( i, ' - ', CA[ i]);
 
       Csv.Destroy();
       Close( CsvFile);
@@ -165,14 +168,19 @@ procedure ReadCsv2();
       CsvStr:   string = ' 1st unquoted String ,  ' +
                          '''1st quoted string''  ,' +
                          '''2nd quoted string with two lines' + LFchr +
-                         '    second line of the 2nd quoted string.'',' +
-                         '2nd  unquoted string, The next cell is empty,   ,,';
-      CsvFile:  text;
+                         '    second line of the 2nd quoted string. '',' +
+                         '2nd  unquoted string, The next 3 cells are empty,   ,,';
       Csv:      tCsv;
+      CA:       tCsvStringArray;
+      i:        integer;
+      iMax:     integer;
    begin
       Csv:= tCsv.Create( CsvStr);
       
-      while( not (Csv.PeekChr() = EOFchr)) do writeln( '>' ,Csv.ParseCell(), '<');
+      CA:= Csv.ParseLine;
+      writeln( Ord(Csv.PeekChr()));
+      iMax:= Length( CA) - 1;
+      for i:= 0 to iMax do writeln( i, ' - ', CA[ i]);
       
       Csv.Destroy();
    end; // ReadCsv2()
@@ -181,21 +189,12 @@ procedure ReadCsv2();
 // ************************************************************************
 // * main()
 // ************************************************************************
-var
-   A: tCsvStringArray;
-   B: tCsvStringArray;
+
 begin
    InitArgvParser();
 //   TestStreamParser();
 //   TestStringParser();
 //   TestFileParser(); 
 
-   //ReadCsv2();
-   SetLength( A, 3);
-   A[ 0]:= 'one';
-   A[ 1]:= 'two';
-   A[ 2]:= 'three';
-   B:= A;
-   writeln( B[ 2]);
-   writeln( SizeOf( tCsvStringArray));
+   ReadCsv();
 end. // test_parse_helper
