@@ -169,16 +169,22 @@ procedure ReadCsv2();
       CsvFile:  text;
       Csv:      tCsv;
       LA:       tCsvLineArray;
-      i:        integer;
-      iMax:     integer;
+      Row:      tCsvStringArray;
+      iInstanceName:  integer;
+      iInstanceId:    integer;
    begin
       assign( CsvFile, FileName);
       reset( CsvFile);
       Csv:= tCsv.Create( CsvFile);
       
+      Csv.ParseHeader;
+      iInstanceName:= Csv.IndexOf( 'Instance Name');
+      iInstanceId:=   Csv.IndexOf( 'Instance Id');
+
       LA:= Csv.Parse;
-      iMax:= Length( LA) - 1;
-      for i:= 0 to iMax do writeln( i, ' - ', LA[ i][ 55]);
+      for Row in LA do begin
+         writeln( Row[ iInstanceName], ',', Row[ iInstanceId]);
+      end;
 
       Csv.Destroy();
       Close( CsvFile);
