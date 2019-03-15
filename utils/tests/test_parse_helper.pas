@@ -165,6 +165,32 @@ procedure ReadCsv();
 
 procedure ReadCsv2();
    var
+      FileName: string = '/Users/lpark/Desktop/Managed Accounts List of EC2 Instances 03-06-2019 09_52_14_2019-03-07-13-39-44.csv';
+      CsvFile:  text;
+      Csv:      tCsv;
+      LA:       tCsvLineArray;
+      i:        integer;
+      iMax:     integer;
+   begin
+      assign( CsvFile, FileName);
+      reset( CsvFile);
+      Csv:= tCsv.Create( CsvFile);
+      
+      LA:= Csv.Parse;
+      iMax:= Length( LA) - 1;
+      for i:= 0 to iMax do writeln( i, ' - ', LA[ i][ 55]);
+
+      Csv.Destroy();
+      Close( CsvFile);
+   end; // ReadCsv2()
+
+
+// ************************************************************************
+// * ReadCsv3();
+// ************************************************************************
+
+procedure ReadCsv3();
+   var
       CsvStr:   string = ' 1st unquoted String ,  ' +
                          '''1st quoted string''  ,' +
                          '''2nd quoted string with two lines' + LFchr +
@@ -196,5 +222,5 @@ begin
 //   TestStringParser();
 //   TestFileParser(); 
 
-   ReadCsv();
+   ReadCsv2();
 end. // test_parse_helper
