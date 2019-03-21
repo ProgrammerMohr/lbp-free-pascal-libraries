@@ -80,6 +80,7 @@ type
       public
          destructor Destroy(); override;
          procedure  ParseHeader();
+         function   ColumnExists( Name: string): boolean;
          function   IndexOf( Name: string): integer;
          function   ParseCell(): string;
          function   ParseLine(): tCsvStringArray;
@@ -133,6 +134,16 @@ procedure tCsv.ParseHeader();
       iMax:= Length( Header) - 1;
       for i:= 0 to iMax do IndexDict.Add( Header[ i], i);
    end; // ParseHeader()
+
+
+// *************************************************************************
+// * ColumnExists() - Returns true if the passed Name is a Column.
+// *************************************************************************
+
+function tCsv.ColumnExists( Name: string): boolean;
+   begin
+      result:= IndexDict.Find( Name);
+   end; // ColumnExists()
 
 
 // *************************************************************************
