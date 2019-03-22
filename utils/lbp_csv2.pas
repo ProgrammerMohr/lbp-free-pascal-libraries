@@ -60,6 +60,7 @@ const
    RSchr  = char( 30);  // Record Separator - Send after each valid record
 var
    EndOfCellChrs:    tCharSet = [ EOFchr, LFchr, CRchr, ','];
+   EndOfRowChrs:     tCharSet = [ RSchr, EOFchr];
    UnquotedCellChrs: tCharSet;
 
 
@@ -71,8 +72,6 @@ type
          tIndexDict = specialize tgDictionary<string, integer>;
          tRevIndexDict = specialize tgDictionary<integer, string>;
       private
-         ValidField:  boolean;
-         ValidLine:   boolean;
          IndexDict:   tIndexDict;
       protected
          procedure  Init(); override;
@@ -103,8 +102,6 @@ implementation
 procedure tCsv.Init();
    begin
       Inherited Init();
-      ValidField:= false;
-      ValidLine:= false;
       IndexDict:= tIndexDict.Create( tIndexDict.tCompareFunction( @CompareStrings), false);
    end; // Init()
 
@@ -207,51 +204,42 @@ function tCsv.ParseCell(): string;
 
       // Discard leading white space
       ParseElement( IntraLineWhiteChrs);
-      
+
       // Handle quoted cells
       C:= PeekChr();
       if( C in QuoteChrs) then begin
          result:= ParseQuotedStr();
-         ValidField:= true;
-         ValidLine:= true;
+         // Discard trailing spaces;
+         ParseElement( IntraLineWhiteChrs);
+      // Handle unquoted cells
       end else begin
-         // Handle unquoted cells
          result:= ParseElement( UnquotedCellChrs);
-         // Strip any trailing white space
+         // Strip trailing spaces
          i:= Length( result);
-         if( i > 0) then begin
-            ValidField:= true;
-            ValidLine:= true;
-         end;
          while( (i > 0) and (Result[ i] in IntraLineWhitechrs)) do dec( i);
          SetLength( result, i);
       end;
 
       C:= GetChr();
-      if( not (C in EndOfCellChrs)) then begin
-         // We found an invalid character.
-         ValidField:= false;
-         writeln( '---- ', ord( C), '----');
-         raise tCsvException.Create( 'Cell ''' + result + 
+      case C of
+         EOFchr:  begin
+               UngetChr( RSchr);
+               UngetChr( EOFchr);
+            end;       
+         CRchr:  begin
+               // If Windows line ending (CR, LF) then discard the LF also
+               if( PeekChr = LFchr) then GetChr();
+               UngetChr( RSchr);
+            end;
+         LFchr:  begin
+               UngetChr( RSchr);
+            end;
+         ',':  ; // Ignore it
+         else begin
+            raise tCsvException.Create( 'Cell ''' + result + 
                     ''' was not followed by a valid end of cell character');
-      end;
-      // Discard all Back to back line end characters
-      while C in InterLineWhiteChrs do C:= GetChr();
-      if( ValidField) then begin
-         UngetChr( USchr);
-         ValidField:= false;
-      end;
-      if( C = ',') then begin
-         ValidField:= true;
-         ValidLine:= true;
-      end else begin
-         // We are at the end of the line
-         if( ValidLine) then begin
-            UngetChr( RSchr);
-            ValidLine:= false;
          end;
-         if( C = EOFchr) then UngetChr( C);
-      end; // if/else
+      end // case
    end; // ParseCell()
 
 
@@ -273,9 +261,10 @@ function tCsv.ParseLine(): tCsvStringArray;
       SaLen:= 0;      
 
       // Ignore empty records
-      while( PeekChr() = RSchr) do GetChr();
-   
-      while( not Done) do begin
+      if( PeekChr() = RSchr) then GetChr();
+      
+      C:= PeekChr();
+      while( not (C in EndOfRowChrs)) do begin
          TempCell:= ParseCell();
          C:= GetChr();
          if( C = USchr) then begin
@@ -289,12 +278,11 @@ function tCsv.ParseLine(): tCsvStringArray;
 
             C:= PeekChr();
          end;
-         if( C = RSchr) then begin
-            Done:= true;
-            UngetChr( C);
-         end;
-      end;
+      end; // while
       
+      // Get rid of our end of record character
+      if( C = RSchr) then GetChr();
+
       SetLength( Sa, SaLen);
       result:= Sa;
    end; // ParseLine()
@@ -322,8 +310,7 @@ function tCsv.Parse(): tCsvLineArray;
    
       while( not Done) do begin
          TempLine:= ParseLine();
-         C:= GetChr();
-         if( C = RSchr) then begin
+         if( Length(TempLIne) > 0) then begin
             // Add TempLine to La - resize as needed
             if( LaLen = LaSize) then begin
                LaSize:= LaSize SHL 1;

@@ -177,13 +177,24 @@ procedure ReadCsv2();
       reset( CsvFile);
       Csv:= tCsv.Create( CsvFile);
       
+      // writeln( 'Csv created');
       Csv.ParseHeader;
+      // writeln( 'Header Parsed');
       iInstanceName:= Csv.IndexOf( 'Instance Name');
       iInstanceId:=   Csv.IndexOf( 'Instance Id');
 
+      Row:= Csv.ParseLine;
+      // writeln( 'SizeOf Row:  ', SizeOf( Row));
+      // writeln( 'Row[ 0]:  ', Row[ 0]);
+      // writeln( 'Row[ 55]:  ', Row[ 55]);
+
+
       LA:= Csv.Parse;
+      // writeln( 'SizeOf LA:  ', SizeOf( LA));
+      writeln( iInstanceName, ' - ', iInstanceID);
       for Row in LA do begin
-         writeln( Row[ iInstanceName], ',', Row[ iInstanceId]);
+         // writeln( 'SizeOf Row:  ', SizeOf( Row));
+         writeln( Row[ iInstanceName], ',', Row[ iInstanceID]);
       end;
 
       Csv.Destroy();
