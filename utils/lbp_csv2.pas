@@ -60,7 +60,7 @@ const
    RSchr  = char( 30);  // Record Separator - Send after each valid record
 var
    EndOfCellChrs:    tCharSet = [ EOFchr, LFchr, CRchr, ','];
-   EndOfRowChrs:     tCharSet = [ RSchr, EOFchr];
+   EndOfRowChrs:     tCharSet = [ EOFchr, LFchr, CRchr];
    UnquotedCellChrs: tCharSet;
 
 
@@ -266,7 +266,7 @@ function tCsv.ParseLine(): tCsvStringArray;
             inc( SaLen);
 
             C:= PeekChr; // ',' are removed by ParseCell
-         until( C in EndOfCellChrs);  // so this only matches, CR, LF, and EOF
+         until( C in EndOfRowChrs);  // so this only matches, CR, LF, and EOF
          
          // If the 'line' ended with an EOF and no CR or LF then we need to fake
          // it since we are returning a valid array of cells.
@@ -299,7 +299,7 @@ function tCsv.Parse(): tCsvLineArray;
       repeat
          TempLine:= ParseLine();
          C:= PeekChr();
-         if( C <> PeekChr) then begin
+         if( C <> EOFchr) then begin
             // Add TempLine to La - resize as needed
             if( LaLen = LaSize) then begin
                LaSize:= LaSize SHL 1;
