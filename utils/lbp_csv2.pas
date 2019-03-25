@@ -154,8 +154,8 @@ function tCsv.IndexOf( Name: string): integer;
 
 
 // *************************************************************************
-// * ParseCell() - Returns a quoted cell.  Assumes the first character in
-// * the character source is the leading quote.
+// * ParseQuotedStr() - Returns a quoted cell.  Assumes the first character
+// *                    in the character source is the leading quote.
 // *************************************************************************
 
 function tCsv.ParseQuotedStr(): string;
@@ -184,11 +184,16 @@ function tCsv.ParseQuotedStr(): string;
          ParseAddChr( C);
          C:= Chr;
       end;
+      // If we reached here its because there wasn't an end quote character!
+      raise lbp_exception.Create( 
+         'Invalid character in a quoted string:  Ord($d)  There was most likely a missing end quote.',[C]);
    end; // ParseQuotedStr()
 
 
 // *************************************************************************
-// * ParseCell() - Returns a cell
+// * ParseCell() - Returns a cell.  If the cell ended with an end of line or 
+// *               end of file that character is left in the tChrSource.  It
+// *               is up to the caller to remove it before proceeding.
 // *************************************************************************
 
 function tCsv.ParseCell(): string;
@@ -198,9 +203,6 @@ function tCsv.ParseCell(): string;
    begin
       result:= ''; // Set default value
       InitS();
-
-      // If the last USChr was left in the stream then get rid of it.
-      if( PeekChr() = USChr) then GetChr(); 
 
       // Discard leading white space
       ParseElement( IntraLineWhiteChrs);
@@ -220,31 +222,18 @@ function tCsv.ParseCell(): string;
          SetLength( result, i);
       end;
 
-      C:= GetChr();
-      case C of
-         EOFchr:  begin
-               UngetChr( RSchr);
-               UngetChr( EOFchr);
-            end;       
-         CRchr:  begin
-               // If Windows line ending (CR, LF) then discard the LF also
-               if( PeekChr = LFchr) then GetChr();
-               UngetChr( RSchr);
-            end;
-         LFchr:  begin
-               UngetChr( RSchr);
-            end;
-         ',':  ; // Ignore it
-         else begin
-            raise tCsvException.Create( 'Cell ''' + result + 
-                    ''' was not followed by a valid end of cell character');
-         end;
-      end // case
+      C:= PeekChr();
+      if( not (C in EndOfCellChrs)) then begin
+         raise tCsvException.Create( 'Cell ''' + result + 
+                  ''' was not followed by a valid end of cell character');
+      end;
+      if( C = ',') then GetChr();
    end; // ParseCell()
 
 
 // *************************************************************************
-// * ParseLine() - Returns an array of strings
+// * ParseLine() - Returns an array of strings.  The returned array is 
+// *               invalid if an EOF is the next character in the tChrSource.
 // *************************************************************************
 
 function tCsv.ParseLine(): tCsvStringArray;
@@ -260,14 +249,14 @@ function tCsv.ParseLine(): tCsvStringArray;
       SetLength( Sa, SaSize);
       SaLen:= 0;      
 
-      // Ignore empty records
-      if( PeekChr() = RSchr) then GetChr();
-      
-      C:= PeekChr();
-      while( not (C in EndOfRowChrs)) do begin
-         TempCell:= ParseCell();
-         C:= GetChr();
-         if( C = USchr) then begin
+      // Strip off end of line characters
+      while( PeekChr() in InterLineWhiteChrs) do GetChr();
+
+      // We only can add to cells if we are not at the end of the file
+      if( PeekChr <> EOFchr) then begin
+         repeat
+            TempCell:= ParseCell();
+
             // Add TempCell to Sa - resize as needed
             if( SaLen = SaSize) then begin
                SaSize:= SaSize SHL 1;
@@ -276,12 +265,13 @@ function tCsv.ParseLine(): tCsvStringArray;
             Sa[ SaLen]:= TempCell; 
             inc( SaLen);
 
-            C:= PeekChr();
-         end;
-      end; // while
-      
-      // Get rid of our end of record character
-      if( C = RSchr) then GetChr();
+            C:= PeekChr; // ',' are removed by ParseCell
+         until( C in EndOfCellChrs);  // so this only matches, CR, LF, and EOF
+         
+         // If the 'line' ended with an EOF and no CR or LF then we need to fake
+         // it since we are returning a valid array of cells.
+         if( PeekChr = EOFchr) then UngetChr( LFchr);
+      end;
 
       SetLength( Sa, SaLen);
       result:= Sa;
@@ -305,12 +295,11 @@ function tCsv.Parse(): tCsvLineArray;
       SetLength( La, LaSize);
       LaLen:= 0;      
 
-      // Ignore empty records
-      while( PeekChr() = RSchr) do GetChr();
-   
-      while( not Done) do begin
+      // Keep going until we reach the end of file character
+      repeat
          TempLine:= ParseLine();
-         if( Length(TempLIne) > 0) then begin
+         C:= PeekChr();
+         if( C <> PeekChr) then begin
             // Add TempLine to La - resize as needed
             if( LaLen = LaSize) then begin
                LaSize:= LaSize SHL 1;
@@ -318,11 +307,8 @@ function tCsv.Parse(): tCsvLineArray;
             end;
             La[ LaLen]:= TempLine; 
             inc( LaLen);
-            
-            C:= PeekChr();
          end;
-         Done:= (C = EOFchr);
-      end;
+      until( C = EOFchr);
       
       SetLength( La, LaLen);
       result:= La;
