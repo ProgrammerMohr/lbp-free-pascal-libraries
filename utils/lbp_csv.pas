@@ -33,8 +33,6 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
     License along with LFPL.  If not, see <http://www.gnu.org/licenses/>.
 
 *************************************************************************** *}
-{$WARNING This unit needs lots of work.  It is only partially implemented}
-{$WARNING Perhaps we should look at Free Pascal's included libraries.}
 unit lbp_csv;
 
 // Classes to handle Comma Separated Value strings and files.
@@ -45,291 +43,313 @@ interface
 {$LONGSTRINGS ON}
 
 uses
-   lbp_types;
+   lbp_types,
+   lbp_generic_containers,
+   lbp_parse_helper;
 
 
 // *************************************************************************
 
 type
-   CSVException = class( lbp_exception);
-
+   tCsvException   =  class( lbp_exception);
+   tCsvStringArray =  array of string;
+   tCsvLineArray   =  array of tCsvStringArray;
 
 const
-   cEOF= char(0);
-   cLF=  char( 10);
-   cCR=  char( 13);
-   cTab = char( 9);
-   cSpace = ' ';
-   cComma = ',';
-   cQuote1 = '''';
-   cQuote2 = '"';
-   FieldEnders = [ cEOF, cLF, cCR, cComma];
-   Quoteable = [ cComma, cSpace, cQuote1, cQuote2];
+   USchr  = char( 31);  // Unit Separator - Send after each valid field
+   RSchr  = char( 30);  // Record Separator - Send after each valid record
+var
+   EndOfCellChrs:    tCharSet = [ EOFchr, LFchr, CRchr, ','];
+   EndOfRowChrs:     tCharSet = [ EOFchr, LFchr, CRchr];
+   UnquotedCellChrs: tCharSet;
+
 
 // *************************************************************************
 
 type
-   tCSVLine = class
+   tCsv = class( tChrSource)
+      private type
+         tIndexDict = specialize tgDictionary<string, integer>;
+         tRevIndexDict = specialize tgDictionary<integer, string>;
+      private
+         IndexDict:   tIndexDict;
       protected
-         MyLine:       string;
-         MyCharPos:    integer;
-         LineLength:   integer;
-         MyDelimiter:  char;
+         procedure  Init(); override;
+         function   ParseQuotedStr(): string;
       public
-         constructor Create();
-         constructor Create( iLine: string);
-//         procedure   Restart(); // Make the next NextValue calll return the first value
-         function    NextValue(): string;
-         class function    Quote( S: string): string;
-         class function    Dequote( qS: string): string;
-      protected
-         function    PeekNextChar(): char;
-         function    GetNextChar():  char;
-         procedure   SetLine( iLine: string);
-      public
-         property    Line: string read MyLine write SetLine;
-         property    Delimiter: char read MyDelimiter write MyDelimiter;
-      end; // CSVLine class
+         destructor Destroy(); override;
+         procedure  ParseHeader();
+         function   ColumnExists( Name: string): boolean;
+         function   IndexOf( Name: string): integer;
+         function   ParseCell(): string;
+         function   ParseLine(): tCsvStringArray;
+         function   Parse(): tCsvLineArray;
+         procedure  DumpIndex();
+      end; // tCsv class
 
 
 // *************************************************************************
-// * tCSV - This comes from netserv/ipdbsync/ipdbsync_pipe_interface
-// *        It needs modifed to support reading/writing files and direct
-// *        conversion of strings.
-// *************************************************************************
-
-// type
-//    tCSV = class
-//       private
-//          QuoteChar:    char;
-//          InFile:       Text;
-//          OutFile:      Text;
-//          PreviousChar: char;
-//          CurrentChar:  char;
-//          CurrentField: string;
-//          EndOfFile:    boolean;
-//          EndOfRow:     boolean;
-//          Buffer:       string;
-//          BuffLength:   integer;
-//          BuffPos:      integer;
-//          MyRow:        ArrayOfString
-//       public
-//          constructor  Create();
-//          destructor   Destroy(); override;
-//       private
-//          procedure    NextChar();
-//          procedure    NextField();
-//       public
-//          function     Encode( SA: StringArray): string;
-//          function     Decode( S: string): StringArray;
-//
-//          function     ParseRow( ): StringArray
-//          procedure    NextRow();  // Read
-//          procedure    DumpRow( R: array of string); // for debugging
-//          function     ReadRow():   StringArray;
-//          procedure    WriteRow( R: array of string);
-//       end; // tCSV class
-
-
-// *************************************************************************
-
-// *************************************************************************
-
 
 implementation
 
-var
-   QuoteCharacter: char = '"';
-
 // =========================================================================
-// = tCSVLine
+// = tCSV
 // =========================================================================
 // *************************************************************************
-// * Create() - Constructor
+// * Init() - Initialize the class
 // *************************************************************************
 
-constructor tCSVLine.Create( iLine: string);
+procedure tCsv.Init();
    begin
-      Line:= iLine;
-      Delimiter:= ',';
-   end; // Create()
-
-// -------------------------------------------------------------------------
+      Inherited Init();
+      IndexDict:= tIndexDict.Create( tIndexDict.tCompareFunction( @CompareStrings), false);
+   end; // Init()
 
 
-constructor tCSVLine.Create();
+// *************************************************************************
+// * Destroy() - Destructor
+// *************************************************************************
+
+destructor tCsv.Destroy();
    begin
-      Line:= '';
-      Delimiter:= ',';
-   end; // Create()
+      IndexDict.Destroy;
+      inherited Destroy;
+   end; // Destroy()
 
 
 // *************************************************************************
-// * Restart() - Make the next NextValue calll return the first value
+// * ParseHeader() - Read the header so we can lookup column numbers by name
 // *************************************************************************
 
-// *************************************************************************
-// * NextValue() - Return the next CSV value as a string
-// *************************************************************************
-
-function tCSVLine.NextValue(): string;
+procedure tCsv.ParseHeader();
    var
-      Temp:      char;
-      FirstPos:  integer;
-      LastPos:   integer;
-      SkipComma: integer;
+      Header:  tCsvStringArray;
+      i:       integer;
+      iMax:    integer;
    begin
-      // Return empty values if we are beyond the end of the line
-      if( MyCharPos > LineLength) then begin
-         result:= '';
-         exit;
+      Header:= ParseLine();
+      iMax:= Length( Header) - 1;
+      for i:= 0 to iMax do IndexDict.Add( Header[ i], i);
+   end; // ParseHeader()
+
+
+// *************************************************************************
+// * ColumnExists() - Returns true if the passed Name is a Column.
+// *************************************************************************
+
+function tCsv.ColumnExists( Name: string): boolean;
+   begin
+      result:= IndexDict.Find( Name);
+   end; // ColumnExists()
+
+
+// *************************************************************************
+// * IndexOf() - Returns the column number of the passed header string
+// *************************************************************************
+
+function tCsv.IndexOf( Name: string): integer;
+   begin
+      result:= IndexDict.Items[ Name];
+   end; // IndexOf()
+
+
+// *************************************************************************
+// * ParseQuotedStr() - Returns a quoted cell.  Assumes the first character
+// *                    in the character source is the leading quote.
+// *************************************************************************
+
+function tCsv.ParseQuotedStr(): string;
+   var
+      Quote:    char;
+      C:        char;
+   begin
+      result:= ''; // Set default value
+      InitS();
+      Quote:= Chr;
+      
+      C:= Chr;
+      While( C in AnsiPrintableChrs) do begin
+         if( C = Quote) then begin
+            if( PeekChr() = Quote) then begin
+               // Two quotes in a row
+               C:= Chr; 
+            end else begin
+               SetLength( S, SLen);
+               result:= S;
+               // Strip trailing spaces
+               ParseElement( IntraLineWhiteChrs);
+               exit;
+            end;
+         end; // if C = Quote
+         ParseAddChr( C);
+         C:= Chr;
+      end;
+      // If we reached here its because there wasn't an end quote character!
+      raise lbp_exception.Create( 
+         'Invalid character in a quoted string:  Ord($d)  There was most likely a missing end quote.',[C]);
+   end; // ParseQuotedStr()
+
+
+// *************************************************************************
+// * ParseCell() - Returns a cell.  If the cell ended with an end of line or 
+// *               end of file that character is left in the tChrSource.  It
+// *               is up to the caller to remove it before proceeding.
+// *************************************************************************
+
+function tCsv.ParseCell(): string;
+   var
+      C:        char;
+      i:        integer;
+   begin
+      result:= ''; // Set default value
+      InitS();
+
+      // Discard leading white space
+      ParseElement( IntraLineWhiteChrs);
+
+      // Handle quoted cells
+      C:= PeekChr();
+      if( C in QuoteChrs) then begin
+         result:= ParseQuotedStr();
+         // Discard trailing spaces;
+         ParseElement( IntraLineWhiteChrs);
+      // Handle unquoted cells
+      end else begin
+         result:= ParseElement( UnquotedCellChrs);
+         // Strip trailing spaces
+         i:= Length( result);
+         while( (i > 0) and (Result[ i] in IntraLineWhitechrs)) do dec( i);
+         SetLength( result, i);
       end;
 
-      // Get rid of leading spaces
+      C:= PeekChr();
+      if( not (C in EndOfCellChrs)) then begin
+         raise tCsvException.Create( 'Cell ''' + result + 
+                  ''' was not followed by a valid end of cell character');
+      end;
+      if( C = ',') then GetChr();
+   end; // ParseCell()
+
+
+// *************************************************************************
+// * ParseLine() - Returns an array of strings.  The returned array is 
+// *               invalid if an EOF is the next character in the tChrSource.
+// *************************************************************************
+
+function tCsv.ParseLine(): tCsvStringArray;
+   var
+      TempCell:  string;
+      C:         char;
+      Done:      boolean = false;
+      Sa:        tCsvStringArray;
+      SaSize:    longint;
+      SaLen:     longint;
+   begin
+      SaSize:= 16;
+      SetLength( Sa, SaSize);
+      SaLen:= 0;      
+
+      // Strip off end of line characters
+      while( PeekChr() in InterLineWhiteChrs) do GetChr();
+
+      // We only can add to cells if we are not at the end of the file
+      if( PeekChr <> EOFchr) then begin
+         repeat
+            TempCell:= ParseCell();
+
+            // Add TempCell to Sa - resize as needed
+            if( SaLen = SaSize) then begin
+               SaSize:= SaSize SHL 1;
+               SetLength( Sa, SaSize);
+            end;
+            Sa[ SaLen]:= TempCell; 
+            inc( SaLen);
+
+            C:= PeekChr; // ',' are removed by ParseCell
+         until( C in EndOfRowChrs);  // so this only matches, CR, LF, and EOF
+         
+         // If the 'line' ended with an EOF and no CR or LF then we need to fake
+         // it since we are returning a valid array of cells.
+         if( PeekChr = EOFchr) then UngetChr( LFchr);
+      end;
+
+      SetLength( Sa, SaLen);
+      result:= Sa;
+   end; // ParseLine()
+
+
+// *************************************************************************
+// * Parse() - Returns an array of tCsvLines
+// *************************************************************************
+
+function tCsv.Parse(): tCsvLineArray;
+   var
+      TempLine:  tCsvStringArray;
+      C:         char;
+      Done:      boolean = false;
+      La:        tCsvLineArray;
+      LaSize:    longint;
+      LaLen:     longint;
+   begin
+      LaSize:= 32;
+      SetLength( La, LaSize);
+      LaLen:= 0;      
+
+      // Keep going until we reach the end of file character
       repeat
-         FirstPos:= MyCharPos;
-         Temp:= GetNextChar();
-      until( Temp <> ' ');
-
-      while( (MyCharPos <= LineLength) and (Temp <> Delimiter)) do begin
-         Temp:= GetNextChar()
-      end;
-
-      if( Temp = Delimiter) then SkipComma:= 1 else SkipComma:= 0;
-      result:= Copy( MyLine, FirstPos, MyCharPos - FirstPos - SkipComma);
-   end; // NextValue()
-
-
-// *************************************************************************
-// * PeekNextChar() - Get the next character in Line without
-// *                  incrementing the index.
-// *************************************************************************
-
-function tCSVLine.PeekNextChar(): char;
-   begin
-      if( MyCharPos > LineLength) then begin
-         raise CSVException.create(
-            'Attempt to PeekNextChar() beyond the end of Line!');
-      end;
-      result:= MyLine[ MyCharPos];
-   end; // PeekNextChar()
-
-
-// *************************************************************************
-// * GetNextChar() - Get the next character in Line and
-// *                 increment the index.
-// *************************************************************************
-
-function tCSVLine.GetNextChar(): char;
-   begin
-      if( MyCharPos > LineLength) then begin
-         raise CSVException.create(
-            'Attempt to GetNextChar() beyond the end of Line!');
-      end;
-      result:= MyLine[ MyCharPos];
-      inc( MyCharPos);
-   end; // GetNextChar()
-
-
-// *************************************************************************
-// * SetLine() - Set the line to be parsed.
-// *************************************************************************
-
-procedure tCSVLine.SetLine( iLine: string);
-   begin
-      MyLine:= iLine;
-      LineLength:= length( iLine);
-      MyCharPos:= 1;
-   end; // SetLine()
-
-
-// *************************************************************************
-// * Quote() - Quotes the passed string using pascal quote syntax.
-// *************************************************************************
-
-class function tCSVLine.Quote( S: string): string;
-   var
-      qS: string;
-      qi: integer;
-      i:  integer;
-      L:  integer;
-      qL: integer;
-      C:  char;
-   begin
-      L:= Length( S);
-      qL:= L * 2 + 2;
-      SetLength( qS, qL);
-      qi:= 1;
-      qS[ qi]:= QuoteCharacter;
-      for i:= 1 to L do begin
-         inc( qi);
-         C:= S[ i];
-         qS[ qi]:= C;
-         if( C = QuoteCharacter) then begin
-            inc( qi);
-            qS[ qi]:= C;
-         end;
-      end;
-      inc( qi);
-      qS[ qi]:= QuoteCharacter;
-      SetLength( qS, qi);
-      result:= qS;
-   end; // Quote()
-
-
-// *************************************************************************
-// * Dequote() - Returns the original string from a quoted version.
-// *************************************************************************
-
-var
-   DQErrMsg: string = 'tCSVLine.Dequote():  The passed string was not  properly CSV quoted!';
-
-class function tCSVLine.Dequote( qS: string): string;
-   var
-      S:  string;
-      qi: integer;
-      i:  integer;
-      qL: integer;
-      FirstQuote: boolean;
-      C:  char;
-   begin
-      S:= '';
-      qL:= Length( qS);
-      SetLength( S, qL - 2);
-      if( (qL = 0) or (qS[ 1] <> QuoteCharacter) or (qS[ qL] <> QuoteCharacter)) then begin
-         raise CSVException.Create( DQErrMsg);
-      end;
-
-      dec( qL); // skip the last quote character
-      i:= 0;
-      FirstQuote:= false;
-
-      for qi:= 2 to qL do begin
-         C:= qS[ qi];
-         if( FirstQuote) then begin
-            if( C = QuoteCharacter) then begin
-               inc( i);
-               S[ i]:= C;
-               FirstQuote:= false;
-            end else begin
-               raise CSVException.Create( DQErrMsg);
+         TempLine:= ParseLine();
+         C:= PeekChr();
+         if( C <> EOFchr) then begin
+            // Add TempLine to La - resize as needed
+            if( LaLen = LaSize) then begin
+               LaSize:= LaSize SHL 1;
+               SetLength( La, LaSize);
             end;
-         end else begin
-            if( C = QuoteCharacter) then begin
-               FirstQuote:= true;
-            end else begin
-               inc( i);
-               S[ i]:= C;
-            end;
+            La[ LaLen]:= TempLine; 
+            inc( LaLen);
          end;
-      end; // for
-
-      SetLength( S, i);
-      result:= S;
-   end; // Dequote()
+      until( C = EOFchr);
+      
+      SetLength( La, LaLen);
+      result:= La;
+   end; // Parse()
 
 
 // *************************************************************************
+// * DumpIndex() - Writes the Column index one per line.
+// *************************************************************************
 
+procedure tCsv.DumpIndex();
+   var
+      RevIndexDict: tRevIndexDict;
+      i: integer;
+      V: string;
+   begin
+      RevIndexDict:= tRevIndexDict.Create( tRevIndexDict.tCompareFunction( @CompareIntegers));
+
+      // Copy the existing dictionary to the new reverse lookup one.
+      IndexDict.StartEnumeration;
+      while( IndexDict.Next) do begin
+         i:= IndexDict.Value;
+         V:= IndexDict.Key;
+         RevIndexDict.Add( i, V);
+      end;
+
+      RevIndexDict.StartEnumeration;
+      while( RevIndexDict.Next) do begin
+         V:= RevIndexDict.Value;
+         i:= RevIndexDict.Key;
+         writeln( i:4, ' - ', V);
+      end;
+
+      RevIndexDict.Destroy();
+   end; // DumpIndex()
+
+// *************************************************************************
+// * Initialization
+// *************************************************************************
+
+begin
+   UnquotedCellChrs:= AnsiPrintableChrs - EndOfCellChrs;
 
 end. // lbp_csv unit
