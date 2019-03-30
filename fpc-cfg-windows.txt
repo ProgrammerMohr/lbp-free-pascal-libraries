@@ -139,78 +139,85 @@
 
 # path to the messagefile, not necessary anymore but can be used to override
 # the default language
-#-FrC:\lazarus\fpc\$FPCVERSION/msg/errore.msg
-#-FrC:\lazarus\fpc\$FPCVERSION/msg/errorn.msg
-#-FrC:\lazarus\fpc\$FPCVERSION/msg/errores.msg
-#-FrC:\lazarus\fpc\$FPCVERSION/msg/errord.msg
-#-FrC:\lazarus\fpc\$FPCVERSION/msg/errorr.msg
+#-FrC:\opt\lazarus\fpc\$FPCVERSION\msg\errore.msg
+#-FrC:\opt\lazarus\fpc\$FPCVERSION\msg\errorn.msg
+#-FrC:\opt\lazarus\fpc\$FPCVERSION\msg\errores.msg
+#-FrC:\opt\lazarus\fpc\$FPCVERSION\msg\errord.msg
+#-FrC:\opt\lazarus\fpc\$FPCVERSION\msg\errorr.msg
 
 # search path for unicode binary files (FPC 2.x does not know this switch)
 #ifndef VER2
--FM/unicode/
+-FM\unicode\
 #endif
 
 # searchpath for units and other system dependent things
--FuC:\lazarus\fpc\$FPCVERSION/units/$fpctarget
--FuC:\lazarus\fpc\$FPCVERSION/units/$fpctarget/*
--FuC:\lazarus\fpc\$FPCVERSION/units/$fpctarget/rtl
+-FuC:\opt\lazarus\fpc\$FPCVERSION\units\$fpctarget
+-FuC:\opt\lazarus\fpc\$FPCVERSION\units\$fpctarget\*
+-FuC:\opt\lazarus\fpc\$FPCVERSION\units\$fpctarget\rtl
 
 #ifdef cpui8086
--FuC:\lazarus\fpc\$FPCVERSION/units/$fpctarget/$fpcsubarch-$fpcmemorymodel
--FuC:\lazarus\fpc\$FPCVERSION/units/$fpctarget/$fpcsubarch-$fpcmemorymodel/*
--FuC:\lazarus\fpc\$FPCVERSION/units/$fpctarget/$fpcsubarch-$fpcmemorymodel/rtl
+-FuC:\opt\lazarus\fpc\$FPCVERSION\units\$fpctarget\$fpcsubarch-$fpcmemorymodel
+-FuC:\opt\lazarus\fpc\$FPCVERSION\units\$fpctarget\$fpcsubarch-$fpcmemorymodel\*
+-FuC:\opt\lazarus\fpc\$FPCVERSION\units\$fpctarget\$fpcsubarch-$fpcmemorymodel\rtl
 #endif
 
 #IFDEF FPCAPACHE_1_3
--FuC:\lazarus\fpc\$FPCVERSION/units/$fpctarget/httpd13/
+-FuC:\opt\lazarus\fpc\$FPCVERSION\units\$fpctarget\httpd13\
 #ELSE
 #IFDEF FPCAPACHE_2_0
--FuC:\lazarus\fpc\$FPCVERSION/units/$fpctarget/httpd20
+-FuC:\opt\lazarus\fpc\$FPCVERSION\units\$fpctarget\httpd20
 #ELSE
--FuC:\lazarus\fpc\$FPCVERSION/units/$fpctarget/httpd22
+-FuC:\opt\lazarus\fpc\$FPCVERSION\units\$fpctarget\httpd22
 #ENDIF
 #ENDIF
 
 # searchpath for fppkg user-specific packages
--Fu$LOCAL_APPDATA\FreePascal\fppkg/units/$FPCTARGET/*
+-Fu$LOCAL_APPDATA\FreePascal\fppkg\units\$FPCTARGET\*
 
 # path to the gcclib
 
 
 # searchpath for libraries
-#-FlC:\lazarus\fpc\$FPCVERSION/lib
-#-Fl/lib;/usr/lib
--FlC:\lazarus\fpc\$FPCVERSION/lib/$FPCTARGET
+#-FlC:\opt\lazarus\fpc\$FPCVERSION\lib
+#-Fl\lib;\usr\lib
+-FlC:\opt\lazarus\fpc\$FPCVERSION\lib\$FPCTARGET
 
 # searchpath for tools
--FDC:\lazarus\fpc\$FPCVERSION/bin/$FPCTARGET
+-FDC:\opt\lazarus\fpc\$FPCVERSION\bin\$FPCTARGET
 
 # --------------------------------------
 # Lloyd's extra path statements
 # --------------------------------------
 
+# Put the executeables in linux-bin
+-FEC:\Users\lpark\programming\pascal\win-bin
+# Put libraries in linux-lib
+-FuC:\Users\lpark\programming\pascal\win-lib\*
+-FUC:\Users\lpark\programming\pascal\win-lib
+
+
 # searchpath for includefiles
--FiH:\programming/lbp/pascal/utils
+-FiC:\Users\lpark\programming\pascal\lbp\utils
 
--FuH:\programming\pascal\lbp\*
--FuH:\programming\pascal\kent\*
--FuH:\programming\pascal\kent\netserv\*
--FuH:\programming\pascal\kent\netserv\infoblox\*
--FuH:\programming\pascal\kent\netserv\infoblox\report\*
--FuH:\programming\pascal\kent\netserv\ipdb2\*
--FuH:\programming\pascal\kent\netserv\ipdb2\reports\*
--FuH:\programming\pascal\lbp\sql\*
--FuH:\programming\pascal\lbp\utils\*
+-FuC:\Users\lpark\programming\pascal\lbp\*
+-FuC:\Users\lpark\programming\pascal\kent\*
+-FuC:\Users\lpark\programming\pascal\kent\netserv\*
+-FuC:\Users\lpark\programming\pascal\kent\netserv\infoblox\*
+-FuC:\Users\lpark\programming\pascal\kent\netserv\infoblox\report\*
+-FuC:\Users\lpark\programming\pascal\kent\netserv\ipdb2\*
+-FuC:\Users\lpark\programming\pascal\kent\netserv\ipdb2\reports\*
+-FuC:\Users\lpark\programming\pascal\lbp\sql\*
+-FuC:\Users\lpark\programming\pascal\lbp\utils\*
 
-#-Fu/opt/fpc/third-party
-#-Fu/opt/fpc/third-party/*
+#-Fu\opt\fpc\third-party
+#-Fu\opt\fpc\third-party\*
 
 # Synapase
-#-Fu/opt/synapse/source/lib
+#-Fu\opt\synapse\source\lib
 
 # MySQL
-#-Fl/opt/local/lib/mysql55/mysql/*
-#-Fl/opt/local/lib/mysql/*
+#-Fl\opt\local\lib\mysql55\mysql\*
+#-Fl\opt\local\lib\mysql\*
 
 # --------------------------------------
 # End of Lloyd's extra path statements
