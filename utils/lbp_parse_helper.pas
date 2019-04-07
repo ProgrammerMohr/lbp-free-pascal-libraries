@@ -67,15 +67,16 @@ const
    LFchr  = char( 10);
    TabChr = char( 9);
 var
-   AsciiChrs:   tCharSet = [char( 0)..char( 127)];
-   AnsiChrs:    tCharSet = [char( 0)..char( 255)];
-   AlphaChrs:   tCharSet = ['a'..'z', 'A'..'Z'];
-   NumChrs:     tCharSet = ['0'..'9'];
-   WhiteChrs:   tCharSet = [ ' ', TabChr, LFchr, CRchr];
-   QuoteChrs:   tCharSet = ['''', '"' ];
-   SymbolChrs:  tCharSet = [char( 33)..char( 47), char( 58)..char( 64),
+   AsciiChrs:   tCharSet  = [char( 0)..char( 127)];
+   AnsiChrs:    tCharSet  = [char( 0)..char( 255)];
+   AlphaChrs:   tCharSet  = ['a'..'z', 'A'..'Z'];
+   NumChrs:     tCharSet  = ['0'..'9'];
+   AlphaNumChrs: tCharSet = ['a'..'z', 'A'..'Z', '0'..'9'];
+   WhiteChrs:   tCharSet  = [ ' ', TabChr, LFchr, CRchr];
+   QuoteChrs:   tCharSet  = ['''', '"' ];
+   SymbolChrs:  tCharSet  = [char( 33)..char( 47), char( 58)..char( 64),
                                char( 91)..char( 96), char( 123)..char( 126)];
-   CtlChrs:     tCharSet = [char(0)..char(31),char(127)];
+   CtlChrs:     tCharSet  = [char(0)..char(31),char(127)];
    IntraLineWhiteChrs:  tCharSet = [ ' ', TabChr];
    InterLineWhiteChrs:  tCharSet = [ LFchr, CRchr];
    AsciiPrintableChrs:  tCharSet;

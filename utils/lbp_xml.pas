@@ -51,15 +51,93 @@ uses
 
 // *************************************************************************
 
+var
+   // Element and Attribute names.  // Best practice is to avoid using '-' and '.'
+   ElementNameChrs: tCharSet = ['a'..'z', 'A'..'Z', '0'..'9', '-', '_', '.'];
+   EscapableChrs:   tCharSet = ['&','<','>','''','"']; 
+
+
+// *************************************************************************
+
 type
    tXmlElement = class( tObject)
+      public type
+         tXmlElementArray = array of tXmlElement;
+         tStringDict = specialize tgDictionary< string, string>;
       public
          Tag:     string;
          Text:    string;
          Tail:    string;
          Attrib:  tStringDict;
          Child:  tXmlElementArray;
+         function EscapeString( S: string; Quote: char = chr( 0)): string;
+      end; // tXmlElement
+
 
 // *************************************************************************
+
+implementation
+
+// =========================================================================
+// = tXmlElement
+// =========================================================================
+// *************************************************************************
+// * EscapeString() - Return a copy of the passed string with special 
+// *                  characters escaped per the XML standard.  If the string
+// *                  should be quoted, pass the quote character.  
+// *************************************************************************
+
+function tXmlElement.EscapeString( S: string; Quote: char): string;
+   var
+      Si:         integer; // StartIndex;
+      Ei:         integer; // EndIndex;
+      L:          integer; 
+      AmpStr:     string;
+      EscapeChrs: tCharSet = [ '&', '<'];
+   begin
+      L:= Length( S);
+      if( Quote in QuoteChrs) then begin
+         result:= Quote;
+         EscapeChrs:= EscapeChrs + [Quote];
+      end else begin
+         result:= '';
+      end;
+      Si:= 1;
+      Ei:= 1;
+
+      repeat
+         if( S[ Ei] in EscapeChrs) then begin
+            case S[ EI] of
+               '''': AmpStr:= '&apos;';
+               '"':  AmpStr:= '&quot;';
+               '<':  AmpStr:= '&lt;';
+               '&':  AmpStr:= '&amp;';
+            end; // case
+            result:= result + Copy( S, Si, Ei - Si) + AmpStr;
+            Si:= Ei;
+         end; // if
+         inc( Ei);
+      until( Ei > L);
+      result:= result + Copy( S, Si, Ei - Si);
+      if( Quote in QuoteChrs) then begin
+         result:= result + Quote;
+      end;
+   end; // EscapeString();
+{*
+Three ways of escaping special characters
+    &#X followed by Hex number followed by ';'
+    &# follwed by decimal number followed by ';'
+    & follwed by character abreviations of the name
+       &amp  &
+       &lt   <
+       &gt   >
+       &apos '
+       &quot "
+
+Lookup CDATA
+Lookup when you can (must?) use />
+Lookup the character set standard mentioned
+
+*}
 
 end. // lbp_xml unit
