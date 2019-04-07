@@ -63,12 +63,12 @@ type
    tXmlElement = class( tObject)
       public type
          tXmlElementArray = array of tXmlElement;
-         tStringDict = specialize tgDictionary< string, string>;
+//         tStringDict = specialize tgDictionary< string, string>;
       public
          Tag:     string;
          Text:    string;
          Tail:    string;
-         Attrib:  tStringDict;
+//         Attrib:  tStringDict;
          Child:  tXmlElementArray;
          function EscapeString( S: string; Quote: char = chr( 0)): string;
       end; // tXmlElement

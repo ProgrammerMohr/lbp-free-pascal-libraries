@@ -34,22 +34,41 @@ uses
 
 
 // ************************************************************************
+// * TestEscapeString()
+// ************************************************************************
+
+procedure TestEscapeString();
+   var
+      Xml:  tXmlElement;
+      S:    string;
+   begin
+      Xml:= tXmlElement.Create();
+
+      S:= '&<&';
+      writeln( S, ':  ', Xml.EscapeString( S,'"');
+      writeln( S, ':  ', Xml.EscapeString( S,''');)
+
+      Xml.Destroy;
+   end; // TestEscapeString();
+
+
+// ************************************************************************
 // * TestAttribute()
 // ************************************************************************
 
-procedure TestAttribute();
-   var
-      A: tXmlAttribute;
-   begin
-      A:= tXmlAttribute.Create;
-      A.Add( 'href', 'http://www.w3.org/XML');
-      A.Add( 'Lloyd', 'Family');
+// procedure TestAttribute();
+//    var
+//       A: tXmlAttribute;
+//    begin
+//       A:= tXmlAttribute.Create;
+//       A.Add( 'href', 'http://www.w3.org/XML');
+//       A.Add( 'Lloyd', 'Family');
 
-      writeln( '------- Testing XML Attribute functionality --------');
-      if( A.Find( 'href')) then writeln( '   Found: ', A.Value);
+//       writeln( '------- Testing XML Attribute functionality --------');
+//       if( A.Find( 'href')) then writeln( '   Found: ', A.Value);
 
-      A.Destroy;
-   end; // TestAttribute()
+//       A.Destroy;
+//    end; // TestAttribute()
 
 
 // ************************************************************************
@@ -57,5 +76,6 @@ procedure TestAttribute();
 // ************************************************************************
 
 begin
-   TestAttribute();
+//    TestAttribute();
+
 end.  // test_xml program
