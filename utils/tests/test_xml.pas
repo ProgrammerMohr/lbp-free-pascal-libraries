@@ -42,12 +42,23 @@ procedure TestEscapeString();
       Xml:  tXmlElement;
       S:    string;
    begin
+      Writeln( '-----------------------------------------------------------');
+      Writeln( '- Testing escaping special characters in an XML string');
+      Writeln( '-----------------------------------------------------------');
       Xml:= tXmlElement.Create();
 
       S:= '&<&';
-      writeln( S, ':  ', Xml.EscapeString( S,'"');
-      writeln( S, ':  ', Xml.EscapeString( S,''');)
+      writeln( S, ':  ', Xml.EscapeString( S,'"'));
+      writeln( S, ':  ', Xml.EscapeString( S,''''));
 
+      S:= 'Lloyd & Amey.  2 < 3';
+      writeln( S, ':  ', Xml.EscapeString( S));
+      S:= '''Lloyd'' & "Amey".  2 < 3';
+      writeln( S, ':  ', Xml.EscapeString( S, '"'));
+      S:= '''Lloyd'' & "Amey".  2 < 3';
+      writeln( S, ':  ', Xml.EscapeString( S, ''''));
+
+      writeln;
       Xml.Destroy;
    end; // TestEscapeString();
 
@@ -77,5 +88,5 @@ procedure TestEscapeString();
 
 begin
 //    TestAttribute();
-
+   TestEscapeString();
 end.  // test_xml program

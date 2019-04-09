@@ -60,10 +60,15 @@ var
 // *************************************************************************
 
 type
+   tStringDict = specialize tgDictionary< string, string>;
+
+
+// *************************************************************************
+
+type
    tXmlElement = class( tObject)
       public type
          tXmlElementArray = array of tXmlElement;
-//         tStringDict = specialize tgDictionary< string, string>;
       public
          Tag:     string;
          Text:    string;
@@ -114,9 +119,11 @@ function tXmlElement.EscapeString( S: string; Quote: char): string;
                '&':  AmpStr:= '&amp;';
             end; // case
             result:= result + Copy( S, Si, Ei - Si) + AmpStr;
+            inc( Ei);
             Si:= Ei;
-         end; // if
-         inc( Ei);
+         end else begin;
+            inc( Ei);
+         end;
       until( Ei > L);
       result:= result + Copy( S, Si, Ei - Si);
       if( Quote in QuoteChrs) then begin
