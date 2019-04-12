@@ -32,7 +32,7 @@
 //             begin
 //                Result := IntToStr(Self);
 //             end;
-// {$modeswitch typehelpers}
+{$modeswitch typehelpers}
 
 // -Op1
    // Not available as parameter?

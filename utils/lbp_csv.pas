@@ -54,6 +54,9 @@ type
    tCsvException   =  class( lbp_exception);
    tCsvStringArray =  array of string;
    tCsvLineArray   =  array of tCsvStringArray;
+   tCsvStringArrayHelper = type helper for tCsvStringArray
+      function ToLine(): string;
+   end;
 
 const
    USchr  = char( 31);  // Unit Separator - Send after each valid field
@@ -61,8 +64,10 @@ const
 var
    EndOfCellChrs:    tCharSet = [ EOFchr, LFchr, CRchr, ','];
    EndOfRowChrs:     tCharSet = [ EOFchr, LFchr, CRchr];
+   QuoteableChrs:    tCharSet = [ ',', ''''];
    UnquotedCellChrs: tCharSet;
 
+function CsvQuote( S: string): string; // Quote the string in a CSV compatible way
 
 // *************************************************************************
 
@@ -381,11 +386,62 @@ procedure tCsv.DumpIndex();
 
 
 
+// =========================================================================
+// = tCsvStringArrayHelper
+// =========================================================================
+// *************************************************************************
+// * ToLine() - Convert the array into a line of CSV text
+// *************************************************************************
+
+function tCsvStringArrayHelper.ToLine(): string;
+   var
+      S:          string;
+      Temp:       string;
+      C:          char;
+      QuoteIt:    boolean;
+      First:      boolean;
+   begin
+      result:= '';
+      First:= true;
+      for S in self do begin
+         // Does the string need to be quoted?
+         QuoteIt:= false;
+         for C in S do QuoteIt:= QuoteIt or (C in QuoteableChrs);
+         
+         Temp:= S;
+         if( QuoteIt) then Temp:=  CsvQuote( Temp);
+         if( First) then First:= false else result:= result + ',';
+         result:= result + Temp;
+      end; // for
+   end; // ToLine()
+
+
+
+// =========================================================================
+// = Global functions
+// =========================================================================
+// *************************************************************************
+// * CsvQuote() = Return the passed string 
+// *************************************************************************
+
+function CsvQuote( S: string): string;
+   var
+      C:  char;
+   begin
+      result:= '''';
+      for C in S do begin
+         if( C = '''') then result:= result + '''';
+         result:= result + C;
+      end;
+      result:= result + '''';
+   end; // CsvQuote()
+
+
 // *************************************************************************
 // * Initialization
 // *************************************************************************
 
 begin
    UnquotedCellChrs:= AnsiPrintableChrs - EndOfCellChrs;
-
+   QuoteableChrs:= [ '''', ','] + WhiteChrs;
 end. // lbp_csv unit

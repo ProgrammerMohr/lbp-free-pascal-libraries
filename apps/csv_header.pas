@@ -6,7 +6,8 @@ uses
    lbp_argv,
    lbp_csv,
    lbp_generic_containers,
-   lbp_input_file;
+   lbp_input_file,
+   lbp_output_file;
 
 
 // ************************************************************************
@@ -21,10 +22,11 @@ procedure InitArgvParser();
       InsertUsage( '         per line.  It will optionally sort the lines.');
       InsertUsage( '');
       InsertUsage( 'Usage:');
-      InsertUsage( '   csv_header [-s|--sort] [-f <file name>]');
+      InsertUsage( '   csv_header [-s|--sort] [-f <file name>] [-o <output file name>]');
       InsertUsage( '');
       InsertUsage( '   ========== Program Options ==========');
       SetInputFileParam( true, true, false, true);
+      SetOutputFileParam( false, true, false, true);
       InsertParam( ['s','sort'], false, '', 'Sort the output.'); 
       InsertUsage();
       ParseParams();
@@ -45,7 +47,7 @@ begin
    
    Csv.ParseHeader();
    if( ParamSet( 's')) then Header:= Csv.SortedHeader else Header:= Csv.Header;
-   for S in Header do writeln( S);
+   for S in Header do writeln( OutputFile, S);
 
    Csv.Destroy;
 end.  // csv_header program
