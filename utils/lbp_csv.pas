@@ -78,9 +78,11 @@ type
          function   ParseQuotedStr(): string;
       public
          destructor Destroy(); override;
-         procedure  ParseHeader();
+         function   ParseHeader(): integer; // returns the number of cells in the header
          function   ColumnExists( Name: string): boolean;
          function   IndexOf( Name: string): integer;
+         function   Header():  tCsvStringArray;
+         function   SortedHeader(): tCsvStringArray;
          function   ParseCell(): string;
          function   ParseLine(): tCsvStringArray;
          function   Parse(): tCsvLineArray;
@@ -121,15 +123,16 @@ destructor tCsv.Destroy();
 // * ParseHeader() - Read the header so we can lookup column numbers by name
 // *************************************************************************
 
-procedure tCsv.ParseHeader();
+function tCsv.ParseHeader(): integer;
    var
-      Header:  tCsvStringArray;
+      MyHeader:  tCsvStringArray;
       i:       integer;
       iMax:    integer;
    begin
-      Header:= ParseLine();
-      iMax:= Length( Header) - 1;
-      for i:= 0 to iMax do IndexDict.Add( Header[ i], i);
+      MyHeader:= ParseLine();
+      result:= Length( MyHeader);
+      iMax:= result - 1;
+      for i:= 0 to iMax do IndexDict.Add( MyHeader[ i], i);
    end; // ParseHeader()
 
 
@@ -151,6 +154,39 @@ function tCsv.IndexOf( Name: string): integer;
    begin
       result:= IndexDict.Items[ Name];
    end; // IndexOf()
+
+
+// *************************************************************************
+// * Header() - Returns an array of header names in the order they appear 
+// *            in the CSV.  Returns an empty array if the Header hasn't
+// *            been parsed.
+// *************************************************************************
+
+function tCsv.Header():  tCsvStringArray;
+   begin
+      SetLength( result, IndexDict.Count);
+      IndexDict.StartEnumeration;
+      while( IndexDict.Next) do result[ IndexDict.Value]:= IndexDict.Key; 
+   end; // Header()
+
+
+// *************************************************************************
+// * SortedHeader() - Returns an array of header names sorted alphabetically.
+// *                  Returns an empty array if the Header hasn't been
+// *                  parsed.
+// *************************************************************************
+
+function tCsv.SortedHeader(): tCsvStringArray;
+   var
+      i: integer= 0;
+   begin
+      SetLength( result, IndexDict.Count);
+      IndexDict.StartEnumeration;
+      while( IndexDict.Next) do begin
+         result[ i]:= IndexDict.Key;
+         inc( i);
+      end; 
+   end; // SortedHeader()
 
 
 // *************************************************************************
@@ -240,7 +276,6 @@ function tCsv.ParseLine(): tCsvStringArray;
    var
       TempCell:  string;
       C:         char;
-      Done:      boolean = false;
       Sa:        tCsvStringArray;
       SaSize:    longint;
       SaLen:     longint;
@@ -286,7 +321,6 @@ function tCsv.Parse(): tCsvLineArray;
    var
       TempLine:  tCsvStringArray;
       C:         char;
-      Done:      boolean = false;
       La:        tCsvLineArray;
       LaSize:    longint;
       LaLen:     longint;
@@ -344,6 +378,8 @@ procedure tCsv.DumpIndex();
 
       RevIndexDict.Destroy();
    end; // DumpIndex()
+
+
 
 // *************************************************************************
 // * Initialization
