@@ -428,12 +428,12 @@ function CsvQuote( S: string): string;
    var
       C:  char;
    begin
-      result:= '''';
+      result:= '"';
       for C in S do begin
-         if( C = '''') then result:= result + '''';
+         if( C = '"') then result:= result + '"';
          result:= result + C;
       end;
-      result:= result + '''';
+      result:= result + '"';
    end; // CsvQuote()
 
 
@@ -443,5 +443,5 @@ function CsvQuote( S: string): string;
 
 begin
    UnquotedCellChrs:= AnsiPrintableChrs - EndOfCellChrs;
-   QuoteableChrs:= [ '''', ','] + WhiteChrs;
+   QuoteableChrs:= [ '"', ','] + WhiteChrs;
 end. // lbp_csv unit
