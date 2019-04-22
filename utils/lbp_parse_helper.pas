@@ -104,7 +104,7 @@ type
          SLen:           longint;
       public
          constructor Create( iStream: tStream; iDestroyStream: boolean = true);
-         constructor Create( iString: string);
+         constructor Create( iString: string; IsFileName: boolean = false);
          constructor Create( var iFile:   text);
          destructor  Destroy(); override;
       protected
@@ -136,15 +136,18 @@ constructor tChrSource.Create( iStream: tStream; iDestroyStream: boolean);
       inherited Create();
       Stream:= iStream;
       DestroyStream:= iDestroyStream;
-      Init();
-   end; // Create()
+      Init();  end; // Create()
 
 // -------------------------------------------------------------------------
 
-constructor tChrSource.Create( iString: string );
+constructor tChrSource.Create( iString: string; IsFileName: boolean);
    begin
       inherited Create();
-      Stream:= tStringStream.Create( iString);
+      if( IsFileName) then begin
+         Stream:= tFileStream.Create( iString, fmOpenRead);
+      end else begin
+         Stream:= tStringStream.Create( iString);
+      end;
       DestroyStream:= true;
       Init();
    end; // Create()

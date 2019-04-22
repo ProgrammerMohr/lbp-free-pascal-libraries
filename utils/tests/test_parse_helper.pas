@@ -29,11 +29,13 @@ uses
    lbp_argv,
    lbp_types,
    lbp_input_file,
-   lbp_csv2,
+   lbp_csv,
    lbp_parse_helper;
 
 // ************************************************************************
 
+var
+   FileName: string = '/Users/lpark/Desktop/Managed Accounts List of EC2 Instances 03-26-2019 10_55_54_2019-03-27-15-11-31.csv';
 
 // ************************************************************************
 // * InitArgvParser() - Initialize the command line usage message and
@@ -139,23 +141,18 @@ procedure TestFileParser();
 
 procedure ReadCsv();
    var
-      FileName: string = '/Users/lpark/Desktop/Managed Accounts List of EC2 Instances 03-06-2019 09_52_14_2019-03-07-13-39-44.csv';
-      CsvFile:  text;
       Csv:      tCsv;
       CA:       tCsvStringArray;
       i:        integer;
       iMax:     integer;
    begin
-      assign( CsvFile, FileName);
-      reset( CsvFile);
-      Csv:= tCsv.Create( CsvFile);
+      Csv:= tCsv.Create( FileName, true);
       
       CA:= Csv.ParseLine;
       iMax:= Length( CA) - 1;
       for i:= 0 to iMax do writeln( i, ' - ', CA[ i]);
 
       Csv.Destroy();
-      Close( CsvFile);
    end; // ReadCsv()
 
 
@@ -165,17 +162,13 @@ procedure ReadCsv();
 
 procedure ReadCsv2();
    var
-      FileName: string = '/Users/lpark/Desktop/Managed Accounts List of EC2 Instances 03-06-2019 09_52_14_2019-03-07-13-39-44.csv';
-      CsvFile:  text;
       Csv:      tCsv;
       LA:       tCsvLineArray;
       Row:      tCsvStringArray;
       iInstanceName:  integer;
       iInstanceId:    integer;
    begin
-      assign( CsvFile, FileName);
-      reset( CsvFile);
-      Csv:= tCsv.Create( CsvFile);
+      Csv:= tCsv.Create( FileName, true);
       
       // writeln( 'Csv created');
       Csv.ParseHeader;
@@ -198,7 +191,6 @@ procedure ReadCsv2();
       end;
 
       Csv.Destroy();
-      Close( CsvFile);
    end; // ReadCsv2()
 
 
@@ -235,9 +227,11 @@ procedure ReadCsv3();
 
 begin
    InitArgvParser();
+
 //   TestStreamParser();
-//   TestStringParser();
+   TestStringParser();
 //   TestFileParser(); 
 
-   ReadCsv2();
+//   ReadCsv();
+//   ReadCsv2();
 end. // test_parse_helper
