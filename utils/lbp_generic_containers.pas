@@ -1371,7 +1371,8 @@ procedure tgAvlTree.tNode.Clear();
       LeftChild:= nil;
       RightChild:= nil;
       Balance:= 0;
-      Value:= nil;
+      {$warning I commented out the line below but it might cause issues when Value is a class.}
+//      Value:= nil;
    end;
 
 // ************************************************************************
