@@ -64,7 +64,7 @@ const
 var
    EndOfCellChrs:    tCharSet = [ EOFchr, LFchr, CRchr, ','];
    EndOfRowChrs:     tCharSet = [ EOFchr, LFchr, CRchr];
-   QuoteableChrs:    tCharSet = [ ',', ''''];
+   QuoteableChrs:    tCharSet;
    UnquotedCellChrs: tCharSet;
 
 function CsvQuote( S: string): string; // Quote the string in a CSV compatible way
@@ -395,21 +395,14 @@ procedure tCsv.DumpIndex();
 
 function tCsvStringArrayHelper.ToLine(): string;
    var
-      S:          string;
-      Temp:       string;
-      C:          char;
-      QuoteIt:    boolean;
-      First:      boolean;
+      S:      string;
+      Temp:   string;
+      First:  boolean;
    begin
       result:= '';
       First:= true;
       for S in self do begin
-         // Does the string need to be quoted?
-         QuoteIt:= false;
-         for C in S do QuoteIt:= QuoteIt or (C in QuoteableChrs);
-         
-         Temp:= S;
-         if( QuoteIt) then Temp:=  CsvQuote( Temp);
+         Temp:= CsvQuote( S);
          if( First) then First:= false else result:= result + ',';
          result:= result + Temp;
       end; // for
@@ -426,14 +419,16 @@ function tCsvStringArrayHelper.ToLine(): string;
 
 function CsvQuote( S: string): string;
    var
-      C:  char;
+      C:       char;
+      QuoteIt: boolean = false;
    begin
-      result:= '"';
+      result:= '';
       for C in S do begin
+         if( C in QuoteableChrs) then QuoteIt:= true;
          if( C = '"') then result:= result + '"';
          result:= result + C;
       end;
-      result:= result + '"';
+      if( QuoteIt) then result:= '"' + result + '"';
    end; // CsvQuote()
 
 
