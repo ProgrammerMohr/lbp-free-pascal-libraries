@@ -403,8 +403,12 @@ function tCsvStringArrayHelper.ToLine(): string;
       First:= true;
       for S in self do begin
          Temp:= CsvQuote( S);
-         if( First) then First:= false else result:= result + ',';
-         result:= result + Temp;
+         if( First) then begin
+            First:= false;
+            result:= temp;
+         end else begin 
+            result:= result + ',' + temp;
+         end;
       end; // for
    end; // ToLine()
 
