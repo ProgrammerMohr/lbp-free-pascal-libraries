@@ -1,0 +1,14 @@
+  - Download the latest version from here: <code>
+</code>
+  - Compile LazUtils - Only needed on OS X where 64 bit Lazarus isn't working. <code>
+cd /opt/lazarus/current/components/lazutils
+recompile_pas
+</code>
+  - Compile fpspreadsheet <code>
+cd ~/programming/pascal/fpspreadsheet/source/common
+cp ../fps.inc .
+recompile_pas
+</code>
+
+lloyd.b.park@gmail.com
+bd@@W!z32G*oSgsk
