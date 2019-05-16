@@ -72,6 +72,7 @@ function CsvQuote( S: string): string; // Quote the string in a CSV compatible w
 // *************************************************************************
 
 type
+{$WARNING - right now the CSV parser doesn't return an empty cell at the end of the line}
    tCsv = class( tChrSource)
       private type
          tIndexDict = specialize tgDictionary<string, integer>;
