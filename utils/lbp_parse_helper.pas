@@ -276,7 +276,7 @@ procedure tChrSource.UngetChr( C: char);
 
 
 // ************************************************************************
-// * Parse()
+// * ParseElement()
 // ************************************************************************
 
 function tChrSource.ParseElement( var AllowedChrs: tCharSet): string;
