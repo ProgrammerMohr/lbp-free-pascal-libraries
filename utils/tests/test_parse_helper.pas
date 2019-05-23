@@ -29,8 +29,10 @@ uses
    lbp_argv,
    lbp_types,
    lbp_input_file,
-   lbp_csv,
+   lbp_csv2,
    lbp_parse_helper;
+{$WARNING lbp_csv2 is temporary.  I am resolving an issue with the an empty cell at the end of a line not being read.
+  When done I'll move replace lbp_csv with this.}
 
 // ************************************************************************
 
