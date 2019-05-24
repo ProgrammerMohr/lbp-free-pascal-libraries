@@ -29,10 +29,8 @@ uses
    lbp_argv,
    lbp_types,
    lbp_input_file,
-   lbp_csv2,
+   lbp_csv,
    lbp_parse_helper;
-{$WARNING lbp_csv2 is temporary.  I am resolving an issue with the an empty cell at the end of a line not being read.
-  When done I'll move replace lbp_csv with this.}
 
 // ************************************************************************
 
@@ -202,11 +200,12 @@ procedure ReadCsv2();
 
 procedure ReadCsv3();
    var
-      CsvStr:   string = ' 1st unquoted String ,  ' +
+      CsvStr:   string = ', 1st unquoted String ,  ' +
                          '''1st quoted string''  ,' +
                          '''2nd quoted string with two lines' + LFchr +
                          '    second line of the 2nd quoted string. '',' +
-                         '2nd  unquoted string, The next 3 cells are empty,   , ,';
+                         '2nd  unquoted string,' +
+                         'The next 3 cells are empty,   , , ';
       Csv:      tCsv;
       CA:       tCsvStringArray;
       i:        integer;
@@ -214,14 +213,14 @@ procedure ReadCsv3();
    begin
       Csv:= tCsv.Create( CsvStr);
       
-      for i:= 0 to 7 do begin
-         writeln(  Csv.ParseCell);
-         writeln( ord( Csv.PeekChr));
-      end;
-      // CA:= Csv.ParseLine;
-      // writeln( Ord(Csv.PeekChr()));
-      // iMax:= Length( CA) - 1;
-      // for i:= 0 to iMax do writeln( i, ' - ', CA[ i]);
+      // for i:= 0 to 7 do begin
+      //    writeln(  Csv.ParseCell);
+      //    writeln( ord( Csv.PeekChr));
+      // end;
+      CA:= Csv.ParseLine;
+      writeln( Ord(Csv.PeekChr()));
+      iMax:= Length( CA) - 1;
+      for i:= 0 to iMax do writeln( i, ' - ', CA[ i]);
       
       Csv.Destroy();
    end; // ReadCsv3()
@@ -235,7 +234,7 @@ begin
    InitArgvParser();
 
 //   TestStreamParser();
-   TestStringParser();
+//   TestStringParser();
 //   TestFileParser(); 
 
 //   ReadCsv();

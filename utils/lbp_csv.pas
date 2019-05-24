@@ -72,7 +72,6 @@ function CsvQuote( S: string): string; // Quote the string in a CSV compatible w
 // *************************************************************************
 
 type
-{$WARNING - right now the CSV parser doesn't return an empty cell at the end of the line}
    tCsv = class( tChrSource)
       private type
          tIndexDict = specialize tgDictionary<string, integer>;
@@ -84,15 +83,15 @@ type
          function   ParseQuotedStr(): string;
       public
          destructor Destroy(); override;
-         function   ParseHeader(): integer; // returns the number of cells in the header
-         function   ColumnExists( Name: string): boolean;
-         function   IndexOf( Name: string): integer;
-         function   Header():  tCsvStringArray;
-         function   SortedHeader(): tCsvStringArray;
-         function   ParseCell(): string;
-         function   ParseLine(): tCsvStringArray;
-         function   Parse(): tCsvLineArray;
-         procedure  DumpIndex();
+         function   ParseHeader(): integer; virtual;// returns the number of cells in the header
+         function   ColumnExists( Name: string): boolean; virtual;
+         function   IndexOf( Name: string): integer; virtual;
+         function   Header():  tCsvStringArray; virtual;
+         function   SortedHeader(): tCsvStringArray; virtual;
+         function   ParseCell(): string; virtual;
+         function   ParseLine(): tCsvStringArray; virtual;
+         function   Parse(): tCsvLineArray; virtual;
+         procedure  DumpIndex(); virtual;
       end; // tCsv class
 
 
@@ -233,9 +232,8 @@ function tCsv.ParseQuotedStr(): string;
 
 
 // *************************************************************************
-// * ParseCell() - Returns a cell.  If the cell ended with an end of line or 
-// *               end of file that character is left in the tChrSource.  It
-// *               is up to the caller to remove it before proceeding.
+// * ParseCell() - Returns a cell.  It leaves the EndOfCell character in the 
+// *               buffer.
 // *************************************************************************
 
 function tCsv.ParseCell(): string;
@@ -269,7 +267,7 @@ function tCsv.ParseCell(): string;
          raise tCsvException.Create( 'Cell ''' + result + 
                   ''' was not followed by a valid end of cell character');
       end;
-      if( C = ',') then GetChr();
+      // if( C in InterLineWhiteChrs) then UngetChr( ',');
    end; // ParseCell()
 
 
@@ -283,15 +281,15 @@ function tCsv.ParseLine(): tCsvStringArray;
       TempCell:  string;
       C:         char;
       Sa:        tCsvStringArray;
-      SaSize:    longint;
-      SaLen:     longint;
+      SaSize:    longint = 16;
+      SaLen:     longint = 0;
+      LastCell:  boolean = false;
    begin
-      SaSize:= 16;
       SetLength( Sa, SaSize);
-      SaLen:= 0;      
 
-      // Strip off end of line characters
-      while( PeekChr() in InterLineWhiteChrs) do GetChr();
+      // Strip off any white space including empty lines.  This insures the next 
+      // character starts a valid cell.
+      while( PeekChr() in WhiteChrs) do GetChr();
 
       // We only can add to cells if we are not at the end of the file
       if( PeekChr <> EOFchr) then begin
@@ -306,8 +304,10 @@ function tCsv.ParseLine(): tCsvStringArray;
             Sa[ SaLen]:= TempCell; 
             inc( SaLen);
 
-            C:= PeekChr; // ',' are removed by ParseCell
-         until( C in EndOfRowChrs);  // so this only matches, CR, LF, and EOF
+            C:= PeekChr;
+            LastCell:= C <> ',';
+            if( not LastCell) then C:= GetChr;
+         until( LastCell);  // so this only matches, CR, LF, and EOF
          
          // If the 'line' ended with an EOF and no CR or LF then we need to fake
          // it since we are returning a valid array of cells.

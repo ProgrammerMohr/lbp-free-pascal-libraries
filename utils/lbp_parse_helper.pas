@@ -109,13 +109,13 @@ type
          destructor  Destroy(); override;
       protected
          procedure   Init(); virtual;
-         procedure   InitS();
-         procedure   ParseAddChr( C: char);
+         procedure   InitS(); virtual;
+         procedure   ParseAddChr( C: char); virtual;
       public
-         function    PeekChr(): char;
-         function    GetChr(): char;
-         procedure   UngetChr( C: char);
-         function    ParseElement( var AllowedChrs: tCharSet): string;
+         function    PeekChr(): char; virtual;
+         function    GetChr(): char; virtual;
+         procedure   UngetChr( C: char); virtual;
+         function    ParseElement( var AllowedChrs: tCharSet): string; virtual;
          property    Chr: char read GetChr write UngetChr;
       end; // tChrSource class
 
