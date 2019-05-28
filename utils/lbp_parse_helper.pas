@@ -52,7 +52,8 @@ interface
 uses
    lbp_types,
    lbp_generic_containers,
-   classes;
+   classes,
+   sysutils;
 
 // ************************************************************************
 
@@ -99,9 +100,9 @@ type
          DestroyStream:  boolean;
       protected
          // Element Parsing variables;
-         S:              string;
-         SSize:          longint;
-         SLen:           longint;
+         MyS:              string;
+         MySSize:          longint;
+         MySLen:           longint;
       public
          constructor Create( iStream: tStream; iDestroyStream: boolean = true);
          constructor Create( iString: string; IsFileName: boolean = false);
@@ -134,6 +135,7 @@ implementation
 constructor tChrSource.Create( iStream: tStream; iDestroyStream: boolean);
    begin
       inherited Create();
+      UngetQ:= nil;
       Stream:= iStream;
       DestroyStream:= iDestroyStream;
       Init();  end; // Create()
@@ -143,7 +145,12 @@ constructor tChrSource.Create( iStream: tStream; iDestroyStream: boolean);
 constructor tChrSource.Create( iString: string; IsFileName: boolean);
    begin
       inherited Create();
+      UngetQ:= nil;
+
       if( IsFileName) then begin
+         if( not FileExists( iString)) then begin
+            raise ParseException.Create( 'The passed file ''%s'' does not exist!', [iString]);
+         end;
          Stream:= tFileStream.Create( iString, fmOpenRead);
       end else begin
          Stream:= tStringStream.Create( iString);
@@ -158,6 +165,7 @@ constructor tChrSource.Create( iString: string; IsFileName: boolean);
 constructor tChrSource.Create( var iFile: text);
    begin
       inherited Create();
+      UngetQ:= nil;
       Stream:= tHandleStream.Create( TextRec( iFile).Handle);
       DestroyStream:= true;
       Init();
@@ -171,7 +179,7 @@ constructor tChrSource.Create( var iFile: text);
 destructor tChrSource.Destroy();
    begin
        if( DestroyStream) then Stream.Destroy();
-       UngetQ.Destroy;
+       if( UngetQ <> nil) then UngetQ.Destroy;
        inherited Destroy();
    end; // Destroy()
 
@@ -195,9 +203,9 @@ procedure tChrSource.Init();
 
 procedure tChrSource.InitS();
    begin
-      SSize:= 16;
-      SetLength( S, SSize);
-      SLen:= 0;      
+      MySSize:= 16;
+      SetLength( MyS, MySSize);
+      MySLen:= 0;      
    end; // InitS()
 
 
@@ -208,12 +216,12 @@ procedure tChrSource.InitS();
 procedure tChrSource.ParseAddChr( C: char);
    begin
       // If we used up all the space in S then double it's capacity.
-      if( SLen = SSize) then begin
-         SSize:= SSize SHL 1;
-         SetLength( S, SSize);
+      if( MySLen = MySSize) then begin
+         MySSize:= MySSize SHL 1;
+         SetLength( MyS, MySSize);
       end;
-      inc( SLen);
-      S[ SLen]:= C; 
+      inc( MySLen);
+      MyS[ MySLen]:= C; 
    end; // ParseAddChar()
 
 
@@ -291,8 +299,8 @@ function tChrSource.ParseElement( var AllowedChrs: tCharSet): string;
          C:= GetChr();
       end;
       UngetChr( C);
-      SetLength( S, SLen);
-      result:= S;
+      SetLength( MyS, MySLen);
+      result:= MyS;
    end; // ParseElement()
 
 
