@@ -215,8 +215,8 @@ function tCsv.ParseQuotedStr(): string;
                // Two quotes in a row
                C:= Chr; 
             end else begin
-               SetLength( S, SLen);
-               result:= S;
+               SetLength( MyS, MySLen);
+               result:= MyS;
                // Strip trailing spaces
                ParseElement( IntraLineWhiteChrs);
                exit;
