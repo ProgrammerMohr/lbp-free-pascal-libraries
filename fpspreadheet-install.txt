@@ -1,7 +1,14 @@
   - Download the latest version from here: <code>
 </code>
-  - Compile LazUtils - Only needed on OS X where 64 bit Lazarus isn't working. <code>
+  - Compile LazUtils - Only needed on OS X where 64 bit Lazarus isn't working. 
+    - In Lloyd's default /opt location
+<code>
 cd /opt/lazarus/current/components/lazutils
+recompile_pas
+</code>
+    - In the default OS X location.
+<code>
+cd /Developer/lazarus/components/lazutils/
 recompile_pas
 </code>
   - Compile fpspreadsheet <code>
