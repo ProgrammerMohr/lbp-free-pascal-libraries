@@ -16,6 +16,3 @@ cd ~/programming/pascal/fpspreadsheet/source/common
 cp ../fps.inc .
 recompile_pas
 </code>
-
-lloyd.b.park@gmail.com
-bd@@W!z32G*oSgsk
