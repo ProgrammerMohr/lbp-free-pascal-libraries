@@ -186,7 +186,7 @@ procedure ParseArgv();
       end;
       // Get the UNIX or windows file handle of InputFile
       if( Available) then begin
-         InputFileHandle:= TextRec( InputFile).Handle;
+         InputFileHandle:= FileRec( InputFile).Handle;
       end;
       if( lbp_types.show_init) then writeln( 'lbp_buffered_input_file.ParseArgV:  end');
    end; // ParseArgV
