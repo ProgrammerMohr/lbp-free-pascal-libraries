@@ -63,7 +63,8 @@ const
    USchr  = char( 31);  // Unit Separator - Send after each valid field
    RSchr  = char( 30);  // Record Separator - Send after each valid record
 var
-   EndOfCellChrs:    tCharSet = [ EOFchr, LFchr, CRchr, ','];
+   EndOfCellChrs:    tCharSet = [ EOFchr, LFchr, CRchr, TabChr];
+   EndOfHCellChrs:   tCharSet = [ EOFchr, LFchr, CRchr, ' '];
    EndOfRowChrs:     tCharSet = [ EOFchr, LFchr, CRchr];
    QuoteableChrs:    tCharSet;
    UnquotedCellChrs: tCharSet;
@@ -82,13 +83,13 @@ type
          tIndexDict = specialize tgDictionary<string, integer>;
          tRevIndexDict = specialize tgDictionary<integer, string>;
       private
-         IndexDict:        tIndexDict;
-         VersionFound:     string;
-         VersionExpected:  string = '1.0';
+         IndexDict:          tIndexDict;
+         MyVersionFound:     string;
       protected
          procedure  Init(); override;
          function   ParseQuotedStr(): string;
       public
+         EOCchrs:   tCharSet = EndOfCellChrs;
          destructor Destroy(); override;
          function   ParseHeader(): integer; virtual;// returns the number of cells in the header
          function   ColumnExists( Name: string): boolean; virtual;
@@ -277,7 +278,7 @@ function tAwsLog.ParseCell(): string;
       end;
 
       C:= PeekChr();
-      if( not (C in EndOfCellChrs)) then begin
+      if( not (C in EOCchrs)) then begin
          raise tAwsLogException.Create( 'Cell ''' + result + 
                   ''' was not followed by a valid end of cell character');
       end;
