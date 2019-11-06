@@ -64,6 +64,7 @@ begin
 
    // Open input CSV
    Csv:= tCsv.Create( lbp_input_file.InputStream, False);
+   Csv.Delimiter:= TabChr;
 
    // Test to make sure the user entered a valid header,  Output it if it is OK.
    Csv.ParseHeader();

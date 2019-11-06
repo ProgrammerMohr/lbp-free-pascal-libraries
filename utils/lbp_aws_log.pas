@@ -83,15 +83,16 @@ type
          tIndexDict = specialize tgDictionary<string, integer>;
          tRevIndexDict = specialize tgDictionary<integer, string>;
       private
-         IndexDict:          tIndexDict;
-         MyVersionFound:     string;
+         IndexDict:   tIndexDict;
+         MyVersion:   string;
+         MyDelimiter: char;
+         EOCchrs:     tCharSet;
       protected
          procedure  Init(); override;
          function   ParseQuotedStr(): string;
-      public
-         EOCchrs:   tCharSet = EndOfCellChrs;
-         destructor Destroy(); override;
          function   ParseHeader(): integer; virtual;// returns the number of cells in the header
+      public
+         destructor Destroy(); override;
          function   ColumnExists( Name: string): boolean; virtual;
          function   IndexOf( Name: string): integer; virtual;
          function   Header():  tAwsLogStringArray; virtual;
@@ -117,6 +118,8 @@ implementation
 procedure tAwsLog.Init();
    begin
       Inherited Init();
+      EOCchrs:= EndOfHCellChrs;
+      ParseHeader();
       IndexDict:= tIndexDict.Create( tIndexDict.tCompareFunction( @CompareStrings), false);
    end; // Init()
 
@@ -140,9 +143,26 @@ destructor tAwsLog.Destroy();
 function tAwsLog.ParseHeader(): integer;
    var
       MyHeader:  tAwsLogStringArray;
-      i:       integer;
-      iMax:    integer;
+      i:         integer;
+      iMax:      integer;
+   // ----------------------------------------------------------------------
+   procedure MovePastBeginStr( BeginStr: string);
+   var
+      C: char;
+      L: integer;
    begin
+      iMax:= Length( BeginStr);
+      for i:= 1 to iMax do begin
+         C:= GetChr;
+         if( C <> BeginStr[ i]) do begin
+            raise tAwsLogException.Create( 'The AWS Log file is missing the %S line!', [BeginStr]);
+         end;
+      end; // for
+   end; // MovePastBeginStr()
+   // ----------------------------------------------------------------------
+   begin
+      MovePastBeginStr( '#Version');
+      MyVersion:= ParseCell;
       MyHeader:= ParseLine();
       result:= Length( MyHeader);
       iMax:= result - 1;

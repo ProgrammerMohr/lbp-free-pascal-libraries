@@ -4,6 +4,7 @@ program csv_heaser;
 
 uses
    lbp_argv,
+   lbp_parse_helper,
    lbp_csv,
    lbp_generic_containers,
    lbp_input_file,
@@ -44,7 +45,7 @@ var
 begin
    InitArgvParser();
    Csv:= tCsv.Create( lbp_input_file.InputStream, False);
-   
+   Csv.Delimiter:= TabChr;   
    Csv.ParseHeader();
    if( ParamSet( 's')) then Header:= Csv.SortedHeader else Header:= Csv.Header;
    for S in Header do writeln( OutputFile, S);
