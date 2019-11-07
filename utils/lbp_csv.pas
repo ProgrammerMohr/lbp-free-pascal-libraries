@@ -427,7 +427,7 @@ procedure tCsv.DumpIndex();
 // * ToLine() - Convert the array into a line of CSV text
 // *************************************************************************
 
-function tCsvStringArrayHelper.ToLine( Delimiter: char): string;
+function tCsvStringArrayHelper.ToLine( Delimiter: char = ','): string;
    var
       S:      string;
       Temp:   string;
@@ -441,7 +441,7 @@ function tCsvStringArrayHelper.ToLine( Delimiter: char): string;
             First:= false;
             result:= temp;
          end else begin 
-            result:= result + MyGlobalDelimiter + temp;
+            result:= result + Delimiter + temp;
          end;
       end; // for
    end; // ToLine()

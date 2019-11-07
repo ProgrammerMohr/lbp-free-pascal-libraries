@@ -31,7 +31,8 @@ procedure InitArgvParser();
       SetInputFileParam( true, true, false, true);
       SetOutputFileParam( false, true, false, true);
       InsertParam( ['h','header'], true, '', 'The comma separated list of column names'); 
-      InsertParam( ['d','delimiter'], true, ',', 'The character which separates fields on a line.'); 
+      InsertParam( ['d', 'id','input-delimiter'], true, ',', 'The character which separates fields on a line.'); 
+      InsertParam( ['od','output-delimiter'], true, ',', 'The character which separates fields on a line.'); 
       InsertUsage();
       ParseParams();
    end; // InitArgvParser();
@@ -47,6 +48,7 @@ var
    TempLine:  tCsvStringArray;
    NewLine:   tCsvStringArray;
    Delimiter: string;
+   OD:        char; // The output delimiter
    S:         string;
    C:         char;
    L:         integer; // Header length
@@ -55,14 +57,23 @@ var
 begin
    InitArgvParser();
 
-   // Set the delimiter
-   if( ParamSet( 'delimiter')) then begin
-      Delimiter:= GetParam( 'delimiter');
+   // Set the input delimiter
+   if( ParamSet( 'id')) then begin
+      Delimiter:= GetParam( 'id');
       if( Length( Delimiter) <> 1) then begin
          raise tCsvException.Create( 'The delimiter must be a singele character!');
       end;
       CsvDelimiter:= Delimiter[ 1];
    end;
+
+   // Set the output delimiter
+   if( ParamSet( 'od')) then begin
+      Delimiter:= GetParam( 'od');
+      if( Length( Delimiter) <> 1) then begin
+         raise tCsvException.Create( 'The delimiter must be a singele character!');
+      end;
+      OD:= Delimiter[ 1];
+   end else OD:= CsvDelimiter;
    
    // Get the new header from the command line.
    if( not ParamSet( 'header')) then Usage( true, 'The ''--header'' parametter must be specified!');
@@ -84,14 +95,14 @@ begin
    end; // for
 
    // Process the input CSV
-   writeln( OutputFile, Header.ToLine( Csv.Delimiter));
+   writeln( OutputFile, Header.ToLine( OD));
    repeat
       TempLine:= Csv.ParseLine();
       SetLength( NewLine, L);
       C:= Csv.PeekChr();
       if( C <> EOFchr) then begin
          for i:= 0 to iMax do NewLine[ i]:= TempLine[ Csv.IndexOf( Header[ i])];
-         writeln( OutputFile, NewLine.ToLine( Csv.Delimiter));
+         writeln( OutputFile, NewLine.ToLine( OD));
       end;
    until( C = EOFchr);
 
