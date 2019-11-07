@@ -1,8 +1,8 @@
 {* ***************************************************************************
 
-Copyright (c) 2017 by Lloyd B. Park
+Copyright (c) 2019 by Lloyd B. Park
 
-Extract fields from a CSV string.  Quote and unquote CSV fields.
+Extract fields from a AwsLog string.  Quote and unquote AwsLog fields.
 
 This file is part of Lloyd's Free Pascal Libraries (LFPL).
 
@@ -33,9 +33,10 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
     License along with LFPL.  If not, see <http://www.gnu.org/licenses/>.
 
 *************************************************************************** *}
-unit lbp_csv;
+unit lbp_aws_log;
 
-// Classes to handle Comma Separated Value strings and files.
+// Class to handle what I hope is a standard log format for AWS.  I built it
+// to work with some CDN logs I had to report on.
 
 interface
 
@@ -47,84 +48,78 @@ uses
    lbp_generic_containers,
    lbp_parse_helper;
 
-
 // *************************************************************************
 
+
 type
-   tCsvException   =  class( lbp_exception);
-   tCsvStringArray =  array of string;
-   tCsvLineArray   =  array of tCsvStringArray;
-   tCsvStringArrayHelper = type helper for tCsvStringArray
-      function ToLine( Delimiter: char = ','): string;
+   tAwsLogException   =  class( lbp_exception);
+   tAwsLogStringArray =  array of string;
+   tAwsLogLineArray   =  array of tAwsLogStringArray;
+   tAwsLogStringArrayHelper = type helper for tAwsLogStringArray
+      function ToLine(): string;
    end;
 
 const
    USchr  = char( 31);  // Unit Separator - Send after each valid field
    RSchr  = char( 30);  // Record Separator - Send after each valid record
-const
+var
+   EndOfCellChrs:    tCharSet = [ EOFchr, LFchr, CRchr, TabChr];
+   EndOfHCellChrs:   tCharSet = [ EOFchr, LFchr, CRchr, ' '];
    EndOfRowChrs:     tCharSet = [ EOFchr, LFchr, CRchr];
+   QuoteableChrs:    tCharSet;
+   UnquotedCellChrs: tCharSet;
 
-function CsvQuote( S: string): string; // Quote the string in a CSV compatible way
+function AwsLogQuote( S: string): string; // Quote the string in a AwsLog compatible way
 
-procedure SetCsvDelimiter( D: char);  // Set the default Delimiter for quoting CSV
-       // and the creation of tCsv instances
-function GetCsvDelimiter(): char; // Returns the default Delimiter
-property CsvDelimiter: char read GetCsvDelimiter write SetCsvDelimiter;
+// *************************************************************************
+
+
 
 // *************************************************************************
 
 type
-   tCsv = class( tChrSource)
+   tAwsLog = class( tChrSource)
       private type
          tIndexDict = specialize tgDictionary<string, integer>;
          tRevIndexDict = specialize tgDictionary<integer, string>;
       private
-         IndexDict:        tIndexDict;
-         MyDelimiter:      char;
-         EndOfCellChrs:    tCharSet;
-         QuoteableChrs:    tCharSet;
-         UnquotedCellChrs: tCharSet;
-         IntraLineWhiteChrs: tCharSet;
+         IndexDict:   tIndexDict;
+         MyVersion:   string;
+         MyDelimiter: char;
+         EOCchrs:     tCharSet;
       protected
          procedure  Init(); override;
          function   ParseQuotedStr(): string;
-         procedure  SetDelimiter( D: char);
+         function   ParseHeader(): integer; virtual;// returns the number of cells in the header
       public
          destructor Destroy(); override;
-         function   ParseHeader(): integer; virtual;// returns the number of cells in the header
          function   ColumnExists( Name: string): boolean; virtual;
          function   IndexOf( Name: string): integer; virtual;
-         function   Header():  tCsvStringArray; virtual;
-         function   SortedHeader(): tCsvStringArray; virtual;
+         function   Header():  tAwsLogStringArray; virtual;
+         function   SortedHeader(): tAwsLogStringArray; virtual;
          function   ParseCell(): string; virtual;
-         function   ParseLine(): tCsvStringArray; virtual;
-         function   Parse(): tCsvLineArray; virtual;
+         function   ParseLine(): tAwsLogStringArray; virtual;
+         function   Parse(): tAwsLogLineArray; virtual;
          procedure  DumpIndex(); virtual;
-         property   Delimiter: char read MyDelimiter write SetDelimiter;
-      end; // tCsv class
+      end; // tAwsLog class
 
 
 // *************************************************************************
 
 implementation
 
-// *************************************************************************
-
-var
-   MyGlobalDelimiter:     char;
-   MyGlobalQuoteableChrs: tCharSet;
-
 // =========================================================================
-// = tCSV
+// = tAwsLog
 // =========================================================================
 // *************************************************************************
 // * Init() - Initialize the class
 // *************************************************************************
 
-procedure tCsv.Init();
+procedure tAwsLog.Init();
    begin
       Inherited Init();
-      Delimiter:= MyGlobalDelimiter; // Set the default delimiter between cells
+      EOCchrs:= EndOfHCellChrs;
+      ParseHeader();
       IndexDict:= tIndexDict.Create( tIndexDict.tCompareFunction( @CompareStrings), false);
    end; // Init()
 
@@ -133,7 +128,7 @@ procedure tCsv.Init();
 // * Destroy() - Destructor
 // *************************************************************************
 
-destructor tCsv.Destroy();
+destructor tAwsLog.Destroy();
    begin
       IndexDict.Destroy;
       inherited Destroy;
@@ -144,12 +139,30 @@ destructor tCsv.Destroy();
 // * ParseHeader() - Read the header so we can lookup column numbers by name
 // *************************************************************************
 
-function tCsv.ParseHeader(): integer;
+{$Warning Function needs reviewed.}
+function tAwsLog.ParseHeader(): integer;
    var
-      MyHeader:  tCsvStringArray;
-      i:       integer;
-      iMax:    integer;
+      MyHeader:  tAwsLogStringArray;
+      i:         integer;
+      iMax:      integer;
+   // ----------------------------------------------------------------------
+   procedure MovePastBeginStr( BeginStr: string);
+   var
+      C: char;
+      L: integer;
    begin
+      iMax:= Length( BeginStr);
+      for i:= 1 to iMax do begin
+         C:= GetChr;
+         if( C <> BeginStr[ i]) do begin
+            raise tAwsLogException.Create( 'The AWS Log file is missing the %S line!', [BeginStr]);
+         end;
+      end; // for
+   end; // MovePastBeginStr()
+   // ----------------------------------------------------------------------
+   begin
+      MovePastBeginStr( '#Version');
+      MyVersion:= ParseCell;
       MyHeader:= ParseLine();
       result:= Length( MyHeader);
       iMax:= result - 1;
@@ -161,7 +174,8 @@ function tCsv.ParseHeader(): integer;
 // * ColumnExists() - Returns true if the passed Name is a Column.
 // *************************************************************************
 
-function tCsv.ColumnExists( Name: string): boolean;
+{$Warning Function needs reviewed.}
+function tAwsLog.ColumnExists( Name: string): boolean;
    begin
       result:= IndexDict.Find( Name);
    end; // ColumnExists()
@@ -171,7 +185,8 @@ function tCsv.ColumnExists( Name: string): boolean;
 // * IndexOf() - Returns the column number of the passed header string
 // *************************************************************************
 
-function tCsv.IndexOf( Name: string): integer;
+{$Warning Function needs reviewed.}
+function tAwsLog.IndexOf( Name: string): integer;
    begin
       result:= IndexDict.Items[ Name];
    end; // IndexOf()
@@ -179,11 +194,12 @@ function tCsv.IndexOf( Name: string): integer;
 
 // *************************************************************************
 // * Header() - Returns an array of header names in the order they appear 
-// *            in the CSV.  Returns an empty array if the Header hasn't
+// *            in the AwsLog.  Returns an empty array if the Header hasn't
 // *            been parsed.
 // *************************************************************************
 
-function tCsv.Header():  tCsvStringArray;
+{$Warning Function needs reviewed.}
+function tAwsLog.Header():  tAwsLogStringArray;
    begin
       SetLength( result, IndexDict.Count);
       IndexDict.StartEnumeration;
@@ -197,7 +213,8 @@ function tCsv.Header():  tCsvStringArray;
 // *                  parsed.
 // *************************************************************************
 
-function tCsv.SortedHeader(): tCsvStringArray;
+{$Warning Function needs reviewed.}
+function tAwsLog.SortedHeader(): tAwsLogStringArray;
    var
       i: integer= 0;
    begin
@@ -215,7 +232,8 @@ function tCsv.SortedHeader(): tCsvStringArray;
 // *                    in the character source is the leading quote.
 // *************************************************************************
 
-function tCsv.ParseQuotedStr(): string;
+{$Warning Function needs reviewed.}
+function tAwsLog.ParseQuotedStr(): string;
    var
       Quote:    char;
       C:        char;
@@ -248,28 +266,12 @@ function tCsv.ParseQuotedStr(): string;
 
 
 // *************************************************************************
-// * SetDelimiter() - Sets the character that separates cells in a line
-// *************************************************************************
-
-procedure tCsv.SetDelimiter( D: char);
-//   var
-//      DSet: tCharSet;
-   begin
-      MyDelimiter:= D;
-//      DSet:= [ D];
-      EndOfCellChrs:= EndOfRowChrs + [ D];
-      UnquotedCellChrs:= AnsiPrintableChrs - EndOfCellChrs;
-      QuoteableChrs:= [ '"'] + WhiteChrs + [ D];
-      IntraLineWhiteChrs:= lbp_parse_helper.IntraLineWhiteChrs - [ D];
-   end; // SetDelimiter()
-
-
-// *************************************************************************
 // * ParseCell() - Returns a cell.  It leaves the EndOfCell character in the 
 // *               buffer.
 // *************************************************************************
 
-function tCsv.ParseCell(): string;
+{$Warning Function needs reviewed.}
+function tAwsLog.ParseCell(): string;
    var
       C:        char;
       i:        integer;
@@ -296,8 +298,8 @@ function tCsv.ParseCell(): string;
       end;
 
       C:= PeekChr();
-      if( not (C in EndOfCellChrs)) then begin
-         raise tCsvException.Create( 'Cell ''' + result + 
+      if( not (C in EOCchrs)) then begin
+         raise tAwsLogException.Create( 'Cell ''' + result + 
                   ''' was not followed by a valid end of cell character');
       end;
       // if( C in InterLineWhiteChrs) then UngetChr( ',');
@@ -309,11 +311,12 @@ function tCsv.ParseCell(): string;
 // *               invalid if an EOF is the next character in the tChrSource.
 // *************************************************************************
 
-function tCsv.ParseLine(): tCsvStringArray;
+{$Warning Function needs reviewed.}
+function tAwsLog.ParseLine(): tAwsLogStringArray;
    var
       TempCell:  string;
       C:         char;
-      Sa:        tCsvStringArray;
+      Sa:        tAwsLogStringArray;
       SaSize:    longint = 16;
       SaLen:     longint = 0;
       LastCell:  boolean = false;
@@ -338,7 +341,7 @@ function tCsv.ParseLine(): tCsvStringArray;
             inc( SaLen);
 
             C:= PeekChr;
-            LastCell:= C <> MyDelimiter;
+            LastCell:= C <> ',';
             if( not LastCell) then C:= GetChr;
          until( LastCell);  // so this only matches, CR, LF, and EOF
          
@@ -353,14 +356,15 @@ function tCsv.ParseLine(): tCsvStringArray;
 
 
 // *************************************************************************
-// * Parse() - Returns an array of tCsvLines
+// * Parse() - Returns an array of tAwsLogLines
 // *************************************************************************
 
-function tCsv.Parse(): tCsvLineArray;
+{$Warning Function needs reviewed.}
+function tAwsLog.Parse(): tAwsLogLineArray;
    var
-      TempLine:  tCsvStringArray;
+      TempLine:  tAwsLogStringArray;
       C:         char;
-      La:        tCsvLineArray;
+      La:        tAwsLogLineArray;
       LaSize:    longint;
       LaLen:     longint;
    begin
@@ -392,7 +396,8 @@ function tCsv.Parse(): tCsvLineArray;
 // * DumpIndex() - Writes the Column index one per line.
 // *************************************************************************
 
-procedure tCsv.DumpIndex();
+{$Warning Function needs reviewed.}
+procedure tAwsLog.DumpIndex();
    var
       RevIndexDict: tRevIndexDict;
       i: integer;
@@ -418,16 +423,17 @@ procedure tCsv.DumpIndex();
       RevIndexDict.Destroy();
    end; // DumpIndex()
 
-
+{$Warning End of code to be reviewed}
 
 // =========================================================================
-// = tCsvStringArrayHelper
+// = tAwsLogStringArrayHelper
 // =========================================================================
 // *************************************************************************
-// * ToLine() - Convert the array into a line of CSV text
+// * ToLine() - Convert the array into a line of AwsLog text
 // *************************************************************************
 
-function tCsvStringArrayHelper.ToLine( Delimiter: char = ','): string;
+{$Warning Function needs reviewed.}
+function tAwsLogStringArrayHelper.ToLine(): string;
    var
       S:      string;
       Temp:   string;
@@ -436,12 +442,12 @@ function tCsvStringArrayHelper.ToLine( Delimiter: char = ','): string;
       result:= '';
       First:= true;
       for S in self do begin
-         Temp:= CsvQuote( S);
+         Temp:= AwsLogQuote( S);
          if( First) then begin
             First:= false;
             result:= temp;
          end else begin 
-            result:= result + Delimiter + temp;
+            result:= result + ',' + temp;
          end;
       end; // for
    end; // ToLine()
@@ -452,49 +458,30 @@ function tCsvStringArrayHelper.ToLine( Delimiter: char = ','): string;
 // = Global functions
 // =========================================================================
 // *************************************************************************
-// * SetCsvDelimiter() - Sets the default character that separates cells in 
-// *                     a line.
+// * AwsLogQuote() = Return the passed string 
 // *************************************************************************
 
-procedure SetCsvDelimiter( D: char);
-   begin
-      MyGlobalDelimiter:= D;
-      MyGlobalQuoteableChrs:= [ '"'] + WhiteChrs + [ D];
-   end; // SetCsvDelimiter()
-
-
-// *************************************************************************
-// * GetCsvDelimiter() - Returns the default character that separates cells
-// *                     in a line
-// *************************************************************************
-
-function GetCsvDelimiter(): char;
-   begin
-      result:= MyGlobalDelimiter;
-   end; // GetCsvDelimiter()
-
-
-// *************************************************************************
-// * CsvQuote() = Return the passed string 
-// *************************************************************************
-
-function CsvQuote( S: string): string;
+{$Warning Function needs reviewed.}
+function AwsLogQuote( S: string): string;
    var
       C:       char;
       QuoteIt: boolean = false;
    begin
       result:= '';
       for C in S do begin
-         if( C in MyGlobalQuoteableChrs) then QuoteIt:= true;
+         if( C in QuoteableChrs) then QuoteIt:= true;
          if( C = '"') then result:= result + '"';
          result:= result + C;
       end;
       if( QuoteIt) then result:= '"' + result + '"';
-   end; // CsvQuote()
+   end; // AwsLogQuote()
 
 
 // *************************************************************************
+// * Initialization
+// *************************************************************************
 
 begin
-   SetCsvDelimiter( ',');
-end. // lbp_csv unit
+   UnquotedCellChrs:= AnsiPrintableChrs - EndOfCellChrs;
+   QuoteableChrs:= [ TabChr];
+end. // lbp_AwsLog unit

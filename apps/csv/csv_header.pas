@@ -4,6 +4,7 @@ program csv_heaser;
 
 uses
    lbp_argv,
+   lbp_parse_helper,
    lbp_csv,
    lbp_generic_containers,
    lbp_input_file,
@@ -28,6 +29,7 @@ procedure InitArgvParser();
       SetInputFileParam( true, true, false, true);
       SetOutputFileParam( false, true, false, true);
       InsertParam( ['s','sort'], false, '', 'Sort the output.'); 
+      InsertParam( ['d','delimiter'], true, ',', 'The character which separates fields on a line.'); 
       InsertUsage();
       ParseParams();
    end; // InitArgvParser();
@@ -38,13 +40,23 @@ procedure InitArgvParser();
 // ************************************************************************
 
 var
-   Csv:      tCsv;
-   Header:   tCsvStringArray;
-   S:        string;
+   Csv:        tCsv;
+   Header:     tCsvStringArray;
+   S:          string;
+   Delimiter:  string;
 begin
    InitArgvParser();
-   Csv:= tCsv.Create( lbp_input_file.InputStream, False);
-   
+
+      // Set the delimiter
+   if( ParamSet( 'delimiter')) then begin
+      Delimiter:= GetParam( 'delimiter');
+      if( Length( Delimiter) <> 1) then begin
+         raise tCsvException.Create( 'The delimiter must be a singele character!');
+      end;
+      lbp_csv.CsvDelimiter:= Delimiter[ 1];
+   end;
+
+   Csv:= tCsv.Create( lbp_input_file.InputStream, False); 
    Csv.ParseHeader();
    if( ParamSet( 's')) then Header:= Csv.SortedHeader else Header:= Csv.Header;
    for S in Header do writeln( OutputFile, S);
