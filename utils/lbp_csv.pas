@@ -55,7 +55,7 @@ type
    tCsvStringArray =  array of string;
    tCsvLineArray   =  array of tCsvStringArray;
    tCsvStringArrayHelper = type helper for tCsvStringArray
-      function ToLine(): string;
+      function ToLine( Delimiter: char = ','): string;
    end;
 
 const
@@ -65,9 +65,11 @@ const
    EndOfRowChrs:     tCharSet = [ EOFchr, LFchr, CRchr];
 
 function CsvQuote( S: string): string; // Quote the string in a CSV compatible way
-procedure SetDelimiter( D: char);  // Set the default Delimiter for quoting CSV
-       // and the creation of tCsv instances
 
+procedure SetCsvDelimiter( D: char);  // Set the default Delimiter for quoting CSV
+       // and the creation of tCsv instances
+function GetCsvDelimiter(): char; // Returns the default Delimiter
+property CsvDelimiter: char read GetCsvDelimiter write SetCsvDelimiter;
 
 // *************************************************************************
 
@@ -82,6 +84,7 @@ type
          EndOfCellChrs:    tCharSet;
          QuoteableChrs:    tCharSet;
          UnquotedCellChrs: tCharSet;
+         IntraLineWhiteChrs: tCharSet;
       protected
          procedure  Init(); override;
          function   ParseQuotedStr(): string;
@@ -257,6 +260,7 @@ procedure tCsv.SetDelimiter( D: char);
       EndOfCellChrs:= EndOfRowChrs + [ D];
       UnquotedCellChrs:= AnsiPrintableChrs - EndOfCellChrs;
       QuoteableChrs:= [ '"'] + WhiteChrs + [ D];
+      IntraLineWhiteChrs:= lbp_parse_helper.IntraLineWhiteChrs - [ D];
    end; // SetDelimiter()
 
 
@@ -423,7 +427,7 @@ procedure tCsv.DumpIndex();
 // * ToLine() - Convert the array into a line of CSV text
 // *************************************************************************
 
-function tCsvStringArrayHelper.ToLine(): string;
+function tCsvStringArrayHelper.ToLine( Delimiter: char): string;
    var
       S:      string;
       Temp:   string;
@@ -448,14 +452,26 @@ function tCsvStringArrayHelper.ToLine(): string;
 // = Global functions
 // =========================================================================
 // *************************************************************************
-// * SetDelimiter() - Sets the character that separates cells in a line
+// * SetCsvDelimiter() - Sets the default character that separates cells in 
+// *                     a line.
 // *************************************************************************
 
-procedure SetDelimiter( D: char);
+procedure SetCsvDelimiter( D: char);
    begin
       MyGlobalDelimiter:= D;
       MyGlobalQuoteableChrs:= [ '"'] + WhiteChrs + [ D];
-   end; // SetDelimiter()
+   end; // SetCsvDelimiter()
+
+
+// *************************************************************************
+// * GetCsvDelimiter() - Returns the default character that separates cells
+// *                     in a line
+// *************************************************************************
+
+function GetCsvDelimiter(): char;
+   begin
+      result:= MyGlobalDelimiter;
+   end; // GetCsvDelimiter()
 
 
 // *************************************************************************
@@ -480,5 +496,5 @@ function CsvQuote( S: string): string;
 // *************************************************************************
 
 begin
-   SetDelimiter( ',');
+   SetCsvDelimiter( ',');
 end. // lbp_csv unit
