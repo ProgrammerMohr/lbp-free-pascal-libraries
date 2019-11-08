@@ -82,6 +82,8 @@ var
    InterLineWhiteChrs:  tCharSet = [ LFchr, CRchr];
    AsciiPrintableChrs:  tCharSet;
    AnsiPrintableChrs:   tCharSet;
+   IntraLineAsciiChrs:  tCharSet;
+   IntraLineAnsiCHrs:   tCharSet;
 
 
 
@@ -310,4 +312,6 @@ function tChrSource.ParseElement( var AllowedChrs: tCharSet): string;
 begin
    AsciiPrintableChrs:= (AsciiChrs - CtlChrs) + WhiteChrs;
    AnsiPrintableChrs:= (AnsiChrs - CtlChrs) + WhiteChrs;
+   IntraLineAsciiChrs:=  AsciiPrintableChrs - InterLineWhiteChrs;
+   IntraLineAnsiChrs:=   AnsiPrintableChrs - InterLineWhiteChrs;
 end.  // lbp_parse_helper unit

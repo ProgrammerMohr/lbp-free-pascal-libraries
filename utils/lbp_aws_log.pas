@@ -46,61 +46,22 @@ interface
 uses
    lbp_types,
    lbp_generic_containers,
-   lbp_parse_helper;
+   lbp_parse_helper,
+   lbp_csv;
+
 
 // *************************************************************************
-
-
-type
-   tAwsLogException   =  class( lbp_exception);
-   tAwsLogStringArray =  array of string;
-   tAwsLogLineArray   =  array of tAwsLogStringArray;
-   tAwsLogStringArrayHelper = type helper for tAwsLogStringArray
-      function ToLine(): string;
-   end;
-
-const
-   USchr  = char( 31);  // Unit Separator - Send after each valid field
-   RSchr  = char( 30);  // Record Separator - Send after each valid record
-var
-   EndOfCellChrs:    tCharSet = [ EOFchr, LFchr, CRchr, TabChr];
-   EndOfHCellChrs:   tCharSet = [ EOFchr, LFchr, CRchr, ' '];
-   EndOfRowChrs:     tCharSet = [ EOFchr, LFchr, CRchr];
-   QuoteableChrs:    tCharSet;
-   UnquotedCellChrs: tCharSet;
-
-function AwsLogQuote( S: string): string; // Quote the string in a AwsLog compatible way
-
-// *************************************************************************
-
-
 
 // *************************************************************************
 
 type
-   tAwsLog = class( tChrSource)
-      private type
-         tIndexDict = specialize tgDictionary<string, integer>;
-         tRevIndexDict = specialize tgDictionary<integer, string>;
-      private
-         IndexDict:   tIndexDict;
-         MyVersion:   string;
-         MyDelimiter: char;
-         EOCchrs:     tCharSet;
+   tAwsLog = class( tCsv)
       protected
+         MyVersion: string;
          procedure  Init(); override;
-         function   ParseQuotedStr(): string;
-         function   ParseHeader(): integer; virtual;// returns the number of cells in the header
       public
-         destructor Destroy(); override;
-         function   ColumnExists( Name: string): boolean; virtual;
-         function   IndexOf( Name: string): integer; virtual;
-         function   Header():  tAwsLogStringArray; virtual;
-         function   SortedHeader(): tAwsLogStringArray; virtual;
-         function   ParseCell(): string; virtual;
-         function   ParseLine(): tAwsLogStringArray; virtual;
-         function   Parse(): tAwsLogLineArray; virtual;
-         procedure  DumpIndex(); virtual;
+         function   ParseHeader(): integer; override;// returns the number of cells in the header
+         function   ParseLine(): tCsvStringArray; override;
       end; // tAwsLog class
 
 
@@ -118,192 +79,76 @@ implementation
 procedure tAwsLog.Init();
    begin
       Inherited Init();
-      EOCchrs:= EndOfHCellChrs;
       ParseHeader();
-      IndexDict:= tIndexDict.Create( tIndexDict.tCompareFunction( @CompareStrings), false);
    end; // Init()
-
-
-// *************************************************************************
-// * Destroy() - Destructor
-// *************************************************************************
-
-destructor tAwsLog.Destroy();
-   begin
-      IndexDict.Destroy;
-      inherited Destroy;
-   end; // Destroy()
 
 
 // *************************************************************************
 // * ParseHeader() - Read the header so we can lookup column numbers by name
 // *************************************************************************
 
-{$Warning Function needs reviewed.}
 function tAwsLog.ParseHeader(): integer;
    var
-      MyHeader:  tAwsLogStringArray;
-      i:         integer;
-      iMax:      integer;
+      TempHeader:  tCsvStringArray;
+      TempVersion: tCsvStringArray;
+      EmptyField:  boolean;
+      C:           char;
+      i:           integer;
+      iMax:        integer;
    // ----------------------------------------------------------------------
    procedure MovePastBeginStr( BeginStr: string);
    var
       C: char;
       L: integer;
+      i: integer;
    begin
       iMax:= Length( BeginStr);
       for i:= 1 to iMax do begin
          C:= GetChr;
-         if( C <> BeginStr[ i]) do begin
-            raise tAwsLogException.Create( 'The AWS Log file is missing the %S line!', [BeginStr]);
+         if( C <> BeginStr[ i]) then begin
+            raise tCsvException.Create( 'The AWS Log file is missing the %S line!', [BeginStr]);
          end;
       end; // for
    end; // MovePastBeginStr()
    // ----------------------------------------------------------------------
    begin
-      MovePastBeginStr( '#Version');
-      MyVersion:= ParseCell;
-      MyHeader:= ParseLine();
-      result:= Length( MyHeader);
+      Delimiter:= ' ';
+      MovePastBeginStr( '#Version: ');
+      C:= PeekChr;
+      if( (C = Delimiter) or (C in lbp_parse_helper.WhiteChrs)) then begin
+          raise tCsvException.Create( 'The #Version: line exists but no value is set!');
+      end;
+      TempVersion:= ParseLine;
+      C:= PeekChr;
+      if( (Length(TempVersion) <> 1)) then begin
+          raise tCsvException.Create( 'The #Version: line exists but has multiple values set!');
+      end;
+      MyVersion:= TempVersion[ 0];
+      ParseElement( InterLineWhiteChrs);
+
+      MovePastBeginStr( '#Fields: ');
+      C:= PeekChr;
+      if( (C = Delimiter) or (C in lbp_parse_helper.WhiteChrs)) then begin
+          raise tCsvException.Create( 'The Fields: line exists but no value is set!');
+      end;
+      // Move past extra spaces immediatly after '#Fields: '
+      while( PeekChr = Delimiter) do GetChr;
+      TempHeader:= ParseLine;
+      if( (Length(TempVersion) = 0)) then begin
+          raise tCsvException.Create( 'The #Fields: line exists but has no values');
+      end;
+      ParseElement( InterLineWhiteChrs);
+      result:= Length( TempHeader);
       iMax:= result - 1;
-      for i:= 0 to iMax do IndexDict.Add( MyHeader[ i], i);
+      for i:= 0 to iMax do begin
+         if( Length( TempHeader[ i]) = 0) then begin
+             raise tCsvException.Create( 'The #Fields line exists, but one or more field names are empty!');
+         end;
+         IndexDict.Add( TempHeader[ i], i);
+      end;
+
+      Delimiter:= TabChr;
    end; // ParseHeader()
-
-
-// *************************************************************************
-// * ColumnExists() - Returns true if the passed Name is a Column.
-// *************************************************************************
-
-{$Warning Function needs reviewed.}
-function tAwsLog.ColumnExists( Name: string): boolean;
-   begin
-      result:= IndexDict.Find( Name);
-   end; // ColumnExists()
-
-
-// *************************************************************************
-// * IndexOf() - Returns the column number of the passed header string
-// *************************************************************************
-
-{$Warning Function needs reviewed.}
-function tAwsLog.IndexOf( Name: string): integer;
-   begin
-      result:= IndexDict.Items[ Name];
-   end; // IndexOf()
-
-
-// *************************************************************************
-// * Header() - Returns an array of header names in the order they appear 
-// *            in the AwsLog.  Returns an empty array if the Header hasn't
-// *            been parsed.
-// *************************************************************************
-
-{$Warning Function needs reviewed.}
-function tAwsLog.Header():  tAwsLogStringArray;
-   begin
-      SetLength( result, IndexDict.Count);
-      IndexDict.StartEnumeration;
-      while( IndexDict.Next) do result[ IndexDict.Value]:= IndexDict.Key; 
-   end; // Header()
-
-
-// *************************************************************************
-// * SortedHeader() - Returns an array of header names sorted alphabetically.
-// *                  Returns an empty array if the Header hasn't been
-// *                  parsed.
-// *************************************************************************
-
-{$Warning Function needs reviewed.}
-function tAwsLog.SortedHeader(): tAwsLogStringArray;
-   var
-      i: integer= 0;
-   begin
-      SetLength( result, IndexDict.Count);
-      IndexDict.StartEnumeration;
-      while( IndexDict.Next) do begin
-         result[ i]:= IndexDict.Key;
-         inc( i);
-      end; 
-   end; // SortedHeader()
-
-
-// *************************************************************************
-// * ParseQuotedStr() - Returns a quoted cell.  Assumes the first character
-// *                    in the character source is the leading quote.
-// *************************************************************************
-
-{$Warning Function needs reviewed.}
-function tAwsLog.ParseQuotedStr(): string;
-   var
-      Quote:    char;
-      C:        char;
-   begin
-      result:= ''; // Set default value
-      InitS();
-      Quote:= Chr;
-      
-      C:= Chr;
-      While( C in AnsiPrintableChrs) do begin
-         if( C = Quote) then begin
-            if( PeekChr() = Quote) then begin
-               // Two quotes in a row
-               C:= Chr; 
-            end else begin
-               SetLength( MyS, MySLen);
-               result:= MyS;
-               // Strip trailing spaces
-               ParseElement( IntraLineWhiteChrs);
-               exit;
-            end;
-         end; // if C = Quote
-         ParseAddChr( C);
-         C:= Chr;
-      end;
-      // If we reached here its because there wasn't an end quote character!
-      raise lbp_exception.Create( 
-         'Invalid character in a quoted string:  Ord($d)  There was most likely a missing end quote.',[C]);
-   end; // ParseQuotedStr()
-
-
-// *************************************************************************
-// * ParseCell() - Returns a cell.  It leaves the EndOfCell character in the 
-// *               buffer.
-// *************************************************************************
-
-{$Warning Function needs reviewed.}
-function tAwsLog.ParseCell(): string;
-   var
-      C:        char;
-      i:        integer;
-   begin
-      result:= ''; // Set default value
-      InitS();
-
-      // Discard leading white space
-      ParseElement( IntraLineWhiteChrs);
-
-      // Handle quoted cells
-      C:= PeekChr();
-      if( C in QuoteChrs) then begin
-         result:= ParseQuotedStr();
-         // Discard trailing spaces;
-         ParseElement( IntraLineWhiteChrs);
-      // Handle unquoted cells
-      end else begin
-         result:= ParseElement( UnquotedCellChrs);
-         // Strip trailing spaces
-         i:= Length( result);
-         while( (i > 0) and (Result[ i] in IntraLineWhitechrs)) do dec( i);
-         SetLength( result, i);
-      end;
-
-      C:= PeekChr();
-      if( not (C in EOCchrs)) then begin
-         raise tAwsLogException.Create( 'Cell ''' + result + 
-                  ''' was not followed by a valid end of cell character');
-      end;
-      // if( C in InterLineWhiteChrs) then UngetChr( ',');
-   end; // ParseCell()
 
 
 // *************************************************************************
@@ -311,12 +156,12 @@ function tAwsLog.ParseCell(): string;
 // *               invalid if an EOF is the next character in the tChrSource.
 // *************************************************************************
 
-{$Warning Function needs reviewed.}
+{$error Add code to ignore lines starting with #}
 function tAwsLog.ParseLine(): tAwsLogStringArray;
    var
       TempCell:  string;
       C:         char;
-      Sa:        tAwsLogStringArray;
+      Sa:        tCsvLogStringArray;
       SaSize:    longint = 16;
       SaLen:     longint = 0;
       LastCell:  boolean = false;
@@ -327,6 +172,20 @@ function tAwsLog.ParseLine(): tAwsLogStringArray;
       // character starts a valid cell.
       while( PeekChr() in WhiteChrs) do GetChr();
 
+      // Ignore #Version and #Field lines in the middle of the fileraise 
+      C:= Chr;
+      while( C = '#') do begin
+         C:= Chr;
+
+         // Skip to the end of the line
+         while( (C <> EOFchr) and (C <> LFchr) and (C <> CRchr)) do C:= Chr;
+
+         // Strip off any white space including empty lines.  This insures the next 
+         // character starts a valid cell.
+         while( C in WhiteChrs) do C:= Chr;
+      end;
+      Chr:= C;
+      
       // We only can add to cells if we are not at the end of the file
       if( PeekChr <> EOFchr) then begin
          repeat
@@ -356,132 +215,5 @@ function tAwsLog.ParseLine(): tAwsLogStringArray;
 
 
 // *************************************************************************
-// * Parse() - Returns an array of tAwsLogLines
-// *************************************************************************
 
-{$Warning Function needs reviewed.}
-function tAwsLog.Parse(): tAwsLogLineArray;
-   var
-      TempLine:  tAwsLogStringArray;
-      C:         char;
-      La:        tAwsLogLineArray;
-      LaSize:    longint;
-      LaLen:     longint;
-   begin
-      LaSize:= 32;
-      SetLength( La, LaSize);
-      LaLen:= 0;      
-
-      // Keep going until we reach the end of file character
-      repeat
-         TempLine:= ParseLine();
-         C:= PeekChr();
-         if( C <> EOFchr) then begin
-            // Add TempLine to La - resize as needed
-            if( LaLen = LaSize) then begin
-               LaSize:= LaSize SHL 1;
-               SetLength( La, LaSize);
-            end;
-            La[ LaLen]:= TempLine; 
-            inc( LaLen);
-         end;
-      until( C = EOFchr);
-      
-      SetLength( La, LaLen);
-      result:= La;
-   end; // Parse()
-
-
-// *************************************************************************
-// * DumpIndex() - Writes the Column index one per line.
-// *************************************************************************
-
-{$Warning Function needs reviewed.}
-procedure tAwsLog.DumpIndex();
-   var
-      RevIndexDict: tRevIndexDict;
-      i: integer;
-      V: string;
-   begin
-      RevIndexDict:= tRevIndexDict.Create( tRevIndexDict.tCompareFunction( @CompareIntegers));
-
-      // Copy the existing dictionary to the new reverse lookup one.
-      IndexDict.StartEnumeration;
-      while( IndexDict.Next) do begin
-         i:= IndexDict.Value;
-         V:= IndexDict.Key;
-         RevIndexDict.Add( i, V);
-      end;
-
-      RevIndexDict.StartEnumeration;
-      while( RevIndexDict.Next) do begin
-         V:= RevIndexDict.Value;
-         i:= RevIndexDict.Key;
-         writeln( i:4, ' - ', V);
-      end;
-
-      RevIndexDict.Destroy();
-   end; // DumpIndex()
-
-{$Warning End of code to be reviewed}
-
-// =========================================================================
-// = tAwsLogStringArrayHelper
-// =========================================================================
-// *************************************************************************
-// * ToLine() - Convert the array into a line of AwsLog text
-// *************************************************************************
-
-{$Warning Function needs reviewed.}
-function tAwsLogStringArrayHelper.ToLine(): string;
-   var
-      S:      string;
-      Temp:   string;
-      First:  boolean;
-   begin
-      result:= '';
-      First:= true;
-      for S in self do begin
-         Temp:= AwsLogQuote( S);
-         if( First) then begin
-            First:= false;
-            result:= temp;
-         end else begin 
-            result:= result + ',' + temp;
-         end;
-      end; // for
-   end; // ToLine()
-
-
-
-// =========================================================================
-// = Global functions
-// =========================================================================
-// *************************************************************************
-// * AwsLogQuote() = Return the passed string 
-// *************************************************************************
-
-{$Warning Function needs reviewed.}
-function AwsLogQuote( S: string): string;
-   var
-      C:       char;
-      QuoteIt: boolean = false;
-   begin
-      result:= '';
-      for C in S do begin
-         if( C in QuoteableChrs) then QuoteIt:= true;
-         if( C = '"') then result:= result + '"';
-         result:= result + C;
-      end;
-      if( QuoteIt) then result:= '"' + result + '"';
-   end; // AwsLogQuote()
-
-
-// *************************************************************************
-// * Initialization
-// *************************************************************************
-
-begin
-   UnquotedCellChrs:= AnsiPrintableChrs - EndOfCellChrs;
-   QuoteableChrs:= [ TabChr];
 end. // lbp_AwsLog unit

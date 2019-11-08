@@ -50,11 +50,23 @@ procedure InitArgvParser();
 
 var
    Aws:      tAwsLog;
-   Header:   tAwsLogStringArray;
-   S:        string;
+   Header:   tCsvStringArray;
+   C:        char;
+   TempLine: tCsvStringArray;
 begin
    InitArgvParser();
    Aws:= tAwsLog.Create( lbp_input_file.InputStream, False);
+
+   Header:= Aws.Header;
+    writeln( OutputFile, Header.ToLine);
+
+   repeat
+      TempLine:= Aws.ParseLine();
+      C:= Aws.PeekChr();
+      if( C <> EOFchr) then begin
+         writeln( OutputFile, TempLine.ToLine());
+      end;
+   until( C = EOFchr);
    
    AWS.Destroy;
 end. // aws_log_to_csv

@@ -78,14 +78,14 @@ type
       private type
          tIndexDict = specialize tgDictionary<string, integer>;
          tRevIndexDict = specialize tgDictionary<integer, string>;
-      private
-         IndexDict:        tIndexDict;
-         MyDelimiter:      char;
-         EndOfCellChrs:    tCharSet;
-         QuoteableChrs:    tCharSet;
-         UnquotedCellChrs: tCharSet;
-         IntraLineWhiteChrs: tCharSet;
       protected
+         IndexDict:         tIndexDict;
+         MyDelimiter:       char;
+         EndOfCellChrs:     tCharSet;
+         QuoteableChrs:     tCharSet;
+         UnquotedCellChrs:  tCharSet;
+         IntraLineWhiteChrs: tCharSet;
+         WhiteChrs:          tCharSet;
          procedure  Init(); override;
          function   ParseQuotedStr(): string;
          procedure  SetDelimiter( D: char);
@@ -261,6 +261,7 @@ procedure tCsv.SetDelimiter( D: char);
       UnquotedCellChrs:= AnsiPrintableChrs - EndOfCellChrs;
       QuoteableChrs:= [ '"'] + WhiteChrs + [ D];
       IntraLineWhiteChrs:= lbp_parse_helper.IntraLineWhiteChrs - [ D];
+      WhiteChrs:= lbp_parse_helper.WhiteChrs - [ D];
    end; // SetDelimiter()
 
 
