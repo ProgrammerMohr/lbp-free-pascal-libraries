@@ -91,7 +91,6 @@ function tAwsLog.ParseHeader(): integer;
    var
       TempHeader:  tCsvStringArray;
       TempVersion: tCsvStringArray;
-      EmptyField:  boolean;
       C:           char;
       i:           integer;
       iMax:        integer;
@@ -99,7 +98,6 @@ function tAwsLog.ParseHeader(): integer;
    procedure MovePastBeginStr( BeginStr: string);
    var
       C: char;
-      L: integer;
       i: integer;
    begin
       iMax:= Length( BeginStr);
@@ -156,12 +154,12 @@ function tAwsLog.ParseHeader(): integer;
 // *               invalid if an EOF is the next character in the tChrSource.
 // *************************************************************************
 
-{$error Add code to ignore lines starting with #}
-function tAwsLog.ParseLine(): tAwsLogStringArray;
+//{$error Add code to ignore lines starting with #}
+function tAwsLog.ParseLine(): tCsvStringArray;
    var
       TempCell:  string;
       C:         char;
-      Sa:        tCsvLogStringArray;
+      Sa:        tCsvStringArray;
       SaSize:    longint = 16;
       SaLen:     longint = 0;
       LastCell:  boolean = false;

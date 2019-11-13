@@ -63,6 +63,7 @@ begin
    repeat
       TempLine:= Aws.ParseLine();
       C:= Aws.PeekChr();
+      writeln( 'main():  C = ', ord( C));
       if( C <> EOFchr) then begin
          writeln( OutputFile, TempLine.ToLine());
       end;
