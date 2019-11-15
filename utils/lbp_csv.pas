@@ -150,7 +150,7 @@ function tCsv.ParseHeader(): integer;
       i:       integer;
       iMax:    integer;
    begin
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then begin
             writeln( 'tCsv.ParseHeader() called');
             MyIndent:= MyIndent + '   ';
@@ -161,7 +161,7 @@ function tCsv.ParseHeader(): integer;
       iMax:= result - 1;
       for i:= 0 to iMax do IndexDict.Add( MyHeader[ i], i);
 
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
       {$endif}
    end; // ParseHeader()
@@ -230,7 +230,7 @@ function tCsv.ParseQuotedStr(): string;
       Quote:    char;
       C:        char;
    begin
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then writeln( MyIndent, 'tCsv.ParseQuotedStr() called');
       {$endif}
       result:= ''; // Set default value
@@ -268,7 +268,7 @@ procedure tCsv.SetDelimiter( D: char);
 //   var
 //      DSet: tCharSet;
    begin
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then begin
             write( MyIndent, 'tCsv.SetDelimiter() to ');
             if( D in IntraLineAnsiChrs) then begin
@@ -299,7 +299,7 @@ function tCsv.ParseCell(): string;
       C:        char;
       i:        integer;
    begin
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then begin
             writeln( MyIndent, 'tCsv.ParseCell()');
             MyIndent:= MyIndent + '   ';
@@ -333,7 +333,7 @@ function tCsv.ParseCell(): string;
                   ''' was not followed by a valid end of cell character');
       end;
 
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
       {$endif}
       // if( C in InterLineWhiteChrs) then UngetChr( ',');
@@ -354,7 +354,7 @@ function tCsv.ParseLine(): tCsvStringArray;
       SaLen:     longint = 0;
       LastCell:  boolean = false;
    begin
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then writeln( 'tCsv.ParseLine() called');
       {$endif}
 
@@ -404,7 +404,7 @@ function tCsv.Parse(): tCsvLineArray;
       LaSize:    longint;
       LaLen:     longint;
    begin
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then begin
             writeln( 'tCsv.Parse() called');
             MyIndent:= MyIndent + '   ';
@@ -431,7 +431,7 @@ function tCsv.Parse(): tCsvLineArray;
       
       SetLength( La, LaLen);
       result:= La;
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
       {$endif}
    end; // Parse()

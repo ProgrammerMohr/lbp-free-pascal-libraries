@@ -102,7 +102,7 @@ function tAwsLog.ParseHeader(): integer;
       C: char;
       i: integer;
    begin
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then begin
             writeln( MyIndent, 'tAwsLog.MovePastBeginStr() called');
             MyIndent:= MyIndent + '   ';
@@ -115,13 +115,13 @@ function tAwsLog.ParseHeader(): integer;
             raise tCsvException.Create( 'The AWS Log file is missing the %S line!', [BeginStr]);
          end;
       end; // for
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
       {$endif}
    end; // MovePastBeginStr()
    // ----------------------------------------------------------------------
    begin
-   {$ifndef RELEASE}
+   {$ifdef DEBUG_PARSE_HELPER}
       if( DebugParser) then begin
          writeln( MyIndent, 'tAwsLog.ParseHeader() called');
          MyIndent:= MyIndent + '   ';
@@ -164,7 +164,7 @@ function tAwsLog.ParseHeader(): integer;
       end;
 
       Delimiter:= TabChr;
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
       {$endif}
    end; // ParseHeader()
@@ -185,7 +185,7 @@ function tAwsLog.ParseLine(): tCsvStringArray;
       SaLen:     longint = 0;
       LastCell:  boolean = false;
    begin
-   {$ifndef RELEASE}
+   {$ifdef DEBUG_PARSE_HELPER}
       if( DebugParser) then begin
          writeln( '   tAwsLog.ParseLine() called');
          MyIndent:= MyIndent + '   ';
@@ -236,7 +236,7 @@ function tAwsLog.ParseLine(): tCsvStringArray;
 
       SetLength( Sa, SaLen);
       result:= Sa;
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
       {$endif}
    end; // ParseLine()

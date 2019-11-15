@@ -50,7 +50,7 @@ interface
 // ************************************************************************
 
 uses
-   {$ifndef RELEASE}
+   {$ifdef DEBUG_PARSE_HELPER}
       lbp_argv,
    {$endif}
    lbp_types,
@@ -87,7 +87,7 @@ var
    AnsiPrintableChrs:   tCharSet;
    IntraLineAsciiChrs:  tCharSet;
    IntraLineAnsiCHrs:   tCharSet;
-   {$ifndef RELEASE}
+   {$ifdef DEBUG_PARSE_HELPER}
       DebugParser:      boolean = false;
    {$endif}
 
@@ -110,7 +110,7 @@ type
          MyS:            string;
          MySSize:        longint;
          MySLen:         longint;
-         {$ifndef RELEASE}         
+         {$ifdef DEBUG_PARSE_HELPER}         
             MyPosition:  integer;
             MyIndent:    string;
          {$endif}
@@ -129,7 +129,9 @@ type
          procedure   UngetChr( C: char); virtual;
          function    ParseElement( var AllowedChrs: tCharSet): string; virtual;
          property    Chr: char read GetChr write UngetChr;
-         property    Position: integer read MyPosition;
+         {$ifdef DEBUG_PARSE_HELPER}
+            property    Position: integer read MyPosition;
+         {$endif}
       end; // tChrSource class
 
 
@@ -206,7 +208,7 @@ procedure tChrSource.Init();
 
       ChrBuffLen:= Stream.Read( ChrBuff, ParserBufferSize);
       ChrBuffPos:= 0;
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          MyPosition:= 0;
          MyIndent:= '';
       {$endif}
@@ -263,7 +265,7 @@ function tChrSource.PeekChr(): char;
            result:= ChrBuff[ ChrBuffPos];
          end;
       end; 
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then begin
             write( MyIndent, 'tChrSource.PeekChr() at ', Position + 1, ' = ');
             if( result in IntraLineAnsiChrs) then begin
@@ -296,7 +298,7 @@ function tChrSource.GetChr(): char;
            inc( ChrBuffPos);
          end;
       end;
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          Inc( MyPosition);
          if( DebugParser) then begin
             write( MyIndent, 'tChrSource.GetChr() at ', Position, ' = ');
@@ -317,7 +319,7 @@ function tChrSource.GetChr(): char;
 procedure tChrSource.UngetChr( C: char);
    begin
       UngetQ.Queue:= C;
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then begin
             write( MyIndent, 'tChrSource.UngetChr() at ', Position, ' = ');
             if( C in IntraLineAnsiChrs) then begin
@@ -339,7 +341,7 @@ function tChrSource.ParseElement( var AllowedChrs: tCharSet): string;
    var
       C: char;
    begin
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then begin
             writeln( MyIndent, 'tChrSource.ParseElement() called');
             MyIndent:= MyIndent + '   ';
@@ -355,7 +357,7 @@ function tChrSource.ParseElement( var AllowedChrs: tCharSet): string;
       SetLength( MyS, MySLen);
       result:= MyS;
 
-      {$ifndef RELEASE}
+      {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
       {$endif}
    end; // ParseElement()
@@ -369,7 +371,7 @@ function tChrSource.ParseElement( var AllowedChrs: tCharSet): string;
 // *               command line parameters which will override INI settings.
 // *************************************************************************
 
-{$ifndef RELEASE}
+{$ifdef DEBUG_PARSE_HELPER}
    procedure ParseArgv();
       begin
          DebugParser:= ParamSet( 'debug-parse-helper');
@@ -381,7 +383,7 @@ function tChrSource.ParseElement( var AllowedChrs: tCharSet): string;
 // * InitArgvParser() - Add debugging option
 // *************************************************************************
 
-{$ifndef RELEASE}
+{$ifdef DEBUG_PARSE_HELPER}
    procedure InitArgvParser();
       begin
          AddUsage( '   ========== lbp_parse_helper debuging ==========');
@@ -400,7 +402,7 @@ begin
    AnsiPrintableChrs:= (AnsiChrs - CtlChrs) + WhiteChrs;
    IntraLineAsciiChrs:=  AsciiPrintableChrs - InterLineWhiteChrs;
    IntraLineAnsiChrs:=   AnsiPrintableChrs - InterLineWhiteChrs;
-   {$ifndef RELEASE}
+   {$ifdef DEBUG_PARSE_HELPER}
       InitArgvParser();
    {$endif}
 end.  // lbp_parse_helper unit
