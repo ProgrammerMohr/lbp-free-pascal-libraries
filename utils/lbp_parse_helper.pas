@@ -50,6 +50,9 @@ interface
 // ************************************************************************
 
 uses
+   {$ifndef RELEASE}
+      lbp_argv,
+   {$endif}
    lbp_types,
    lbp_generic_containers,
    classes,
@@ -84,7 +87,9 @@ var
    AnsiPrintableChrs:   tCharSet;
    IntraLineAsciiChrs:  tCharSet;
    IntraLineAnsiCHrs:   tCharSet;
-
+   {$ifndef RELEASE}
+      DebugParser:      boolean = false;
+   {$endif}
 
 
 // ************************************************************************
@@ -102,9 +107,13 @@ type
          DestroyStream:  boolean;
       protected
          // Element Parsing variables;
-         MyS:              string;
-         MySSize:          longint;
-         MySLen:           longint;
+         MyS:            string;
+         MySSize:        longint;
+         MySLen:         longint;
+         {$ifndef RELEASE}         
+            MyPosition:  integer;
+            MyIndent:    string;
+         {$endif}
       public
          constructor Create( iStream: tStream; iDestroyStream: boolean = true);
          constructor Create( iString: string; IsFileName: boolean = false);
@@ -120,6 +129,7 @@ type
          procedure   UngetChr( C: char); virtual;
          function    ParseElement( var AllowedChrs: tCharSet): string; virtual;
          property    Chr: char read GetChr write UngetChr;
+         property    Position: integer read MyPosition;
       end; // tChrSource class
 
 
@@ -196,6 +206,10 @@ procedure tChrSource.Init();
 
       ChrBuffLen:= Stream.Read( ChrBuff, ParserBufferSize);
       ChrBuffPos:= 0;
+      {$ifndef RELEASE}
+         MyPosition:= 0;
+         MyIndent:= '';
+      {$endif}
    end; // Init()
 
 
@@ -249,6 +263,16 @@ function tChrSource.PeekChr(): char;
            result:= ChrBuff[ ChrBuffPos];
          end;
       end; 
+      {$ifndef RELEASE}
+         if( DebugParser) then begin
+            write( MyIndent, 'tChrSource.PeekChr() at ', Position + 1, ' = ');
+            if( result in IntraLineAnsiChrs) then begin
+               writeln( '''', result, '''');
+            end else begin
+               writeln( 'ord(', ord( result), ')');
+            end;
+         end;
+      {$endif}
    end; // PeekChr();
 
 
@@ -271,7 +295,18 @@ function tChrSource.GetChr(): char;
            result:= ChrBuff[ ChrBuffPos];
            inc( ChrBuffPos);
          end;
-      end; 
+      end;
+      {$ifndef RELEASE}
+         Inc( MyPosition);
+         if( DebugParser) then begin
+            write( MyIndent, 'tChrSource.GetChr() at ', Position, ' = ');
+            if( result in IntraLineAnsiChrs) then begin
+               writeln( '''', result, '''');
+            end else begin
+               writeln( 'ord(', ord( result), ')');
+            end;
+         end;
+      {$endif}
    end; // GetChr();
 
 
@@ -282,6 +317,17 @@ function tChrSource.GetChr(): char;
 procedure tChrSource.UngetChr( C: char);
    begin
       UngetQ.Queue:= C;
+      {$ifndef RELEASE}
+         if( DebugParser) then begin
+            write( MyIndent, 'tChrSource.UngetChr() at ', Position, ' = ');
+            if( C in IntraLineAnsiChrs) then begin
+               writeln( '''', C, '''');
+            end else begin
+               writeln( 'ord(', ord( C), ')');
+            end;
+         end;
+         Dec( MyPosition);
+      {$endif}
    end; // UngetChr()
 
 
@@ -293,8 +339,13 @@ function tChrSource.ParseElement( var AllowedChrs: tCharSet): string;
    var
       C: char;
    begin
+      {$ifndef RELEASE}
+         if( DebugParser) then begin
+            writeln( MyIndent, 'tChrSource.ParseElement() called');
+            MyIndent:= MyIndent + '   ';
+         end;
+      {$endif}
       InitS();
-
       C:= GetChr();
       while( C in AllowedChrs) do begin
          ParseAddChr( C);
@@ -303,8 +354,43 @@ function tChrSource.ParseElement( var AllowedChrs: tCharSet): string;
       UngetChr( C);
       SetLength( MyS, MySLen);
       result:= MyS;
+
+      {$ifndef RELEASE}
+         if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
+      {$endif}
    end; // ParseElement()
 
+
+/// ========================================================================
+// * Unit initialization and finalization.
+// ========================================================================
+// *************************************************************************
+// * ParseArgV() - Read and initialize INI variables.  Then parse the
+// *               command line parameters which will override INI settings.
+// *************************************************************************
+
+{$ifndef RELEASE}
+   procedure ParseArgv();
+      begin
+         DebugParser:= ParamSet( 'debug-parse-helper');
+      end;
+{$endif}
+
+
+// *************************************************************************
+// * InitArgvParser() - Add debugging option
+// *************************************************************************
+
+{$ifndef RELEASE}
+   procedure InitArgvParser();
+      begin
+         AddUsage( '   ========== lbp_parse_helper debuging ==========');
+         AddParam( ['debug-parse-helper'], false, '',   'Display progress through the parser.');
+         AddUsage();
+
+         AddPostParseProcedure( @ParseArgv);
+      end; // InitArgvParser()
+{$endif}
 
 
 // *************************************************************************
@@ -314,4 +400,7 @@ begin
    AnsiPrintableChrs:= (AnsiChrs - CtlChrs) + WhiteChrs;
    IntraLineAsciiChrs:=  AsciiPrintableChrs - InterLineWhiteChrs;
    IntraLineAnsiChrs:=   AnsiPrintableChrs - InterLineWhiteChrs;
+   {$ifndef RELEASE}
+      InitArgvParser();
+   {$endif}
 end.  // lbp_parse_helper unit

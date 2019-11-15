@@ -150,10 +150,20 @@ function tCsv.ParseHeader(): integer;
       i:       integer;
       iMax:    integer;
    begin
+      {$ifndef RELEASE}
+         if( DebugParser) then begin
+            writeln( 'tCsv.ParseHeader() called');
+            MyIndent:= MyIndent + '   ';
+         end;
+      {$endif}
       MyHeader:= ParseLine();
       result:= Length( MyHeader);
       iMax:= result - 1;
       for i:= 0 to iMax do IndexDict.Add( MyHeader[ i], i);
+
+      {$ifndef RELEASE}
+         if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
+      {$endif}
    end; // ParseHeader()
 
 
@@ -220,6 +230,9 @@ function tCsv.ParseQuotedStr(): string;
       Quote:    char;
       C:        char;
    begin
+      {$ifndef RELEASE}
+         if( DebugParser) then writeln( MyIndent, 'tCsv.ParseQuotedStr() called');
+      {$endif}
       result:= ''; // Set default value
       InitS();
       Quote:= Chr;
@@ -255,6 +268,17 @@ procedure tCsv.SetDelimiter( D: char);
 //   var
 //      DSet: tCharSet;
    begin
+      {$ifndef RELEASE}
+         if( DebugParser) then begin
+            write( MyIndent, 'tCsv.SetDelimiter() to ');
+            if( D in IntraLineAnsiChrs) then begin
+               writeln( '''', D, '''');
+            end else begin
+               writeln( 'ord(', ord( D), ')');
+            end;
+         end;
+      {$endif}
+
       MyDelimiter:= D;
 //      DSet:= [ D];
       EndOfCellChrs:= EndOfRowChrs + [ D];
@@ -275,6 +299,13 @@ function tCsv.ParseCell(): string;
       C:        char;
       i:        integer;
    begin
+      {$ifndef RELEASE}
+         if( DebugParser) then begin
+            writeln( MyIndent, 'tCsv.ParseCell()');
+            MyIndent:= MyIndent + '   ';
+         end;
+      {$endif}
+
       result:= ''; // Set default value
       InitS();
 
@@ -301,6 +332,10 @@ function tCsv.ParseCell(): string;
          raise tCsvException.Create( 'Cell ''' + result + 
                   ''' was not followed by a valid end of cell character');
       end;
+
+      {$ifndef RELEASE}
+         if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
+      {$endif}
       // if( C in InterLineWhiteChrs) then UngetChr( ',');
    end; // ParseCell()
 
@@ -319,6 +354,10 @@ function tCsv.ParseLine(): tCsvStringArray;
       SaLen:     longint = 0;
       LastCell:  boolean = false;
    begin
+      {$ifndef RELEASE}
+         if( DebugParser) then writeln( 'tCsv.ParseLine() called');
+      {$endif}
+
       SetLength( Sa, SaSize);
 
       // Strip off any white space including empty lines.  This insures the next 
@@ -365,6 +404,12 @@ function tCsv.Parse(): tCsvLineArray;
       LaSize:    longint;
       LaLen:     longint;
    begin
+      {$ifndef RELEASE}
+         if( DebugParser) then begin
+            writeln( 'tCsv.Parse() called');
+            MyIndent:= MyIndent + '   ';
+         end;
+      {$endif}
       LaSize:= 32;
       SetLength( La, LaSize);
       LaLen:= 0;      
@@ -386,6 +431,9 @@ function tCsv.Parse(): tCsvLineArray;
       
       SetLength( La, LaLen);
       result:= La;
+      {$ifndef RELEASE}
+         if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
+      {$endif}
    end; // Parse()
 
 

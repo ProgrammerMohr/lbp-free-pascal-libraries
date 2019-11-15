@@ -58,12 +58,12 @@ begin
    Aws:= tAwsLog.Create( lbp_input_file.InputStream, False);
 
    Header:= Aws.Header;
-    writeln( OutputFile, Header.ToLine);
+   writeln( OutputFile, Header.ToLine);
 
    repeat
       TempLine:= Aws.ParseLine();
       C:= Aws.PeekChr();
-      writeln( 'main():  C = ', ord( C));
+//      writeln( 'main():  C = ', ord( C));
       if( C <> EOFchr) then begin
          writeln( OutputFile, TempLine.ToLine());
       end;

@@ -79,7 +79,9 @@ implementation
 procedure tAwsLog.Init();
    begin
       Inherited Init();
+      Delimiter:= ' ';
       ParseHeader();
+      Delimiter:= TabChr;
    end; // Init()
 
 
@@ -100,6 +102,12 @@ function tAwsLog.ParseHeader(): integer;
       C: char;
       i: integer;
    begin
+      {$ifndef RELEASE}
+         if( DebugParser) then begin
+            writeln( MyIndent, 'tAwsLog.MovePastBeginStr() called');
+            MyIndent:= MyIndent + '   ';
+         end;
+      {$endif}
       iMax:= Length( BeginStr);
       for i:= 1 to iMax do begin
          C:= GetChr;
@@ -107,9 +115,19 @@ function tAwsLog.ParseHeader(): integer;
             raise tCsvException.Create( 'The AWS Log file is missing the %S line!', [BeginStr]);
          end;
       end; // for
+      {$ifndef RELEASE}
+         if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
+      {$endif}
    end; // MovePastBeginStr()
    // ----------------------------------------------------------------------
    begin
+   {$ifndef RELEASE}
+      if( DebugParser) then begin
+         writeln( MyIndent, 'tAwsLog.ParseHeader() called');
+         MyIndent:= MyIndent + '   ';
+      end;
+   {$endif}
+
       Delimiter:= ' ';
       MovePastBeginStr( '#Version: ');
       C:= PeekChr;
@@ -130,9 +148,9 @@ function tAwsLog.ParseHeader(): integer;
           raise tCsvException.Create( 'The Fields: line exists but no value is set!');
       end;
       // Move past extra spaces immediatly after '#Fields: '
-      while( PeekChr = Delimiter) do GetChr;
+      while( C = Delimiter) do C:= GetChr;
       TempHeader:= ParseLine;
-      if( (Length(TempVersion) = 0)) then begin
+      if( (Length(TempHeader) = 0)) then begin
           raise tCsvException.Create( 'The #Fields: line exists but has no values');
       end;
       ParseElement( InterLineWhiteChrs);
@@ -146,6 +164,9 @@ function tAwsLog.ParseHeader(): integer;
       end;
 
       Delimiter:= TabChr;
+      {$ifndef RELEASE}
+         if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
+      {$endif}
    end; // ParseHeader()
 
 
@@ -164,14 +185,20 @@ function tAwsLog.ParseLine(): tCsvStringArray;
       SaLen:     longint = 0;
       LastCell:  boolean = false;
    begin
+   {$ifndef RELEASE}
+      if( DebugParser) then begin
+         writeln( '   tAwsLog.ParseLine() called');
+         MyIndent:= MyIndent + '   ';
+      end;
+   {$endif}
       SetLength( Sa, SaSize);
 
       // Strip off any white space including empty lines.  This insures the next 
       // character starts a valid cell.
-      while( PeekChr() in WhiteChrs) do GetChr();
-
-      // Ignore #Version and #Field lines in the middle of the fileraise 
       C:= Chr;
+      while( C in WhiteChrs) do C:= Chr;
+
+      // Ignore #Version and #Field lines in the middle of the file
       while( C = '#') do begin
          C:= Chr;
 
@@ -185,7 +212,7 @@ function tAwsLog.ParseLine(): tCsvStringArray;
       Chr:= C;
       
       // We only can add to cells if we are not at the end of the file
-      if( PeekChr <> EOFchr) then begin
+      if( C <> EOFchr) then begin
          repeat
             TempCell:= ParseCell();
 
@@ -198,7 +225,7 @@ function tAwsLog.ParseLine(): tCsvStringArray;
             inc( SaLen);
 
             C:= PeekChr;
-            LastCell:= C <> ',';
+            LastCell:= C <> Delimiter;
             if( not LastCell) then C:= GetChr;
          until( LastCell);  // so this only matches, CR, LF, and EOF
          
@@ -209,6 +236,9 @@ function tAwsLog.ParseLine(): tCsvStringArray;
 
       SetLength( Sa, SaLen);
       result:= Sa;
+      {$ifndef RELEASE}
+         if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
+      {$endif}
    end; // ParseLine()
 
 
