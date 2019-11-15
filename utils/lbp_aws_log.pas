@@ -59,6 +59,8 @@ type
       protected
          MyVersion: string;
          procedure  Init(); override;
+      private
+         procedure  SkipRestOfLine();
       public
          function   ParseHeader(): integer; override;// returns the number of cells in the header
          function   ParseLine(): tCsvStringArray; override;
@@ -86,6 +88,23 @@ procedure tAwsLog.Init();
 
 
 // *************************************************************************
+// * SkipRestOfLine()
+// *************************************************************************
+procedure tAwsLog.SkipRestOfLine();
+   var
+      C:  char;
+   begin
+      C:= Chr;
+      // Skip to the end of the line
+      while( (C <> EOFchr) and (C <> LFchr) and (C <> CRchr)) do C:= Chr;
+      // Strip off any white space including empty lines.  This insures the next 
+      // character starts a valid cell.
+      while( C in WhiteChrs) do C:= Chr;
+      Chr:= C; // put the last character back in the stream
+   end; // SkipRestOfLine   
+
+
+// *************************************************************************
 // * ParseHeader() - Read the header so we can lookup column numbers by name
 // *************************************************************************
 
@@ -93,32 +112,33 @@ function tAwsLog.ParseHeader(): integer;
    var
       TempHeader:  tCsvStringArray;
       TempVersion: tCsvStringArray;
-      C:           char;
-      i:           integer;
-      iMax:        integer;
+      C:             char;
+      VersionFound:  boolean;
+      i:             integer;
+      iMax:          integer;
    // ----------------------------------------------------------------------
    procedure MovePastBeginStr( BeginStr: string);
-   var
-      C: char;
-      i: integer;
-   begin
-      {$ifdef DEBUG_PARSE_HELPER}
-         if( DebugParser) then begin
-            writeln( MyIndent, 'tAwsLog.MovePastBeginStr() called');
-            MyIndent:= MyIndent + '   ';
-         end;
-      {$endif}
-      iMax:= Length( BeginStr);
-      for i:= 1 to iMax do begin
-         C:= GetChr;
-         if( C <> BeginStr[ i]) then begin
-            raise tCsvException.Create( 'The AWS Log file is missing the %S line!', [BeginStr]);
-         end;
-      end; // for
-      {$ifdef DEBUG_PARSE_HELPER}
-         if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
-      {$endif}
-   end; // MovePastBeginStr()
+      var
+         C: char;
+         i: integer;
+      begin
+         {$ifdef DEBUG_PARSE_HELPER}
+            if( DebugParser) then begin
+               writeln( MyIndent, 'tAwsLog.MovePastBeginStr() called');
+               MyIndent:= MyIndent + '   ';
+            end;
+         {$endif}
+         iMax:= Length( BeginStr);
+         for i:= 1 to iMax do begin
+            C:= GetChr;
+            if( C <> BeginStr[ i]) then begin
+               raise tCsvException.Create( 'The AWS Log file is missing the %S line!', [BeginStr]);
+            end;
+         end; // for
+         {$ifdef DEBUG_PARSE_HELPER}
+            if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
+         {$endif}
+      end; // MovePastBeginStr()
    // ----------------------------------------------------------------------
    begin
    {$ifdef DEBUG_PARSE_HELPER}
@@ -129,40 +149,56 @@ function tAwsLog.ParseHeader(): integer;
    {$endif}
 
       Delimiter:= ' ';
-      MovePastBeginStr( '#Version: ');
-      C:= PeekChr;
-      if( (C = Delimiter) or (C in lbp_parse_helper.WhiteChrs)) then begin
-          raise tCsvException.Create( 'The #Version: line exists but no value is set!');
-      end;
-      TempVersion:= ParseLine;
-      C:= PeekChr;
-      if( (Length(TempVersion) <> 1)) then begin
-          raise tCsvException.Create( 'The #Version: line exists but has multiple values set!');
-      end;
-      MyVersion:= TempVersion[ 0];
-      ParseElement( InterLineWhiteChrs);
-
-      MovePastBeginStr( '#Fields: ');
-      C:= PeekChr;
-      if( (C = Delimiter) or (C in lbp_parse_helper.WhiteChrs)) then begin
-          raise tCsvException.Create( 'The Fields: line exists but no value is set!');
-      end;
-      // Move past extra spaces immediatly after '#Fields: '
-      while( C = Delimiter) do C:= GetChr;
-      TempHeader:= ParseLine;
-      if( (Length(TempHeader) = 0)) then begin
-          raise tCsvException.Create( 'The #Fields: line exists but has no values');
-      end;
-      ParseElement( InterLineWhiteChrs);
-      result:= Length( TempHeader);
-      iMax:= result - 1;
-      for i:= 0 to iMax do begin
-         if( Length( TempHeader[ i]) = 0) then begin
-             raise tCsvException.Create( 'The #Fields line exists, but one or more field names are empty!');
+      VersionFound:= false;
+      while(  IndexDict.Empty or (not VersionFound)) do begin
+         // Get the letter following the '#' and store it in C
+         C:= Chr;
+         if( C <> '#') then begin
+            raise tCsvException.Create( 'AWS log data line was found before both the Version and Field header lines were read!');           
          end;
-         IndexDict.Add( TempHeader[ i], i);
-      end;
-
+         C:= Chr;
+         case C of
+            'V': if( not VersionFound) then begin 
+               MovePastBeginStr( 'ersion: ');
+               C:= PeekChr;
+               if( (C = Delimiter) or (C in lbp_parse_helper.WhiteChrs)) then begin
+                  raise tCsvException.Create( 'The #Version: line exists but no value is set!');
+               end;
+               TempVersion:= ParseLine;
+               C:= PeekChr;
+               if( (Length(TempVersion) <> 1)) then begin
+                  raise tCsvException.Create( 'The #Version: line exists but has multiple values set!');
+               end;
+               MyVersion:= TempVersion[ 0];
+               ParseElement( InterLineWhiteChrs);
+               VersionFound:= true;
+            end else SkipRestOfLine(); // 'V' case
+            'F': if( IndexDict.Empty) then begin
+               MovePastBeginStr( 'ields: ');
+               C:= PeekChr;
+               if( (C = Delimiter) or (C in lbp_parse_helper.WhiteChrs)) then begin
+                  raise tCsvException.Create( 'The Fields: line exists but no value is set!');
+               end;
+               // Move past extra spaces immediatly after '#Fields: '
+               while( C = Delimiter) do C:= Chr;
+               TempHeader:= ParseLine;
+               if( (Length(TempHeader) = 0)) then begin
+                  raise tCsvException.Create( 'The #Fields: line exists but has no values');
+               end;
+               ParseElement( InterLineWhiteChrs);
+               result:= Length( TempHeader);
+               iMax:= result - 1;
+               for i:= 0 to iMax do begin
+                  if( Length( TempHeader[ i]) = 0) then begin
+                     raise tCsvException.Create( 'The #Fields line exists, but one or more field names are empty!');
+                  end;
+                  IndexDict.Add( TempHeader[ i], i);
+               end;
+            end else SkipRestOfLine(); // 'F' case
+         else 
+            SkipRestOfLine; // An unknown header or comment line
+         end; // case else
+      end; // while both headers haven't been read.
       Delimiter:= TabChr;
       {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
