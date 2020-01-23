@@ -302,7 +302,7 @@ procedure tNetworkInfo.LongDump( HostName: string; PaloObj: string);
       WriteVlanVariable( 'Palo Obj:',             '',        PaloObj);
       WriteVlanVariable( 'Host Name:',            '',        HostName);
       if( IPAddr <>  NetNum) then begin
-         WriteVlanVariable( 'IP Address:',        '',        IPAddrStr);
+         WriteVlanVariable( 'IP Address:',        '',        IPAddrStr + '/32');
       end;
       if( (Length( PaloObj) > 0) or (Length( HostName) > 0) or (IPAddr <> NetNum)) then writeln;
       WriteVlanVariable( 'CIDR:',                 '',        CIDR);
