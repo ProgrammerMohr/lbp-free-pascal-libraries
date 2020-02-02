@@ -1,4 +1,4 @@
-program aws_cdn_log_sto_csv;
+program aws_log_to_csv;
 
 // ************************************************************************
 // * This program reads the current folder containing gzipped log entries 
