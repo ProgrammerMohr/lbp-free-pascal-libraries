@@ -33,6 +33,7 @@ procedure InitArgvParser();
       InsertParam( ['h','header'], true, '', 'The comma separated list of column names'); 
       InsertParam( ['d', 'id','input-delimiter'], true, ',', 'The character which separates fields on a line.'); 
       InsertParam( ['od','output-delimiter'], true, ',', 'The character which separates fields on a line.'); 
+      InsertParam( ['s', 'skip-non-printable'], false, '', 'Try to fix files with some unicode characters.');
       InsertUsage();
       ParseParams();
    end; // InitArgvParser();
@@ -79,6 +80,7 @@ begin
    if( not ParamSet( 'header')) then Usage( true, 'The ''--header'' parametter must be specified!');
    Csv:= tCsv.Create( GetParam( 'header'));
    Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
+   Csv.SkipNonPrintable:= ParamSet( 's');
    Header:= Csv.ParseLine;
    Csv.Destroy;
    L:= Length( Header);
