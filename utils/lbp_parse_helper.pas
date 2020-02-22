@@ -114,6 +114,7 @@ type
             MyPosition:  integer;
             MyIndent:    string;
          {$endif}
+         MySkipNonPrintable:  boolean; // Attempt to fix files with some unicode mixed in.
       public
          constructor Create( iStream: tStream; iDestroyStream: boolean = true);
          constructor Create( iString: string; IsFileName: boolean = false);
@@ -149,6 +150,7 @@ implementation
 constructor tChrSource.Create( iStream: tStream; iDestroyStream: boolean);
    begin
       inherited Create();
+      MySkipNonPrintable:= false;
       UngetQ:= nil;
       Stream:= iStream;
       DestroyStream:= iDestroyStream;
@@ -159,6 +161,7 @@ constructor tChrSource.Create( iStream: tStream; iDestroyStream: boolean);
 constructor tChrSource.Create( iString: string; IsFileName: boolean);
    begin
       inherited Create();
+      MySkipNonPrintable:= false;      
       UngetQ:= nil;
 
       if( IsFileName) then begin
@@ -180,6 +183,7 @@ constructor tChrSource.Create( var iFile: text);
    begin
       inherited Create();
       UngetQ:= nil;
+      MySkipNonPrintable:= false;
       Stream:= tHandleStream.Create( TextRec( iFile).Handle);
       DestroyStream:= true;
       Init();

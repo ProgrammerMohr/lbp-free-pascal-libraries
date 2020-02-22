@@ -79,13 +79,13 @@ type
          tIndexDict = specialize tgDictionary<string, integer>;
          tRevIndexDict = specialize tgDictionary<integer, string>;
       protected
-         IndexDict:         tIndexDict;
-         MyDelimiter:       char;
-         EndOfCellChrs:     tCharSet;
-         QuoteableChrs:     tCharSet;
-         UnquotedCellChrs:  tCharSet;
-         IntraLineWhiteChrs: tCharSet;
-         WhiteChrs:          tCharSet;
+         IndexDict:           tIndexDict;
+         MyDelimiter:         char;
+         EndOfCellChrs:       tCharSet;
+         QuoteableChrs:       tCharSet;
+         UnquotedCellChrs:    tCharSet;
+         IntraLineWhiteChrs:  tCharSet;
+         WhiteChrs:           tCharSet;
          procedure  Init(); override;
          function   ParseQuotedStr(): string;
          procedure  SetDelimiter( D: char);
@@ -101,6 +101,7 @@ type
          function   Parse(): tCsvLineArray; virtual;
          procedure  DumpIndex(); virtual;
          property   Delimiter: char read MyDelimiter write SetDelimiter;
+         property   SkipNonPrintable: boolean read MySkipNonPrintable write MySkipNonPrintable;
       end; // tCsv class
 
 
@@ -125,6 +126,7 @@ procedure tCsv.Init();
    begin
       Inherited Init();
       Delimiter:= MyGlobalDelimiter; // Set the default delimiter between cells
+      QuoteChrs:= [ '"']; 
       IndexDict:= tIndexDict.Create( tIndexDict.tCompareFunction( @CompareStrings), false);
    end; // Init()
 
@@ -238,25 +240,30 @@ function tCsv.ParseQuotedStr(): string;
       Quote:= Chr;
       
       C:= Chr;
-      While( C in AnsiPrintableChrs) do begin
-         if( C = Quote) then begin
-            if( PeekChr() = Quote) then begin
-               // Two quotes in a row
-               C:= Chr; 
-            end else begin
-               SetLength( MyS, MySLen);
-               result:= MyS;
-               // Strip trailing spaces
-               ParseElement( IntraLineWhiteChrs);
-               exit;
-            end;
-         end; // if C = Quote
-         ParseAddChr( C);
+      While( True) do begin
+         if( C in AnsiPrintableChrs) then begin
+            if( C = Quote) then begin
+               if( PeekChr() = Quote) then begin
+                  // Two quotes in a row
+                  C:= Chr; 
+               end else begin
+                  SetLength( MyS, MySLen);
+                  result:= MyS;
+                  // Strip trailing spaces
+                  ParseElement( IntraLineWhiteChrs);
+                 exit;
+               end;
+            end; // if C = Quote
+            ParseAddChr( C);
+         end else begin
+            // Not printable;
+            if( C = EOFchr) then lbp_exception.Create(
+               'The end of the file was reached while parsing a quoted string!');
+            if( not SkipNonPrintable) then lbp_exception.Create(
+               'Invalid character in a quoted string:  Ord(%d)', [ord( C)]);
+         end; // else not AnsiPrintableChrs
          C:= Chr;
       end;
-      // If we reached here its because there wasn't an end quote character!
-      raise lbp_exception.Create( 
-         'Invalid character in a quoted string:  Ord($d)  There was most likely a missing end quote.',[C]);
    end; // ParseQuotedStr()
 
 
@@ -295,6 +302,7 @@ procedure tCsv.SetDelimiter( D: char);
 // *************************************************************************
 
 function tCsv.ParseCell(): string;
+   {$WARNING tCsvParseCell needs to honor SkipNonPrintable}
    var
       C:        char;
       i:        integer;
