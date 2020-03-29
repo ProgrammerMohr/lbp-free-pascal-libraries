@@ -59,7 +59,7 @@ begin
    Csv:= tCsv.Create( lbp_input_file.InputStream, False); 
    Csv.ParseHeader();
    if( ParamSet( 's')) then Header:= Csv.SortedHeader else Header:= Csv.Header;
-   for S in Header do writeln( OutputFile, S);
+   for S in Header do writeln( OutputFile, CsvQuote( S));
 
    Csv.Destroy;
 end.  // csv_header program
