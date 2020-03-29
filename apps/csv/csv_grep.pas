@@ -9,29 +9,40 @@ uses
    lbp_parse_helper,
    lbp_generic_containers,
    lbp_input_file,
-   lbp_output_file;
+   lbp_output_file,
+   regexpr;  // Regular expressions
 
 type
    tIntegerList = specialize tgDoubleLinkedList< integer>;
 
 var
-   SkipNonPrintable: boolean = false;
-   InvertMatch:      boolean = false;
-   IgnoreCase:       boolean = false;
-   GrepIndexes:      tIntegerList;
-   Csv:              tCsv;         
+   SkipNonPrintable:   boolean = false;
+   InvertMatch:        boolean = false;
+   IgnoreCase:         boolean = false;
+   GrepIndexes:        tIntegerList;
+   Csv:                tCsv;
+   DelimiterOut:       char;
+   RegularExpression:  tRegExpr;
+
 
 // ************************************************************************
-// * ParseOptions() - Sets our global variables
+// * SetGlobals() - Sets our global variables
 // ************************************************************************
 
-procedure InitGlobals();
+procedure SetGlobals();
    var
       L:            integer = 0;  // used for Length
       Field:        string;
       GrepFields:   tCsvStringArray;
-      i:            integer; 
+      Delimiter:    string;
+      DelimiterIn:  char;
    begin
+      // Get the regular expression
+      if( Length( UnnamedParams) <> 1) then begin
+         raise tCsvException.Create( 'You must enter one and only one regular expression on the command line!');
+      end;
+      RegularExpression:= tRegExpr.Create( UnnamedParams[ 0]);
+      
       GrepIndexes:= tIntegerList.Create();
 
       // Set the input delimiter
@@ -40,7 +51,9 @@ procedure InitGlobals();
          if( Length( Delimiter) <> 1) then begin
             raise tCsvException.Create( 'The delimiter must be a singele character!');
          end;
-         CsvDelimiter:= Delimiter[ 1];
+         DelimiterIn:= Delimiter[ 1];
+      end else begin
+         DelimiterIn:= CsvDelimiter; // the default value in the lbp_csv unit.
       end;
 
       // Set the output delimiter
@@ -49,44 +62,48 @@ procedure InitGlobals();
          if( Length( Delimiter) <> 1) then begin
             raise tCsvException.Create( 'The delimiter must be a singele character!');
          end;
-         OD:= Delimiter[ 1];
-      end else OD:= CsvDelimiter;
+         DelimiterOut:= Delimiter[ 1];
+      end else begin
+         DelimiterOut:= DelimiterIn;
+      end;
    
-
       // Get the new header from the command line.
-      if( not ParamSet( 'header')) then Usage( true, 'The ''--header'' parametter must be specified!');
-      Csv:= tCsv.Create( GetParam( 'header'));
-      Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
-      Csv.SkipNonPrintable:= ParamSet( 's');
-      GrepFields:= Csv.ParseLine;
-      Csv.Destroy;
-      L:= Length( GrepFields);
+      if( ParamSet( 'header')) then begin
+         Csv:= tCsv.Create( GetParam( 'header'));
+         Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
+         Csv.SkipNonPrintable:= ParamSet( 's');
+         GrepFields:= Csv.ParseLine;
+         Csv.Destroy;
+         L:= Length( GrepFields);
+      end;
 
       // Open input CSV
       Csv:= tCsv.Create( lbp_input_file.InputStream, False);
    
       // If we don't yet have GrepHeaders, default to searchin all headers
       Csv.ParseHeader();
-      GrepFields:= Csv.Header();
+      if( L = 0) then begin
+         GrepFields:= Csv.Header();
+      end;
 
-      // Make sure all the header fields are valid
+      // Make sure all the header fields are valid and add their indexes to GrepIndexes
       for Field in GrepFields do begin
          if( Csv.ColumnExists( Field)) then begin
-            i:= Csv.IndexOf( Field);
-            GrepIndexes.Queue:= i;
+            GrepIndexes.Queue := Csv.IndexOf( Field);
          end else begin
             Usage( true, 'Your header field ''' + Field + ''' does not exist in the input CSV file!');
          end;
       end; // for
 
-      // Convert Headers to row indexes
-      
-
       // Set the boolean options
       SkipNonPrintable:= ParamSet( 'skip-non-printable');
       InvertMatch:=      ParamSet( 'invert-match');
       IgnoreCase:=       ParamSet( 'ignore-case');
-   
+
+      // Apply the boolean options
+      Csv.SkipNonPrintable:= SkipNonPrintable;
+      RegularExpression.ModifierI:= IgnoreCase;
+      RegularExpression.ModifierM:= true; // start and end line works for each line in a multi-line field
    end; // InitGlobals()
 
 
@@ -94,11 +111,32 @@ procedure InitGlobals();
 // * DumpGlobals() - Dump the global variables for troubleshooting
 // ************************************************************************
 
+Procedure DumpGlobals();
+   var
+      i:        integer;
+      VarName:  string = 'GrepIndexes:        ';
+   begin
+      writeln( 'SkipNonPrintable:   ', SkipNonPrintable); 
+      writeln( 'InvertMatch:        ', InvertMatch);
+      writeln( 'IgnoreCase:         ', IgnoreCase);
+      for i in GrepIndexes do begin
+         writeln( VarName, i);
+         VarName:= '                    ';
+      end;
+      writeln( 'DelimiterOut:       ', DelimiterOut);  
+   end; // DumpFields()
+
 
 // ************************************************************************
 // * Clean up global variables;
 // ************************************************************************
 
+procedure CleanGlobals();
+   begin
+      Csv.Destroy();
+      GrepIndexes.Destroy();
+      RegularExpression.Destroy();
+   end; // CleanGlobals();
 
 
 // ************************************************************************
@@ -114,7 +152,7 @@ procedure InitArgvParser();
       InsertUsage( '      If no fields are specified all fields are searched.');
       InsertUsage( '');
       InsertUsage( 'Usage:');
-      InsertUsage( '   csv_grep [--header <header1,header2,...>] [-f <input file name>] [-o <output file name>]');
+      InsertUsage( '   csv_grep [--header <header1,header2,...>] [-f <input file name>] [-o <output file name>] <regular expression>');
       InsertUsage( '');
       InsertUsage( '   ========== Program Options ==========');
       SetInputFileParam( true, true, false, true);
@@ -131,77 +169,103 @@ procedure InitArgvParser();
 
 
 // ************************************************************************
+// * ProcessCsv() - Main loop to process the file
+// ************************************************************************
+
+procedure ProcessCsv();
+   var
+      Line:  tCsvStringArray;
+      c:     char;
+      Found: boolean;
+      i:     integer;
+   begin
+      // Output the header
+      writeln( OutputFile, Csv.Header.ToLine( DelimiterOut));
+      repeat
+         Line:= Csv.ParseLine();
+         c:= Csv.PeekChr();
+         Found:= false;
+         if( c <> EOFchr) then begin
+            // Test each field for a match
+            for i in GrepIndexes do begin
+               if( RegularExpression.Exec( Line[ i])) then Found:= true;
+            end;  
+            // Output the line if a match was found (or not found and InvertMatch)
+            if( Found xor InvertMatch) then begin
+               writeln( OutputFile, Line.ToLine( DelimiterOut));
+            end;
+         end;
+      until( C = EOFchr);
+   end; // ProcessCsv();
+
+
+// ************************************************************************
 // * main()
 // ************************************************************************
 
-var
-   Csv:       tCsv;
-   Header:    tCsvStringArray;
-   TempLine:  tCsvStringArray;
-   NewLine:   tCsvStringArray;
-   Delimiter: string;
-   OD:        char; // The output delimiter
-   S:         string;
-   C:         char;
-   L:         integer; // Header length
-   i:         integer;
-   iMax:      integer; 
 begin
    InitArgvParser();
-   {$ERROR The code below is from the CSV reorder program!  It needs to be modified to perform the grep}
+   SetGlobals();
+//   DumpGlobals();
 
-   // Set the input delimiter
-   if( ParamSet( 'id')) then begin
-      Delimiter:= GetParam( 'id');
-      if( Length( Delimiter) <> 1) then begin
-         raise tCsvException.Create( 'The delimiter must be a singele character!');
-      end;
-      CsvDelimiter:= Delimiter[ 1];
-   end;
+//   writeln( RegularExpression.Exec( 'five'));
+//   writeln( RegularExpression.Exec( 'six'));
 
-   // Set the output delimiter
-   if( ParamSet( 'od')) then begin
-      Delimiter:= GetParam( 'od');
-      if( Length( Delimiter) <> 1) then begin
-         raise tCsvException.Create( 'The delimiter must be a singele character!');
-      end;
-      OD:= Delimiter[ 1];
-   end else OD:= CsvDelimiter;
+   ProcessCsv();
+   CleanGlobals();
+
+   // // Set the input delimiter
+   // if( ParamSet( 'id')) then begin
+   //    Delimiter:= GetParam( 'id');
+   //    if( Length( Delimiter) <> 1) then begin
+   //       raise tCsvException.Create( 'The delimiter must be a singele character!');
+   //    end;
+   //    CsvDelimiter:= Delimiter[ 1];
+   // end;
+
+   // // Set the output delimiter
+   // if( ParamSet( 'od')) then begin
+   //    Delimiter:= GetParam( 'od');
+   //    if( Length( Delimiter) <> 1) then begin
+   //       raise tCsvException.Create( 'The delimiter must be a singele character!');
+   //    end;
+   //    OD:= Delimiter[ 1];
+   // end else OD:= CsvDelimiter;
    
-   // Get the new header from the command line.
-   if( not ParamSet( 'header')) then Usage( true, 'The ''--header'' parametter must be specified!');
-   Csv:= tCsv.Create( GetParam( 'header'));
-   Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
-   Csv.SkipNonPrintable:= ParamSet( 's');
-   GrepHeader:= Csv.ParseLine;
-   Csv.Destroy;
-   L:= Length( Header);
+   // // Get the new header from the command line.
+   // if( not ParamSet( 'header')) then Usage( true, 'The ''--header'' parametter must be specified!');
+   // Csv:= tCsv.Create( GetParam( 'header'));
+   // Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
+   // Csv.SkipNonPrintable:= ParamSet( 's');
+   // GrepHeader:= Csv.ParseLine;
+   // Csv.Destroy;
+   // L:= Length( Header);
 
-   // Open input CSV
-   Csv:= tCsv.Create( lbp_input_file.InputStream, False);
+   // // Open input CSV
+   // Csv:= tCsv.Create( lbp_input_file.InputStream, False);
    
-   // If we don't yet have GrepHeaders, default to searchin all headers
-   GrepHeaders
+   // // If we don't yet have GrepHeaders, default to searchin all headers
+   // GrepHeaders
 
 
 
-   // Test to make sure the user entered a valid header,  Output it if it is OK.
-   Csv.ParseHeader();
-   for S in Header do begin
-      if( not Csv.ColumnExists( S)) then Usage( true, 'Your header field ''' + S + ''' does not exist in the input CSV file!');
-   end; // for
+   // // Test to make sure the user entered a valid header,  Output it if it is OK.
+   // Csv.ParseHeader();
+   // for S in Header do begin
+   //    if( not Csv.ColumnExists( S)) then Usage( true, 'Your header field ''' + S + ''' does not exist in the input CSV file!');
+   // end; // for
 
-   // Process the input CSV
-   writeln( OutputFile, Header.ToLine( OD));
-   repeat
-      TempLine:= Csv.ParseLine();
-      SetLength( NewLine, L);
-      C:= Csv.PeekChr();
-      if( C <> EOFchr) then begin
-         for i:= 0 to iMax do NewLine[ i]:= TempLine[ Csv.IndexOf( Header[ i])];
-         writeln( OutputFile, NewLine.ToLine( OD));
-      end;
-   until( C = EOFchr);
+   // // Process the input CSV
+   // writeln( OutputFile, Header.ToLine( OD));
+   // repeat
+   //    TempLine:= Csv.ParseLine();
+   //    SetLength( NewLine, L);
+   //    C:= Csv.PeekChr();
+   //    if( C <> EOFchr) then begin
+   //       for i:= 0 to iMax do NewLine[ i]:= TempLine[ Csv.IndexOf( Header[ i])];
+   //       writeln( OutputFile, NewLine.ToLine( OD));
+   //    end;
+   // until( C = EOFchr);
 
-   Csv.Destroy;
+   // Csv.Destroy;
 end.  // csv_grep program
