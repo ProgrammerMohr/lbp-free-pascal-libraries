@@ -135,14 +135,14 @@ procedure SetInputFileParam( Required: boolean;
       end;
       if( AsOption) then begin
          AddUsage( '   ========== Input File library ==========');
-{$ifdef UNIX}
+// {$ifdef UNIX}
         if( DoOpen) then begin
            AddUsage( '      Allows the user to pass an input file name to the program or to read');
            AddUsage( '      its input from a command line pipe.');
         end;
-{$else}
-         AddUsage( '      Allows the user to pass an input file name to the program');
-{$endif}
+// {$else}
+//          AddUsage( '      Allows the user to pass an input file name to the program');
+// {$endif}
          if( UseF) then begin
             AddParam( ['f','input-file'], true, '', Usage);
          end else begin
@@ -184,9 +184,12 @@ procedure ParseArgv();
          end;
 {$ifdef UNIX}
       end else if( (not IsATTY( 0)) and (not DoNotOpen)) then begin
+{$else}
+      end else if( not DoNotOpen) then begin
+{$endif}
          InputFile:= Input;
          Available:= true;
-{$endif}
+// {$endif}
       end else if( IsRequired) then begin
          raise lbp_exception.Create( 'No input file was specified and no input from a pipe is available!');
       end;
