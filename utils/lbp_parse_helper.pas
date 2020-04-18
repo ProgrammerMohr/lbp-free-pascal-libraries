@@ -154,7 +154,8 @@ constructor tChrSource.Create( iStream: tStream; iDestroyStream: boolean);
       UngetQ:= nil;
       Stream:= iStream;
       DestroyStream:= iDestroyStream;
-      Init();  end; // Create()
+      Init();
+   end; // Create()
 
 // -------------------------------------------------------------------------
 
