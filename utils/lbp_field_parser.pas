@@ -69,7 +69,7 @@ type
 
 type
    tFieldParser = class( tChrSource)
-      protected
+      public
          IndexDict:          tParserFieldIndexDict;
          FieldList:          tParserFieldList;
          LineNumber:         int64;
