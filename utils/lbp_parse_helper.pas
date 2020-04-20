@@ -72,7 +72,7 @@ const
    TabChr = char( 9);
 var
    AsciiChrs:   tCharSet  = [char( 0)..char( 127)];
-   AnsiChrs:    tCharSet  = [char( 0)..char( 255)];
+   AnsiChrs:    tCharSet  = [char( 0)..char( 255)]; // UTF8 is a subset of this.
    AlphaChrs:   tCharSet  = ['a'..'z', 'A'..'Z'];
    NumChrs:     tCharSet  = ['0'..'9'];
    AlphaNumChrs: tCharSet = ['a'..'z', 'A'..'Z', '0'..'9'];
@@ -115,6 +115,7 @@ type
             MyIndent:    string;
          {$endif}
          MySkipNonPrintable:  boolean; // Attempt to fix files with some unicode mixed in.
+                                       // Does nothing here, but can be used by child classes.
       public
          constructor Create( iStream: tStream; iDestroyStream: boolean = true);
          constructor Create( iString: string; IsFileName: boolean = false);
