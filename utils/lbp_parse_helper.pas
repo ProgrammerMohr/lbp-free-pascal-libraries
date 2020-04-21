@@ -130,6 +130,7 @@ type
          function    GetChr(): char; virtual;
          procedure   UngetChr( C: char); virtual;
          function    ParseElement( var AllowedChrs: tCharSet): string; virtual;
+         function    SkipText( iText: string): boolean;  // true if matched text was found and skipped
          property    Chr: char read GetChr write UngetChr;
          {$ifdef DEBUG_PARSE_HELPER}
             property    Position: integer read MyPosition;
@@ -367,6 +368,24 @@ function tChrSource.ParseElement( var AllowedChrs: tCharSet): string;
          if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
       {$endif}
    end; // ParseElement()
+
+
+// ************************************************************************
+// * SkipText() - Returns true if the passed string exactly matches the 
+// *              next characters in the stream.  It skips characters 
+// *              until one doesn't match or if has found the entire string.
+// ************************************************************************
+
+function tChrSource.SkipText( iText: string): boolean;
+   var
+      c: char;
+   begin
+      result:= false;
+      for c in iText do begin
+         if( not (c = GetChr)) then exit;
+      end;
+      result:= true;
+   end; // SkipText();
 
 
 /// ========================================================================

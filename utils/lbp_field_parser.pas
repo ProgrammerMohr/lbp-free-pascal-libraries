@@ -55,7 +55,6 @@ uses
    lbp_generic_containers,
    lbp_parse_helper,
    lbp_csv,
-   lbp_output_file,  {$warning Remove this.  It is for debugging}
    classes,
    sysutils;
 
@@ -75,13 +74,15 @@ type
          FieldList:          tParserFieldList;
          LineNumber:         int64;
          ErrorInLine:        boolean;
+         RestOfLine:         string;  // SkipRestOfLine() populates this field.
+         ErrorMsgIndex:      integer; // If this is set,then on errors the message may be placed in the associated field when ParseLine is called.
          MyFilter:           string;
          MyShowParseErrors:  boolean;
          MySkipUnknownLines: boolean;
          MyAddEndMsgField:   boolean;
          procedure  Init(); override;
          procedure  PostInit(); virtual;
-         procedure  SkipRestOfLine();
+         procedure  SkipRestOfLine(); virtual;
       public
          constructor Create( iStream: tStream; iDestroyStream: boolean = true);
          constructor Create( iString: string; IsFileName: boolean = false);
@@ -114,8 +115,8 @@ type
          EndSet:       tCharSet;
          MinLength:    integer;
          MaxLength:    integer;
-         ErrorInField: boolean;  // Set by Verify(), used by Parse()
-      private 
+//         ErrorInField: boolean;  // Set by Verify(), used by Parse()
+      protected 
          SubFields:   tParserFieldList; // Internal fields
       public
          constructor Create( iParent: tParserField; iName: string);
@@ -137,6 +138,15 @@ var
 // *************************************************************************
 
 implementation
+
+// // *************************************************************************
+
+// type
+//    tErrorMsgField = class( tFieldParser)
+//       public
+//          function Parse(): string override;
+//       end; // tErrorMsgField
+
 
 // =========================================================================
 // = tFieldParser
@@ -179,6 +189,7 @@ procedure tFieldParser.Init();
    begin
       Inherited Init();
       Filter:= '';
+      ErrorMsgIndex:= -1; 
       AddEndMsgField:= false; // Mostly for debugging.  It adds the extra field
                              // which will simply read anything left on the line
       IndexDict:= tParserFieldIndexDict.Create( tParserFieldIndexDict.tCompareFunction( @CompareStrings), false);
@@ -228,9 +239,13 @@ function tFieldParser.ParseLine(): tCsvStringArray;
          SetLength( result, FieldList.Length);
          for Field in FieldList do if( not ErrorInLine) then begin
             result[ i]:= Field.Parse();
+            writeln( Field.Name, ':  ErrorInLine = ', ErrorInLine);
             inc( i);
          end;
          SkipRestOfLine();
+         if( ErrorInLine and (ErrorMsgIndex >= 0)) then begin
+            result[ ErrorMsgIndex]:= RestOfLine;
+         end;
          c:= PeekChr;
       until( (not ErrorInLine) or (c = EOFchr));
 
@@ -301,7 +316,7 @@ function tFieldParser.IndexOf( Name: string): integer;
 procedure tFieldParser.SkipRestOfLine();
    begin
       // Discard characters until LF, CR, or EOF is the next one.
-      while( not (PeekChr in EndOfLineChrs)) do Chr;
+      RestOfLine:= ParseElement( IntraLineAnsiChrs);
       // Skip LF and CR characters
       while( PeekChr in InterLineWhiteChrs) do Chr;
       Inc( LineNumber);
@@ -380,8 +395,20 @@ procedure tParserField.Init();
 // *************************************************************************
 
 function tParserField.Parse(): string;
+   var
+      c: char;
    begin
-      result:= Parser.ParseElement( IntraLineAnsiChrs);
+      result:= Parser.ParseElement( ValidSet);
+      c:= Parser.PeekChr;
+      // Remove the field end character unless it is an EndOfLine.
+      if( c in EndSet) then begin
+         if( not (c in EndOfLineChrs)) then begin
+            Parser.Chr; // discard it
+         end;
+      end else begin
+         ReportError( Format( 'The ''%s'' field contains invalid characters or the field separator is invalid!', [Name]));
+      end;
+
       Verify( result);
    end; // Parse()
 
@@ -411,7 +438,7 @@ procedure tParserField.ReportError( ExtraMessage: string);
       // Propagate the errror all the way back to the parser
       TheParent:= self;
       while( TheParent <> nil) do begin
-         TheParent.ErrorInField:= true;
+//         TheParent.ErrorInField:= true;
          TheParent:= TheParent.Parent;
       end;
       Parser.ErrorInLine:= true;
@@ -427,6 +454,38 @@ procedure tParserField.ReportError( ExtraMessage: string);
                   [ Parser.Line, Name, ExtraMessage]);
      end;
    end; // ReportError
+
+
+
+// =========================================================================
+// = tRestOfLineField class
+// =========================================================================
+// *************************************************************************
+// * Parse() - A do nothing parser for 
+// *************************************************************************
+
+// function tErrorMsgField.Parse(): string;
+//    var
+//       P: tBindSysLogParser;
+//    begin
+//       P:= tBindSyslogParser( Parser);
+//       result:= P.ParseElement( AlphaNumChrs);
+//       if( result.Length = 0) then ReportError();
+
+//       // Handle the error message case by adding the rest of the line
+//       //    to the error message field of the PreviousLine.
+//       if( result <> 'client') then begin
+//          if( Length( P.PreviousLine) <> 0) then begin
+//             P.PreviousLine[ P.EMsgIndex]:= 
+//               result + ' ' + P.ParseElement( IntraLineAnsiChrs);
+//               while( p.PeekChr in InterLineWhiteChrs) do p.GetChr;
+//          end;
+//          P.ErrorInLine:= true;
+//       end else if( P.Chr <> ' ') then begin
+//           ReportError( 'We didn''t find the space at the end of the field!');
+//           exit;
+//       end;
+//    end; // Parse()
 
 
 
