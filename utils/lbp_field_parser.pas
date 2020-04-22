@@ -139,15 +139,6 @@ var
 
 implementation
 
-// // *************************************************************************
-
-// type
-//    tErrorMsgField = class( tFieldParser)
-//       public
-//          function Parse(): string override;
-//       end; // tErrorMsgField
-
-
 // =========================================================================
 // = tFieldParser
 // =========================================================================
@@ -238,8 +229,9 @@ function tFieldParser.ParseLine(): tCsvStringArray;
          i:= 0;
          SetLength( result, FieldList.Length);
          for Field in FieldList do if( not ErrorInLine) then begin
-            result[ i]:= Field.Parse();
-            writeln( Field.Name, ':  ErrorInLine = ', ErrorInLine);
+            if( i <> ErrorMsgIndex) then begin
+               result[ i]:= Field.Parse();
+            end;
             inc( i);
          end;
          SkipRestOfLine();
@@ -454,38 +446,6 @@ procedure tParserField.ReportError( ExtraMessage: string);
                   [ Parser.Line, Name, ExtraMessage]);
      end;
    end; // ReportError
-
-
-
-// =========================================================================
-// = tRestOfLineField class
-// =========================================================================
-// *************************************************************************
-// * Parse() - A do nothing parser for 
-// *************************************************************************
-
-// function tErrorMsgField.Parse(): string;
-//    var
-//       P: tBindSysLogParser;
-//    begin
-//       P:= tBindSyslogParser( Parser);
-//       result:= P.ParseElement( AlphaNumChrs);
-//       if( result.Length = 0) then ReportError();
-
-//       // Handle the error message case by adding the rest of the line
-//       //    to the error message field of the PreviousLine.
-//       if( result <> 'client') then begin
-//          if( Length( P.PreviousLine) <> 0) then begin
-//             P.PreviousLine[ P.EMsgIndex]:= 
-//               result + ' ' + P.ParseElement( IntraLineAnsiChrs);
-//               while( p.PeekChr in InterLineWhiteChrs) do p.GetChr;
-//          end;
-//          P.ErrorInLine:= true;
-//       end else if( P.Chr <> ' ') then begin
-//           ReportError( 'We didn''t find the space at the end of the field!');
-//           exit;
-//       end;
-//    end; // Parse()
 
 
 
