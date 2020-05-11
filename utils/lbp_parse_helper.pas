@@ -83,6 +83,7 @@ var
    CtlChrs:     tCharSet  = [char(0)..char(31),char(127)];
    IntraLineWhiteChrs:  tCharSet = [ ' ', TabChr];
    InterLineWhiteChrs:  tCharSet = [ LFchr, CRchr];
+   EolChrs:             tCharSet = [LFchr, CRchr, EOFchr];
    AsciiPrintableChrs:  tCharSet;
    AnsiPrintableChrs:   tCharSet;
    IntraLineAsciiChrs:  tCharSet;
@@ -131,6 +132,8 @@ type
          procedure   UngetChr( C: char); virtual;
          function    ParseElement( var AllowedChrs: tCharSet): string; virtual;
          function    SkipText( iText: string): boolean;  // true if matched text was found and skipped
+         function    ReadLn(): string;
+         procedure   SkipEOL();  // Skip one End of Line.  Does nothing if we aren't at an EndOfLine
          property    Chr: char read GetChr write UngetChr;
          {$ifdef DEBUG_PARSE_HELPER}
             property    Position: integer read MyPosition;
@@ -386,6 +389,33 @@ function tChrSource.SkipText( iText: string): boolean;
       end;
       result:= true;
    end; // SkipText();
+
+
+// ************************************************************************
+// * SkipEol() - If the next characters in the queue are a Windows, Unix,
+// *             or old Mac OS line ending, it will be skipped.  Otherwise
+// *             nothing happens.
+// ************************************************************************
+
+procedure tChrSource.SkipEol();
+   begin
+      if( PeekChr = CRchr) then GetChr; // discard it.
+      if( PeekChr = LFchr) then GetChr; // discard it.
+   end; // SkipEol()
+
+
+// ************************************************************************
+// * ReadLn() - Read one line and discard the Eol.
+// ************************************************************************
+
+function tChrSource.ReadLn(): string;
+   begin
+      result:= '';
+      while( not( PeekChr in EolChrs)) do result:= result + chr;
+      if( PeekChr = CRchr) then GetChr; // discard it.
+      if( PeekChr = LFchr) then GetChr; // discard it.
+   end; // SkipEol()
+
 
 
 /// ========================================================================
