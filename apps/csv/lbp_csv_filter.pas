@@ -51,7 +51,7 @@ uses
    classes;
 
 
-// *************************************************************************
+// ***************************************************************s**********
 
 type
    tCsvFilter = class( tObject)
@@ -71,7 +71,8 @@ type
    tCsvFilterQueueParent = specialize tgDoubleLinkedList< tCsvFilter>;
    tCsvFilterQueue = class( tCsvFilterQueueParent)
       public
-         procedure Go(); virtual;
+         Destructor  Destroy(); override;
+         procedure   Go(); virtual;
       end; // tCsvFilterQueue
       
 
@@ -86,8 +87,9 @@ type
          constructor Create( iStream: tStream; iDestroyStream: boolean = true);
          constructor Create( iString: string; IsFileName: boolean = false);
          constructor Create( var iFile:   text);
-         procedure SetInputDelimiter( iD: char);
-         procedure SetSkipNonPrintable( Skip: boolean);
+         destructor  Destroy(); override;
+         procedure   SetInputDelimiter( iD: char);
+         procedure   SetSkipNonPrintable( Skip: boolean);
       end; // tCsvInputFileFilter
 
 
@@ -154,6 +156,22 @@ procedure tCsvFilter.Go();
 // = tCsvFilterQueue class
 // ========================================================================
 // *************************************************************************
+// * Destroy() - Destructor
+// *************************************************************************
+
+destructor tCsvFilterQueue.Destroy();
+   var
+      Filter: tCsvFilter;
+   begin
+      while( not IsEmpty) do begin
+         Filter:= Queue;
+         Filter.Destroy();
+      end;
+      inherited Destroy();
+   end; // Destroy()
+
+
+// *************************************************************************
 // * Go() - Start the filter.  As a side effect it cleans up all contained 
 // *        tCsvFilters and empties itself.        
 // *************************************************************************
@@ -169,7 +187,7 @@ procedure tCsvFilterQueue.Go();
       for Filter in self do begin
          if( PrevFilter <> nil) then PrevFilter.NextFilter:= Filter;        
          PrevFilter:= Filter;
-         writeln( 'tCsvFilterQueue.Go():  Filter class name = ', PrevFilter.ClassName);
+//         writeln( 'tCsvFilterQueue.Go():  Filter class name = ', PrevFilter.ClassName);
       end;
       PrevFilter.NextFilter:= nil;  // The last filter has no nextfilter
       
@@ -190,25 +208,6 @@ procedure tCsvFilterQueue.Go();
 // ========================================================================
 // = tCsvInputFileFilter class
 // ========================================================================
-// *************************************************************************
-// * Go() - Performs the actual CSV reading and sends the header and rows
-// *        to the next filter
-// *************************************************************************
-
-procedure tCsvInputFileFilter.Go();
-   var
-      Temp:  tCsvStringArray;
-      C:     char;
-   begin
-      NextFilter.SetInputHeader( Csv.Header);
-      repeat
-         Temp:= Csv.ParseLine();
-         NextFilter.SetRow( Temp);
-         C:= Csv.PeekChr();
-      until( C = EOFchr);
-   end; // Go()
-
-
 // *************************************************************************
 // * Create() - constructors
 // *************************************************************************
@@ -235,6 +234,37 @@ constructor tCsvInputFileFilter.Create( var iFile: text);
       inherited Create();
       Csv:= tCsv.Create( iFile);
    end; // Create()
+
+
+// *************************************************************************
+// * Destroy() - destructor
+// *************************************************************************
+
+destructor tCsvInputFileFilter.Destroy();
+   begin
+      Csv.Destroy();
+      inherited Destroy();
+   end; // Destroy()
+
+
+// *************************************************************************
+// * Go() - Performs the actual CSV reading and sends the header and rows
+// *        to the next filter
+// *************************************************************************
+
+procedure tCsvInputFileFilter.Go();
+   var
+      Temp:  tCsvStringArray;
+      C:     char;
+   begin
+      Csv.ParseHeader();
+      NextFilter.SetInputHeader( Csv.Header);
+      repeat
+         Temp:= Csv.ParseLine();
+         if( Length( Temp) > 0) then NextFilter.SetRow( Temp);
+         C:= Csv.PeekChr();
+      until( C = EOFchr);
+   end; // Go()
 
 
 // *************************************************************************
@@ -313,7 +343,7 @@ procedure tCsvOutputFileFilter.SetInputHeader( Header: tCsvStringArray);
 
 procedure tCsvOutputFileFilter.SetRow( Row: tCsvStringArray);
    begin
-      writeln( OutputFile, Row.ToLine);
+     writeln( OutputFile, Row.ToLine);
    end; // SetRow()
 
 

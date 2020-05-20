@@ -138,10 +138,10 @@ finalization
    begin
       if( lbp_types.show_init) then writeln( 'lbp_output_file.finalization:  begin');
       while( not CsvFilterQueue.IsEmpty()) do begin
-writeln( 'Do we ever git here?');
          CsvFilter:= CsvFilterQueue.DeQueue;
          CsvFilter.Destroy();
       end;
+      CsvFilterQueue.Destroy();
       if( lbp_types.show_init) then writeln( 'lbp_output_file.finalization:  end');
    end;
 
