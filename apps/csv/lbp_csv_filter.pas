@@ -172,8 +172,6 @@ procedure tCsvFilterQueue.Go();
          writeln( 'tCsvFilterQueue.Go():  Filter class name = ', PrevFilter.ClassName);
       end;
       PrevFilter.NextFilter:= nil;  // The last filter has no nextfilter
-      writeln( 'tCsvFilterQueue.Go():  Filter class name = ', PrevFilter.ClassName);
-      writeln( PrevFilter.ClassName);
       
       // Process the rows
       Filter:= Queue;
