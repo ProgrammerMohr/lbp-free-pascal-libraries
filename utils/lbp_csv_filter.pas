@@ -113,6 +113,21 @@ type
 
 // *************************************************************************
 
+type
+   tCsvReorderFilter = class( tCsvFilter)
+      protected
+         NewHeader: tCsvStringArray;
+         AllowNew:  boolean; // Allow new blank columns
+         IndexMap:  array of integer;
+      public
+         Constructor Create( iNewHeader: tCsvStringArray; iAllowNew: boolean);
+         procedure   SetInputHeader( Header: tCsvStringArray); override;
+         procedure   SetRow( Row: tCsvStringArray); override;
+      end; // tCsvReorderFilter
+
+
+// *************************************************************************
+
 implementation
 
 // ========================================================================
@@ -356,6 +371,43 @@ procedure tCsvOutputFileFilter.SetOutputDelimiter( oD: char);
       OutputDelimiter:= oD;
    end; // SetOuputDelimiter()
 
+
+
+// ========================================================================
+// = tCsvReorderFilter class
+// ========================================================================
+// *************************************************************************
+// * Create() - constructor
+// *************************************************************************
+
+constructor tCsvReorderFilter.Create( iNewHeader: tCsvStringArray; 
+                                      iAllowNew: boolean);
+   begin
+      inherited Create();
+      NewHeader:= iNewHeader;
+      AllowNew:=  iAllowNew;
+   end; // Create()
+
+
+// *************************************************************************
+// * SetInputHeader() - Simply output the header
+// *************************************************************************
+
+procedure tCsvReorderFilter.SetInputHeader( Header: tCsvStringArray);
+   begin
+      // Setup the IndexMap
+      writeln( OutputFile, Header.ToLine);
+   end; // SetInputHeader()
+
+
+// *************************************************************************
+// * SetRow() - Simply output the header
+// *************************************************************************
+
+procedure tCsvReorderFilter.SetRow( Row: tCsvStringArray);
+   begin
+     writeln( OutputFile, Row.ToLine);
+   end; // SetRow()
 
 
 // *************************************************************************

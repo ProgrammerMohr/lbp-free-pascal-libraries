@@ -119,13 +119,14 @@ initialization
    begin
       // Add Usage messages
       if( lbp_types.show_init) then writeln( 'lbp_output_file.initialization:  begin');
-      SetInputFileParam( true, true, false, true);
-      SetOutputFileParam( false, true, false, true);
+      SetInputFileParam( true, true, true, true);
+      SetOutputFileParam( false, true, true, true);
 
       AddUsage( '   ========== Generic CSV Filter Options ==========');
       AddParam( ['d', 'id','input-delimiter'], true, ',', 'The character which separates fields on a line.'); 
       AddParam( ['od','output-delimiter'], true, ',', 'The character which separates fields on a line.'); 
       AddParam( ['s', 'skip-non-printable'], false, '', 'Try to fix files with some unicode characters.');
+      AddUsage();
 
       AddPostParseProcedure( @ParseArgv);
       if( lbp_types.show_init) then writeln( 'lbp_output_file.initialization:  end');

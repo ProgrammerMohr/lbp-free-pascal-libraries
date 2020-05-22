@@ -43,10 +43,7 @@ uses
    lbp_argv,
    lbp_types,
    lbp_csv,
-   lbp_parse_helper,
-   lbp_generic_containers,
-   lbp_input_file,
-   lbp_output_file;
+   lbp_csv_io_filters;
 
 
 // ************************************************************************
@@ -57,23 +54,40 @@ uses
 procedure InitArgvParser();
    begin
       InsertUsage( '');
-      InsertUsage( 'csv_reorder reads a CSV file and outputs it out again with only');
-      InsertUsage( '         the columns specified in the --order parameter and in');
-      InsertUsage( '         the order they are specified');
+      InsertUsage( 'csv_reorder reads a CSV file and outputs it out again with only the columns');
+      InsertUsage( '         specified in the --order parameter and in the order they are');
+      InsertUsage( '         specified.  New empty columns can also be created);
       InsertUsage( '');
       InsertUsage( 'Usage:');
-      InsertUsage( '   csv_header [--header] [-f <input file name>] [-o <output file name>]');
+      InsertUsage( '   csv_reorder [--header] [-f <input file name>] [-o <output file name>]');
       InsertUsage( '');
       InsertUsage( '   ========== Program Options ==========');
-      SetInputFileParam( true, true, false, true);
-      SetOutputFileParam( false, true, false, true);
       InsertParam( ['h','header'], true, '', 'The comma separated list of column names'); 
-      InsertParam( ['d', 'id','input-delimiter'], true, ',', 'The character which separates fields on a line.'); 
-      InsertParam( ['od','output-delimiter'], true, ',', 'The character which separates fields on a line.'); 
-      InsertParam( ['s', 'skip-non-printable'], false, '', 'Try to fix files with some unicode characters.');
       InsertUsage();
-      ParseParams();
+
+      ParseParams();  // parse the command line
    end; // InitArgvParser();
+
+
+// ************************************************************************
+// * GetNewHeader() - Get the new header fro the command line and convert 
+// *                  it to a tCsvStringArray
+// ************************************************************************
+
+function GetNewHeader():s tCsvStringArray;
+   var
+      Csv:  tCsv;
+   begin
+      Csv:= tCsv.Create( GetParam( 'header'));
+      Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
+      Csv.SkipNonPrintable:= ParamSet( 's');
+      result:= Csv.ParseLine;
+      Csv.Destroy;
+      L:= Length( result);
+      if( Lenght( result) = 0) then begin
+         Usage( true, 'An empty string was passed in the ''--header'' parametter!');
+      end;     
+   end; // ConvertNewHeader()
 
 
 // ************************************************************************
