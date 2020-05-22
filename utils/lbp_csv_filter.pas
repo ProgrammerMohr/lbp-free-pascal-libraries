@@ -112,6 +112,9 @@ type
 
 
 // *************************************************************************
+// * tCsvReorderFilter class - Specify a new header with fields in whatever
+// *    order you desire.  New fields are added to rows with empty values.
+// *************************************************************************
 
 type
    tCsvReorderFilter = class( tCsvFilter)
@@ -119,6 +122,7 @@ type
          NewHeader: tCsvStringArray;
          AllowNew:  boolean; // Allow new blank columns
          IndexMap:  array of integer;
+         NewLength: integer;
       public
          Constructor Create( iNewHeader: tCsvStringArray; iAllowNew: boolean);
          procedure   SetInputHeader( Header: tCsvStringArray); override;
@@ -129,6 +133,12 @@ type
 // *************************************************************************
 
 implementation
+
+// *************************************************************************
+
+type
+   tHeaderTree = specialize tgDictionary<string, integer>;
+
 
 // ========================================================================
 // = tCsvFilter class
@@ -385,6 +395,7 @@ constructor tCsvReorderFilter.Create( iNewHeader: tCsvStringArray;
    begin
       inherited Create();
       NewHeader:= iNewHeader;
+      NewLength:= Length( NewHeader);
       AllowNew:=  iAllowNew;
    end; // Create()
 
@@ -394,9 +405,43 @@ constructor tCsvReorderFilter.Create( iNewHeader: tCsvStringArray;
 // *************************************************************************
 
 procedure tCsvReorderFilter.SetInputHeader( Header: tCsvStringArray);
+   var
+      HeaderTree: tHeaderTree;
+      Name:       string;
+      i:          integer;
+      iMax:       integer;
    begin
-      // Setup the IndexMap
-      writeln( OutputFile, Header.ToLine);
+      MyInputHeader:= Header;
+
+      // Create and populate the temorary lookup tree
+      HeaderTree:= tHeaderTree.Create( tHeaderTree.tCompareFunction( @CompareStrings));
+      HeaderTree.AllowDuplicates:= false;
+      iMax:= Length( Header) - 1;
+      for i:= 0 to iMax do HeaderTree.Add( Header[ i], i);
+
+      // Create and populate the IndexMap;
+      iMax:= NewLength - 1;
+      SetLength( IndexMap, NewLength);
+      for i:= 0 to iMax do begin
+         Name:= NewHeader[ i];
+         // Is the new header field in the old headers?
+         if( HeaderTree.Find( Name)) then begin
+            IndexMap[ i]:= HeaderTree.Value();
+         end else begin
+            if( AllowNew) then begin
+               IndexMap[ i]:= -1; 
+            end else begin
+               raise tCsvException.Create( '''%s'' is not a field in the input header!', [Name]);
+            end;
+         end; // if/else New Header field was found in the on header 
+      end; // for
+
+      // Clean up the HeaderTree
+      HeaderTree.RemoveAll();
+      HeaderTree.Destroy();
+ 
+      // Pass the new header to the next filter
+      NextFilter.SetInputHeader( NewHeader);
    end; // SetInputHeader()
 
 
@@ -405,8 +450,20 @@ procedure tCsvReorderFilter.SetInputHeader( Header: tCsvStringArray);
 // *************************************************************************
 
 procedure tCsvReorderFilter.SetRow( Row: tCsvStringArray);
+   var
+      NewRow: tCsvStringArray;
+      iMax:   integer;
+      iOld:   integer;
+      iNew:   integer;
    begin
-     writeln( OutputFile, Row.ToLine);
+      SetLength( NewRow, NewLength);
+      // Trasfer fields from Row to NewRow;
+      iMax:= NewLength - 1;
+      for iNew:= 0 to iMax do begin
+         iOld:= IndexMap[ iNew];
+         if( iOld < 0) then NewRow[ iNew]:= '' else NewRow[ iNew]:= Row[ iOld];
+      end;
+      NextFilter.SetRow( NewRow);
    end; // SetRow()
 
 

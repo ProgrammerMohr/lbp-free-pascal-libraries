@@ -43,6 +43,7 @@ uses
    lbp_argv,
    lbp_types,
    lbp_csv,
+   lbp_csv_filter,
    lbp_csv_io_filters;
 
 
@@ -56,13 +57,17 @@ procedure InitArgvParser();
       InsertUsage( '');
       InsertUsage( 'csv_reorder reads a CSV file and outputs it out again with only the columns');
       InsertUsage( '         specified in the --order parameter and in the order they are');
-      InsertUsage( '         specified.  New empty columns can also be created);
+      InsertUsage( '         specified.  New empty columns can also be added if the --allow-new');
+      InsertUsage( '         command line option is used.');
       InsertUsage( '');
       InsertUsage( 'Usage:');
       InsertUsage( '   csv_reorder [--header] [-f <input file name>] [-o <output file name>]');
       InsertUsage( '');
       InsertUsage( '   ========== Program Options ==========');
       InsertParam( ['h','header'], true, '', 'The comma separated list of column names'); 
+      InsertParam( ['a', 'allow-new'], false, '', 'Allow new header fields to be created.  The');
+      InsertUsage( '                                 associated new field''s value in each row');
+      InsertUsage( '                                 will be empty.');
       InsertUsage();
 
       ParseParams();  // parse the command line
@@ -74,9 +79,10 @@ procedure InitArgvParser();
 // *                  it to a tCsvStringArray
 // ************************************************************************
 
-function GetNewHeader():s tCsvStringArray;
+function GetNewHeader(): tCsvStringArray;
    var
       Csv:  tCsv;
+      L:    integer;
    begin
       Csv:= tCsv.Create( GetParam( 'header'));
       Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
@@ -84,7 +90,7 @@ function GetNewHeader():s tCsvStringArray;
       result:= Csv.ParseLine;
       Csv.Destroy;
       L:= Length( result);
-      if( Lenght( result) = 0) then begin
+      if( L = 0) then begin
          Usage( true, 'An empty string was passed in the ''--header'' parametter!');
       end;     
    end; // ConvertNewHeader()
@@ -95,69 +101,20 @@ function GetNewHeader():s tCsvStringArray;
 // ************************************************************************
 
 var
-   Csv:       tCsv;
-   Header:    tCsvStringArray;
-   TempLine:  tCsvStringArray;
-   NewLine:   tCsvStringArray;
-   Delimiter: string;
-   OD:        char; // The output delimiter
-   S:         string;
-   C:         char;
-   L:         integer; // Header length
-   i:         integer;
-   iMax:      integer; 
+   NewHeader:     tCsvStringArray;
+   AllowNew:      boolean;
+   ReorderFilter: tCsvReorderFilter;
 begin
    InitArgvParser();
-
-   // Set the input delimiter
-   if( ParamSet( 'id')) then begin
-      Delimiter:= GetParam( 'id');
-      if( Length( Delimiter) <> 1) then begin
-         raise tCsvException.Create( 'The delimiter must be a singele character!');
-      end;
-      CsvDelimiter:= Delimiter[ 1];
-   end;
-
-   // Set the output delimiter
-   if( ParamSet( 'od')) then begin
-      Delimiter:= GetParam( 'od');
-      if( Length( Delimiter) <> 1) then begin
-         raise tCsvException.Create( 'The delimiter must be a singele character!');
-      end;
-      OD:= Delimiter[ 1];
-   end else OD:= CsvDelimiter;
    
-   // Get the new header from the command line.
-   if( not ParamSet( 'header')) then Usage( true, 'The ''--header'' parametter must be specified!');
-   Csv:= tCsv.Create( GetParam( 'header'));
-   Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
-   Csv.SkipNonPrintable:= ParamSet( 's');
-   Header:= Csv.ParseLine;
-   Csv.Destroy;
-   L:= Length( Header);
-   if( L < 1) then Usage( true, 'An empty string was passed in the ''--header'' parametter!');
-   iMax:= L - 1;
-
-   // Open input CSV
-   Csv:= tCsv.Create( lbp_input_file.InputStream, False);
+   NewHeader:= GetNewHeader();
+   AllowNew:=  ParamSet( 'allow-new');
+   ReorderFilter:= tCsvReorderFilter.Create( NewHeader, AllowNew);
    
-   // Test to make sure the user entered a valid header,  Output it if it is OK.
-   Csv.ParseHeader();
-   for S in Header do begin
-      if( not Csv.ColumnExists( S)) then Usage( true, 'Your header field ''' + S + ''' does not exist in the input CSV file!');
-   end; // for
+   CsvFilterQueue.Queue:= CsvInputFilter;
+   CsvFilterQueue.Queue:= ReorderFilter;
+   CsvFilterQueue.Queue:= CsvOutputFilter;
+   CsvFilterQueue.Go();
 
-   // Process the input CSV
-   writeln( OutputFile, Header.ToLine( OD));
-   repeat
-      TempLine:= Csv.ParseLine();
-      SetLength( NewLine, L);
-      C:= Csv.PeekChr();
-      if( C <> EOFchr) then begin
-         for i:= 0 to iMax do NewLine[ i]:= TempLine[ Csv.IndexOf( Header[ i])];
-         writeln( OutputFile, NewLine.ToLine( OD));
-      end;
-   until( C = EOFchr);
-
-   Csv.Destroy;
+   // Cleanup happens automatically in the  lbp_csv_filters unit.
 end.  // csv_reorder program
