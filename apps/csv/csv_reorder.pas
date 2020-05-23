@@ -75,39 +75,17 @@ procedure InitArgvParser();
 
 
 // ************************************************************************
-// * GetNewHeader() - Get the new header fro the command line and convert 
-// *                  it to a tCsvStringArray
-// ************************************************************************
-
-function GetNewHeader(): tCsvStringArray;
-   var
-      Csv:  tCsv;
-      L:    integer;
-   begin
-      Csv:= tCsv.Create( GetParam( 'header'));
-      Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
-      Csv.SkipNonPrintable:= ParamSet( 's');
-      result:= Csv.ParseLine;
-      Csv.Destroy;
-      L:= Length( result);
-      if( L = 0) then begin
-         Usage( true, 'An empty string was passed in the ''--header'' parametter!');
-      end;     
-   end; // ConvertNewHeader()
-
-
-// ************************************************************************
 // * main()
 // ************************************************************************
 
 var
-   NewHeader:     tCsvStringArray;
+   NewHeader:     string;
    AllowNew:      boolean;
    ReorderFilter: tCsvReorderFilter;
 begin
    InitArgvParser();
    
-   NewHeader:= GetNewHeader();
+   NewHeader:= GetParam( 'header');
    AllowNew:=  ParamSet( 'allow-new');
    ReorderFilter:= tCsvReorderFilter.Create( NewHeader, AllowNew);
    

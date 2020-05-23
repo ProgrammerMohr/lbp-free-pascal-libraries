@@ -48,7 +48,8 @@ uses
    lbp_generic_containers,
    lbp_parse_helper,
    lbp_csv,
-   classes;
+   classes,
+   sysutils;
 
 
 // ***************************************************************s**********
@@ -125,10 +126,19 @@ type
          NewLength: integer;
       public
          Constructor Create( iNewHeader: tCsvStringArray; iAllowNew: boolean);
+         constructor Create( iNewHeader: string; iAllowNew: boolean);
          procedure   SetInputHeader( Header: tCsvStringArray); override;
          procedure   SetRow( Row: tCsvStringArray); override;
       end; // tCsvReorderFilter
 
+
+// *************************************************************************
+// * Global variables
+// *************************************************************************
+
+var
+   HeaderZeroLengthError: string = 'The passed header can not be empty!';
+   HeaderUnknownField: string = '''%s'' is not a field in the input header!';
 
 // *************************************************************************
 
@@ -397,6 +407,26 @@ constructor tCsvReorderFilter.Create( iNewHeader: tCsvStringArray;
       NewHeader:= iNewHeader;
       NewLength:= Length( NewHeader);
       AllowNew:=  iAllowNew;
+      if( NewLength = 0) then lbp_argv.Usage( true, HeaderZeroLengthError);
+   end; // Create()
+
+// -------------------------------------------------------------------------
+
+constructor tCsvReorderFilter.Create( iNewHeader: string; iAllowNew: boolean);
+   var
+      Csv: tCsv;
+   begin
+      inherited Create();
+
+      // convert iNewHeader to a tCsvStringArray
+      Csv:= tCsv.Create( iNewHeader);
+      Csv.Delimiter:= ',';
+      Csv.SkipNonPrintable:= true;
+      NewHeader:= Csv.ParseLine();
+      Csv.Destroy;
+      NewLength:= Length( NewHeader);
+      AllowNew:=  iAllowNew;
+      if( NewLength = 0) then lbp_argv.Usage( true, HeaderZeroLengthError);
    end; // Create()
 
 
@@ -410,6 +440,7 @@ procedure tCsvReorderFilter.SetInputHeader( Header: tCsvStringArray);
       Name:       string;
       i:          integer;
       iMax:       integer;
+      ErrorMsg:   string;
    begin
       MyInputHeader:= Header;
 
@@ -431,7 +462,8 @@ procedure tCsvReorderFilter.SetInputHeader( Header: tCsvStringArray);
             if( AllowNew) then begin
                IndexMap[ i]:= -1; 
             end else begin
-               raise tCsvException.Create( '''%s'' is not a field in the input header!', [Name]);
+               ErrorMsg:= sysutils.Format( HeaderUnknownField, [Name]);
+               lbp_argv.Usage( true, ErrorMsg);
             end;
          end; // if/else New Header field was found in the on header 
       end; // for

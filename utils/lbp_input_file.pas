@@ -191,7 +191,7 @@ procedure ParseArgv();
          Available:= true;
 // {$endif}
       end else if( IsRequired) then begin
-         raise lbp_exception.Create( 'No input file was specified and no input from a pipe is available!');
+         lbp_argv.Usage( true, 'No input file was specified and no input from a pipe is available!');
       end;
       // Get the UNIX or windows file handle of InputFile
       if( Available) then begin
