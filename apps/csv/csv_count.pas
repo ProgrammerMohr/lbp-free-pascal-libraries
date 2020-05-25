@@ -77,8 +77,8 @@ procedure InitArgvParser();
 // ************************************************************************
 
 var
-   Line: tCsvStringArray;
-   Rows: integer = 0;
+   Row:      tCsvCellArray;
+   RowCount: integer = 0;
    c:    char;
 begin
    InitArgvParser();
@@ -91,12 +91,12 @@ begin
  
    // Process the input CSV
    repeat
-      Line:= Csv.ParseLine();
+      Row:= Csv.ParseRow();
       C:= Csv.PeekChr();
-      if( (C <> EOFchr) and (Length( Line) > 0)) then inc( Rows);
+      if( (C <> EOFchr) and (Length( Row) > 0)) then inc( RowCount);
    until( C = EOFchr);
 
-   writeln( Rows);
+   writeln( RowCount);
    Csv.Destroy;
 
 end.  // csv_count program

@@ -52,10 +52,10 @@ uses
 
 type
    tCsvException   =  class( lbp_exception);
-   tCsvStringArray =  array of string;
-   tCsvLineArray   =  array of tCsvStringArray;
-   tCsvStringArrayHelper = type helper for tCsvStringArray
-      function ToLine( Delimiter: char = ','): string;
+   tCsvCellArray =  array of string;
+   tCsvRowArray   =  array of tCsvCellArray;
+   tCsvCellArrayHelper = type helper for tCsvCellArray
+      function ToCsv( Delimiter: char = ','): string;
    end;
 
 const
@@ -94,11 +94,11 @@ type
          function   ParseHeader(): integer; virtual;// returns the number of cells in the header
          function   ColumnExists( Name: string): boolean; virtual;
          function   IndexOf( Name: string): integer; virtual;
-         function   Header():  tCsvStringArray; virtual;
-         function   SortedHeader(): tCsvStringArray; virtual;
+         function   Header():  tCsvCellArray; virtual;
+         function   SortedHeader(): tCsvCellArray; virtual;
          function   ParseCell(): string; virtual;
-         function   ParseLine(): tCsvStringArray; virtual;
-         function   Parse(): tCsvLineArray; virtual;
+         function   ParseRow(): tCsvCellArray; virtual;
+         function   Parse(): tCsvRowArray; virtual;
          procedure  DumpIndex(); virtual;
          property   Delimiter: char read MyDelimiter write SetDelimiter;
          property   SkipNonPrintable: boolean read MySkipNonPrintable write MySkipNonPrintable;
@@ -148,7 +148,7 @@ destructor tCsv.Destroy();
 
 function tCsv.ParseHeader(): integer;
    var
-      MyHeader:  tCsvStringArray;
+      MyHeader:  tCsvCellArray;
       i:       integer;
       iMax:    integer;
    begin
@@ -158,7 +158,7 @@ function tCsv.ParseHeader(): integer;
             MyIndent:= MyIndent + '   ';
          end;
       {$endif}
-      MyHeader:= ParseLine();
+      MyHeader:= ParseRow();
       result:= Length( MyHeader);
       iMax:= result - 1;
       for i:= 0 to iMax do IndexDict.Add( MyHeader[ i], i);
@@ -195,7 +195,7 @@ function tCsv.IndexOf( Name: string): integer;
 // *            been parsed.
 // *************************************************************************
 
-function tCsv.Header():  tCsvStringArray;
+function tCsv.Header():  tCsvCellArray;
    begin
       SetLength( result, IndexDict.Count);
       IndexDict.StartEnumeration;
@@ -209,7 +209,7 @@ function tCsv.Header():  tCsvStringArray;
 // *                  parsed.
 // *************************************************************************
 
-function tCsv.SortedHeader(): tCsvStringArray;
+function tCsv.SortedHeader(): tCsvCellArray;
    var
       i: integer= 0;
    begin
@@ -349,21 +349,21 @@ function tCsv.ParseCell(): string;
 
 
 // *************************************************************************
-// * ParseLine() - Returns an array of strings.  The returned array is 
-// *               invalid if an EOF is the next character in the tChrSource.
+// * ParseRow() - Returns an array of strings.  The returned array is 
+// *              invalid if an EOF is the next character in the tChrSource.
 // *************************************************************************
 
-function tCsv.ParseLine(): tCsvStringArray;
+function tCsv.ParseRow(): tCsvCellArray;
    var
       TempCell:  string;
       C:         char;
-      Sa:        tCsvStringArray;
+      Sa:        tCsvCellArray;
       SaSize:    longint = 16;
       SaLen:     longint = 0;
       LastCell:  boolean = false;
    begin
       {$ifdef DEBUG_PARSE_HELPER}
-         if( DebugParser) then writeln( 'tCsv.ParseLine() called');
+         if( DebugParser) then writeln( 'tCsv.ParseRow() called');
       {$endif}
 
       SetLength( Sa, SaSize);
@@ -397,20 +397,20 @@ function tCsv.ParseLine(): tCsvStringArray;
 
       SetLength( Sa, SaLen);
       result:= Sa;
-   end; // ParseLine()
+   end; // ParseRow()
 
 
 // *************************************************************************
 // * Parse() - Returns an array of tCsvLines
 // *************************************************************************
 
-function tCsv.Parse(): tCsvLineArray;
+function tCsv.Parse(): tCsvRowArray;
    var
-      TempLine:  tCsvStringArray;
+      TempLine:  tCsvCellArray;
       C:         char;
-      La:        tCsvLineArray;
-      LaSize:    longint;
-      LaLen:     longint;
+      Ra:        tCsvRowArray;
+      RaSize:    longint;
+      RaLen:     longint;
    begin
       {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then begin
@@ -418,27 +418,27 @@ function tCsv.Parse(): tCsvLineArray;
             MyIndent:= MyIndent + '   ';
          end;
       {$endif}
-      LaSize:= 32;
-      SetLength( La, LaSize);
-      LaLen:= 0;      
+      RaSize:= 32;
+      SetLength( Ra, RaSize);
+      RaLen:= 0;      
 
       // Keep going until we reach the end of file character
       repeat
-         TempLine:= ParseLine();
+         TempLine:= ParseRow();
          C:= PeekChr();
          if( C <> EOFchr) then begin
             // Add TempLine to La - resize as needed
-            if( LaLen = LaSize) then begin
-               LaSize:= LaSize SHL 1;
-               SetLength( La, LaSize);
+            if( RaLen = RaSize) then begin
+               RaSize:= RaSize SHL 1;
+               SetLength( Ra, RaSize);
             end;
-            La[ LaLen]:= TempLine; 
-            inc( LaLen);
+            Ra[ RaLen]:= TempLine; 
+            inc( RaLen);
          end;
       until( C = EOFchr);
       
-      SetLength( La, LaLen);
-      result:= La;
+      SetLength( Ra, RaLen);
+      result:= Ra;
       {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
       {$endif}
@@ -478,13 +478,13 @@ procedure tCsv.DumpIndex();
 
 
 // =========================================================================
-// = tCsvStringArrayHelper
+// = tCsvCellArrayHelper
 // =========================================================================
 // *************************************************************************
-// * ToLine() - Convert the array into a line of CSV text
+// * ToCsv() - Convert the array into a line of CSV text
 // *************************************************************************
 
-function tCsvStringArrayHelper.ToLine( Delimiter: char = ','): string;
+function tCsvCellArrayHelper.ToCsv( Delimiter: char = ','): string;
    var
       S:      string;
       Temp:   string;
@@ -501,7 +501,7 @@ function tCsvStringArrayHelper.ToLine( Delimiter: char = ','): string;
             result:= result + Delimiter + temp;
          end;
       end; // for
-   end; // ToLine()
+   end; // ToCsv()
 
 
 

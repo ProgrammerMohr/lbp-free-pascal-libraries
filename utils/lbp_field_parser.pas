@@ -88,9 +88,9 @@ type
          constructor Create( iString: string; IsFileName: boolean = false);
          constructor Create( var iFile:   text);
          destructor Destroy(); override;
-         function   ParseLine: tCsvStringArray; virtual;
-         function   Header():  tCsvStringArray; virtual;
-         function   SortedHeader(): tCsvStringArray; virtual;
+         function   ParseLine: tCsvCellArray; virtual;
+         function   Header():  tCsvCellArray; virtual;
+         function   SortedHeader(): tCsvCellArray; virtual;
          function   FieldExists( Name: string): boolean;
          function   IndexOf( Name: string): integer;
 
@@ -215,10 +215,10 @@ destructor tFieldParser.Destroy();
 
 
 // *************************************************************************
-// * ParseLine() - Returns a tCsvStringArray version of the next line
+// * ParseLine() - Returns a tCsvCellArray version of the next line
 // *************************************************************************
 
-function tFieldParser.ParseLine(): tCsvStringArray;
+function tFieldParser.ParseLine(): tCsvCellArray;
    var
       Field:  tParserField;
       i:      integer = 0;
@@ -254,7 +254,7 @@ function tFieldParser.ParseLine(): tCsvStringArray;
 // *            been parsed.
 // *************************************************************************
 
-function tFieldParser.Header():  tCsvStringArray;
+function tFieldParser.Header():  tCsvCellArray;
    begin
       SetLength( result, IndexDict.Count);
       IndexDict.StartEnumeration;
@@ -268,7 +268,7 @@ function tFieldParser.Header():  tCsvStringArray;
 // *                  parsed.
 // *************************************************************************
 
-function tFieldParser.SortedHeader(): tCsvStringArray;
+function tFieldParser.SortedHeader(): tCsvCellArray;
    var
       i: integer= 0;
    begin

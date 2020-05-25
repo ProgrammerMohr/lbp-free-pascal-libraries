@@ -53,7 +53,7 @@ var
    SkipNonPrintable:   boolean = false;
    DelimiterIn:        char;
    DelimiterOut:       char;
-   FirstHeader:        tCsvStringArray = nil;
+   FirstHeader:        tCsvCellArray = nil;
 
 // ************************************************************************
 // * SetGlobals() - Sets our global variables
@@ -123,7 +123,7 @@ procedure InitArgvParser();
 // *                  same fields in the same order.
 // ************************************************************************
 
-function HeadersMatch( H1, H2: tCsvStringArray): boolean;
+function HeadersMatch( H1, H2: tCsvCellArray): boolean;
    var
       i:     integer;
       iMax:  integer;
@@ -151,7 +151,7 @@ function HeadersMatch( H1, H2: tCsvStringArray): boolean;
 
 procedure ProcessCsv( FileName: string);
    var
-      Line:  tCsvStringArray;
+      Line:  tCsvCellArray;
       CsvIn:  tCsv;
    begin
       if( not FileExists( FileName)) then begin
@@ -167,7 +167,7 @@ procedure ProcessCsv( FileName: string);
       Line:= CsvIn.Header;
       if( FirstHeader = nil) then begin
          FirstHeader:= Line;
-         writeln( OutputFile, Line.ToLine( DelimiterOut));
+         writeln( OutputFile, Line.ToCsv( DelimiterOut));
       end else begin
          if not HeadersMatch( FirstHeader, Line) then begin
             raise tCsvException.Create( 'The header line of file ''%s'' does not match the one from the first CSV file!', [FileName]);
@@ -175,10 +175,10 @@ procedure ProcessCsv( FileName: string);
       end;
 
       // Output the rest of the file
-      Line:= CsvIn.ParseLine;
+      Line:= CsvIn.ParseRow;
       while( CsvIn.PeekChr <> EOFchr) do begin
-         writeln( OutputFile, Line.ToLine( DelimiterOut));
-         Line:= CsvIn.ParseLine;
+         writeln( OutputFile, Line.ToCsv( DelimiterOut));
+         Line:= CsvIn.ParseRow;
       end;
 
       CsvIn.Destroy();

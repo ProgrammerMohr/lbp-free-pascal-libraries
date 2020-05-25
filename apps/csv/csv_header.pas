@@ -77,7 +77,7 @@ procedure InitArgvParser();
 
 var
    Csv:        tCsv;
-   Header:     tCsvStringArray;
+   Header:     tCsvCellArray;
    S:          string;
    Delimiter:  string;
 begin

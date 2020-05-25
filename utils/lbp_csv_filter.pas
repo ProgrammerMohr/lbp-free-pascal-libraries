@@ -55,14 +55,20 @@ uses
 // ***************************************************************s**********
 
 type
+   tHeaderTree = specialize tgDictionary<string, integer>;
+   tStringTree = specialize tgAvlTree< string>;
+
+
+// ***************************************************************s**********
+
+type
    tCsvFilter = class( tObject)
       protected
          NextFilter:    tCsvFilter;
-         MyInputHeader: tCsvStringArray;
          procedure Go(); virtual;
       public
-         procedure SetInputHeader( Header: tCsvStringArray); virtual;
-         procedure SetRow( Row: tCsvStringArray); virtual;
+         procedure SetInputHeader( Header: tCsvCellArray); virtual;
+         procedure SetRow( Row: tCsvCellArray); virtual;
       end; // tCsvFilter
       
 
@@ -106,8 +112,8 @@ type
          constructor Create( iFileName: string);
          constructor Create( var iFile:   text);
          destructor  Destroy(); override;
-         procedure   SetInputHeader( Header: tCsvStringArray); override;
-         procedure   SetRow( Row: tCsvStringArray); override;
+         procedure   SetInputHeader( Header: tCsvCellArray); override;
+         procedure   SetRow( Row: tCsvCellArray); override;
          procedure   SetOutputDelimiter( oD: char);
       end; // tCsvOutputFileFilter
 
@@ -120,16 +126,32 @@ type
 type
    tCsvReorderFilter = class( tCsvFilter)
       protected
-         NewHeader: tCsvStringArray;
+         NewHeader: tCsvCellArray;
          AllowNew:  boolean; // Allow new blank columns
          IndexMap:  array of integer;
          NewLength: integer;
       public
-         Constructor Create( iNewHeader: tCsvStringArray; iAllowNew: boolean);
+         Constructor Create( iNewHeader: tCsvCellArray; iAllowNew: boolean);
          constructor Create( iNewHeader: string; iAllowNew: boolean);
-         procedure   SetInputHeader( Header: tCsvStringArray); override;
-         procedure   SetRow( Row: tCsvStringArray); override;
+         procedure   SetInputHeader( Header: tCsvCellArray); override;
+         procedure   SetRow( Row: tCsvCellArray); override;
       end; // tCsvReorderFilter
+
+
+// *************************************************************************
+// * tCsvUniqueFilter class - Only output's unique rows.  All unique rows
+// * are stored in memory.  Be careful with large files!
+// *************************************************************************
+
+type
+   tCsvUniqueFilter = class( tCsvFilter)
+      protected
+         UniqueTree: tStringTree;
+      public
+         constructor Create();
+         destructor  Destroy(); override;
+         procedure   SetRow( Row: tCsvCellArray); override;
+      end; // tCsvUniqueFilter
 
 
 // *************************************************************************
@@ -146,32 +168,32 @@ implementation
 
 // *************************************************************************
 
-type
-   tHeaderTree = specialize tgDictionary<string, integer>;
-
-
 // ========================================================================
 // = tCsvFilter class
 // ========================================================================
 // *************************************************************************
-// * SetInputHeader() - 
+// * SetInputHeader() - The default is just to pass the header through to
+// *    the next filter.  If the child modified the header, it should 
+// *    override this procedure and NOT call the inherited version.  It 
+// *    should then pass the new/modified header to NextFilter
 // *************************************************************************
 
-procedure tCsvFilter.SetInputHeader( Header: tCsvStringArray);
+procedure tCsvFilter.SetInputHeader( Header: tCsvCellArray);
    begin
-      MyInputHeader:= Header;
+      NextFilter.SetInputHeader( Header);
    end; // SetInputHeader
 
 
 // *************************************************************************
-// * SetRow() - Children should override this as needed.  But they should
-// *            never tCsvFilter's version should never be called with 
-// *            via inherited SetRow().
+// * SetRow() - The default is just to pass the row through to
+// *    the next filter.  If the child modified the row, it should 
+// *    override this procedure and NOT call the inherited version.  It 
+// *    should then pass the new/modified row to NextFilter
 // *************************************************************************
 
-procedure tCsvFilter.SetRow( Row: tCsvStringArray);
+procedure tCsvFilter.SetRow( Row: tCsvCellArray);
    begin
-      raise tCsvException.Create( 'tCsvFilter.SetRow() should never be called by child classes!  Do not use inherited SetRow()!')
+      NextFilter.SetRow( Row);
    end; // SetRow()
 
 
@@ -289,13 +311,13 @@ destructor tCsvInputFileFilter.Destroy();
 
 procedure tCsvInputFileFilter.Go();
    var
-      Temp:  tCsvStringArray;
+      Temp:  tCsvCellArray;
       C:     char;
    begin
       Csv.ParseHeader();
       NextFilter.SetInputHeader( Csv.Header);
       repeat
-         Temp:= Csv.ParseLine();
+         Temp:= Csv.ParseRow();
          if( Length( Temp) > 0) then NextFilter.SetRow( Temp);
          C:= Csv.PeekChr();
       until( C = EOFchr);
@@ -366,9 +388,9 @@ destructor tCsvOutputFileFilter.Destroy();
 // * SetInputHeader() - Simply output the header
 // *************************************************************************
 
-procedure tCsvOutputFileFilter.SetInputHeader( Header: tCsvStringArray);
+procedure tCsvOutputFileFilter.SetInputHeader( Header: tCsvCellArray);
    begin
-      writeln( OutputFile, Header.ToLine);
+      writeln( OutputFile, Header.ToCsv(OutputDelimiter));
    end; // SetInputHeader()
 
 
@@ -376,9 +398,9 @@ procedure tCsvOutputFileFilter.SetInputHeader( Header: tCsvStringArray);
 // * SetRow() - Simply output the header
 // *************************************************************************
 
-procedure tCsvOutputFileFilter.SetRow( Row: tCsvStringArray);
+procedure tCsvOutputFileFilter.SetRow( Row: tCsvCellArray);
    begin
-     writeln( OutputFile, Row.ToLine);
+     writeln( OutputFile, Row.ToCsv( OutputDelimiter));
    end; // SetRow()
 
 
@@ -400,7 +422,7 @@ procedure tCsvOutputFileFilter.SetOutputDelimiter( oD: char);
 // * Create() - constructor
 // *************************************************************************
 
-constructor tCsvReorderFilter.Create( iNewHeader: tCsvStringArray; 
+constructor tCsvReorderFilter.Create( iNewHeader: tCsvCellArray; 
                                       iAllowNew: boolean);
    begin
       inherited Create();
@@ -418,11 +440,11 @@ constructor tCsvReorderFilter.Create( iNewHeader: string; iAllowNew: boolean);
    begin
       inherited Create();
 
-      // convert iNewHeader to a tCsvStringArray
+      // convert iNewHeader to a tCsvCellArray
       Csv:= tCsv.Create( iNewHeader);
       Csv.Delimiter:= ',';
       Csv.SkipNonPrintable:= true;
-      NewHeader:= Csv.ParseLine();
+      NewHeader:= Csv.ParseRow();
       Csv.Destroy;
       NewLength:= Length( NewHeader);
       AllowNew:=  iAllowNew;
@@ -434,7 +456,7 @@ constructor tCsvReorderFilter.Create( iNewHeader: string; iAllowNew: boolean);
 // * SetInputHeader() - Simply output the header
 // *************************************************************************
 
-procedure tCsvReorderFilter.SetInputHeader( Header: tCsvStringArray);
+procedure tCsvReorderFilter.SetInputHeader( Header: tCsvCellArray);
    var
       HeaderTree: tHeaderTree;
       Name:       string;
@@ -442,8 +464,6 @@ procedure tCsvReorderFilter.SetInputHeader( Header: tCsvStringArray);
       iMax:       integer;
       ErrorMsg:   string;
    begin
-      MyInputHeader:= Header;
-
       // Create and populate the temorary lookup tree
       HeaderTree:= tHeaderTree.Create( tHeaderTree.tCompareFunction( @CompareStrings));
       HeaderTree.AllowDuplicates:= false;
@@ -481,9 +501,9 @@ procedure tCsvReorderFilter.SetInputHeader( Header: tCsvStringArray);
 // * SetRow() - Simply output the header
 // *************************************************************************
 
-procedure tCsvReorderFilter.SetRow( Row: tCsvStringArray);
+procedure tCsvReorderFilter.SetRow( Row: tCsvCellArray);
    var
-      NewRow: tCsvStringArray;
+      NewRow: tCsvCellArray;
       iMax:   integer;
       iOld:   integer;
       iNew:   integer;
@@ -497,6 +517,51 @@ procedure tCsvReorderFilter.SetRow( Row: tCsvStringArray);
       end;
       NextFilter.SetRow( NewRow);
    end; // SetRow()
+
+
+
+// ========================================================================
+// = tCsvUniqueFilter class
+// ========================================================================
+// *************************************************************************
+// * Create() - constructor
+// *************************************************************************
+
+constructor tCsvUniqueFilter.Create();
+   begin
+      inherited Create();
+      UniqueTree:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
+   end; // Create()
+
+
+// *************************************************************************
+// * Destroy() - destructor
+// *************************************************************************
+
+destructor tCsvUniqueFilter.Destroy();
+   begin
+      UniqueTree.RemoveAll;
+      UniqueTree.Destroy;
+      inherited Destroy;
+   end; // Destroy()
+
+// *************************************************************************
+// * SetRow()
+// *************************************************************************
+
+procedure tCsvUniqueFilter.SetRow( Row: tCsvCellArray);
+   var
+      RowStr: string;
+   begin
+      RowStr:= Row.ToCsv( ',');
+
+      // If we haven't seen this row before     
+      if( not UniqueTree.Find( RowStr)) then begin
+         UniqueTree.Add( RowStr);
+         NextFilter.SetRow( Row);
+      end;
+   end;  // SetRow()
+
 
 
 // *************************************************************************

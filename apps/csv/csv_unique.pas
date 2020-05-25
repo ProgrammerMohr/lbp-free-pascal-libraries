@@ -44,79 +44,8 @@ uses
    lbp_argv,
    lbp_types,
    lbp_csv,
-   lbp_parse_helper,
-   lbp_generic_containers,
-   lbp_input_file,
-   lbp_output_file,
-   sysutils; // Conversion functions
-
-
-
-// ************************************************************************
-// * tStringTree class 
-// ************************************************************************
-
-type
-   tStringTree = specialize tgAvlTree< string>;
-
-
-// ************************************************************************
-// * Global variables
-// ************************************************************************
-
-var
-   SkipNonPrintable:   boolean = false;
-   DelimiterIn:        char;
-   DelimiterOut:       char;
-//   IgnoreCase:         boolean = false;
-   Csv:                tCsv;
-   UniqueTree:         tStringTree;
-
-
-// ************************************************************************
-// * SetGlobals() - Sets our global variables
-// ************************************************************************
-
-procedure SetGlobals();
-   var
-      Delimiter:    string;
-   begin
-      // Set the boolean options
-      SkipNonPrintable:= ParamSet( 'skip-non-printable');
-//      IgnoreCase:=       ParamSet( 'ignore-case');
-      
-      // Set the input delimiter
-      if( ParamSet( 'id')) then begin
-         Delimiter:= GetParam( 'id');
-         if( Length( Delimiter) <> 1) then begin
-            raise tCsvException.Create( 'The delimiter must be a singele character!');
-         end;
-         DelimiterIn:= Delimiter[ 1];
-      end else begin
-         DelimiterIn:= CsvDelimiter; // the default value in the lbp_csv unit.
-      end;
-
-      // Set the output delimiter
-      if( ParamSet( 'od')) then begin
-         Delimiter:= GetParam( 'od');
-         if( Length( Delimiter) <> 1) then begin
-            raise tCsvException.Create( 'The delimiter must be a singele character!');
-         end;
-         DelimiterOut:= Delimiter[ 1];
-      end else begin
-         DelimiterOut:= DelimiterIn;
-      end;
-   
-      // Open input CSV
-      Csv:= tCsv.Create( lbp_input_file.InputStream, False);
-      Csv.ParseHeader();
-   
-      // Apply the boolean options
-      Csv.SkipNonPrintable:= SkipNonPrintable;
-
-      UniqueTree:= tStringTree.Create( tStringTree.tCompareFunction( @CompareStrings));
-   end; // SetGlobals()
-
+   lbp_csv_filter,
+   lbp_csv_io_filters;
 
 // ************************************************************************
 // * InitArgvParser() - Initialize the command line usage message and
@@ -131,22 +60,11 @@ procedure InitArgvParser();
       InsertUsage( 'find out how many unique rows you found.');
       InsertUsage( '');
       InsertUsage( 'Usage:');
-      InsertUsage( '   csv_sort [-f <input file name>] [-o <output file name>]');
+      InsertUsage( '   csv_unique [-f <input file name>] [-o <output file name>]');
       InsertUsage( '');
-      InsertUsage( '   ========== Program Options ==========');
-      SetInputFileParam( true, true, false, true);
-      SetOutputFileParam( false, true, false, true);
-      InsertParam( ['d', 'id','input-delimiter'], true, ',', 'The character which separates fields on a line.'); 
-      InsertParam( ['od','output-delimiter'], true, ',', 'The character which separates fields on a line.'); 
-      InsertParam( ['s', 'skip-non-printable'], false, '', 'Try to fix files with some unicode characters.');
-      InsertUsage();
+
       ParseParams();
    end; // InitArgvParser();
-
-
-// ************************************************************************
-// * 
-// ************************************************************************
 
 
 // ************************************************************************
@@ -154,94 +72,16 @@ procedure InitArgvParser();
 // ************************************************************************
 
 var
-   Header:    tCsvStringArray;
-   TempRow:   tCsvStringArray;
-   TextRow:   string;
-   NewLine:   tCsvStringArray;
-   C:         char;
+   UniqueFilter:  tCsvUniqueFilter;
 begin
    InitArgvParser();
-   SetGlobals();
-
-   Header:= Csv.Header;
-
-   // Populate UniqueTree
-   repeat
-      TempRow:= Csv.ParseLine();
    
-      // Does the row have fields?
-      if( Length( TempRow) <> 0) then begin
-         TextRow:= TempRow.ToLine( DelimiterOut);
-
-         // Add it to the tree if necessary
-         if( not UniqueTree.Find( TextRow)) then begin
-            UniqueTree.Add( TextRow);
-         end; // If not in the tree yet
-      end; // If the row has fields
-
-      C:= Csv.PeekChr();
-   until( C = EOFchr); // while
-
-   // Output 
-   writeln( OutputFile, Header.ToLine( DelimiterOut));
+   UniqueFilter:= tCsvUniqueFilter.Create();
    
-   for TextRow in UniqueTree do begin
-      writeln( OutputFile, TextRow);
-   end;
+   CsvFilterQueue.Queue:= CsvInputFilter;
+   CsvFilterQueue.Queue:= UniqueFilter;
+   CsvFilterQueue.Queue:= CsvOutputFilter;
+   CsvFilterQueue.Go();
 
-
-   // // Set the input delimiter
-   // if( ParamSet( 'id')) then begin
-   //    Delimiter:= GetParam( 'id');
-   //    if( Length( Delimiter) <> 1) then begin
-   //       raise tCsvException.Create( 'The delimiter must be a singele character!');
-   //    end;
-   //    CsvDelimiter:= Delimiter[ 1];
-   // end;
-
-   // // Set the output delimiter
-   // if( ParamSet( 'od')) then begin
-   //    Delimiter:= GetParam( 'od');
-   //    if( Length( Delimiter) <> 1) then begin
-   //       raise tCsvException.Create( 'The delimiter must be a singele character!');
-   //    end;
-   //    OD:= Delimiter[ 1];
-   // end else OD:= CsvDelimiter;
-   
-   // // Get the new header from the command line.
-   // if( not ParamSet( 'header')) then Usage( true, 'The ''--header'' parametter must be specified!');
-   // Csv:= tCsv.Create( GetParam( 'header'));
-   // Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
-   // Csv.SkipNonPrintable:= ParamSet( 's');
-   // Header:= Csv.ParseLine;
-   // Csv.Destroy;
-   // L:= Length( Header);
-   // if( L < 1) then Usage( true, 'An empty string was passed in the ''--header'' parametter!');
-   // iMax:= L - 1;
-
-   // // Open input CSV
-   // Csv:= tCsv.Create( lbp_input_file.InputStream, False);
-   
-   // // Test to make sure the user entered a valid header,  Output it if it is OK.
-   // Csv.ParseHeader();
-   // for S in Header do begin
-   //    if( not Csv.ColumnExists( S)) then Usage( true, 'Your header field ''' + S + ''' does not exist in the input CSV file!');
-   // end; // for
-
-   // // Process the input CSV
-   // writeln( OutputFile, Header.ToLine( OD));
-   // repeat
-   //    TempLine:= Csv.ParseLine();
-   //    SetLength( NewLine, L);
-   //    C:= Csv.PeekChr();
-   //    if( C <> EOFchr) then begin
-   //       for i:= 0 to iMax do NewLine[ i]:= TempLine[ Csv.IndexOf( Header[ i])];
-   //       writeln( OutputFile, NewLine.ToLine( OD));
-   //    end;
-   // until( C = EOFchr);
-
-   // Clean up
-   Csv.Destroy;
-   UniqueTree.RemoveAll;
-   UniqueTree.Destroy;
+   // Cleanup happens automatically in the  lbp_csv_filters unit.
 end.  // csv_unique program

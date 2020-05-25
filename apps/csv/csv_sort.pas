@@ -52,14 +52,14 @@ uses
 
 
 // ************************************************************************
-// * tCsvLine class - A class to hold the elements of a tCsvStringArrayraise 
+// * tCsvLine class - A class to hold the elements of a tCsvCellArrayraise 
 // *   We use this because LBP generic contains don't work with arrays.
 // ************************************************************************
 
 type
    tCsvLine = class
       public
-         Row:  tCsvStringArray;
+         Row:  tCsvCellArray;
       end;
       
 
@@ -81,7 +81,7 @@ type
    tCsvLineListByString = class( tCsvLineList)
       public
          Key:    string;
-         constructor Create( iLine: tCsvStringArray);
+         constructor Create( iLine: tCsvCellArray);
       end;
 
 
@@ -94,7 +94,7 @@ type
    tCsvLineListByInt64 = class( tCsvLineList)
       public
          Key:    int64;
-         constructor Create( iLine: tCsvStringArray);
+         constructor Create( iLine: tCsvCellArray);
       end;
 
 
@@ -107,7 +107,7 @@ type
    tCsvLineListByIPv4 = class( tCsvLineList)
       public
          Key:    word32;
-         constructor Create( iLine: tCsvStringArray);
+         constructor Create( iLine: tCsvCellArray);
       end;
 
 
@@ -137,7 +137,7 @@ var
 // * Create() - Constructor
 // ************************************************************************
 
-constructor tCsvLineListByString.Create( iLine: tCsvStringArray);
+constructor tCsvLineListByString.Create( iLine: tCsvCellArray);
    var
       L:  tCsvLine;
    begin
@@ -161,7 +161,7 @@ constructor tCsvLineListByString.Create( iLine: tCsvStringArray);
 // * Constructor()
 // ************************************************************************
 
-constructor tCsvLineListByInt64.Create( iLine: tCsvStringArray);
+constructor tCsvLineListByInt64.Create( iLine: tCsvCellArray);
    var
       L:  tCsvLine;
    begin
@@ -181,7 +181,7 @@ constructor tCsvLineListByInt64.Create( iLine: tCsvStringArray);
 // * Constructor()
 // ************************************************************************
 
-constructor tCsvLineListByIPv4.Create( iLine: tCsvStringArray);
+constructor tCsvLineListByIPv4.Create( iLine: tCsvCellArray);
    var
       L:  tCsvLine;
    begin
@@ -376,9 +376,9 @@ function CompareWord32( CLL1: tCsvLineList; CLL2: tCsvLineList): int8;
 // ************************************************************************
 
 var
-   Header:    tCsvStringArray;
-   TempLine:  tCsvStringArray;
-   NewLine:   tCsvStringArray;
+   Header:    tCsvCellArray;
+   TempLine:  tCsvCellArray;
+   NewLine:   tCsvCellArray;
    Delimiter: string;
    OD:        char; // The output delimiter
    S:         string;
@@ -413,7 +413,7 @@ begin
    // Csv:= tCsv.Create( GetParam( 'header'));
    // Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
    // Csv.SkipNonPrintable:= ParamSet( 's');
-   // Header:= Csv.ParseLine;
+   // Header:= Csv.ParseRow;
    // Csv.Destroy;
    // L:= Length( Header);
    // if( L < 1) then Usage( true, 'An empty string was passed in the ''--header'' parametter!');
@@ -431,7 +431,7 @@ begin
    // // Process the input CSV
    // writeln( OutputFile, Header.ToLine( OD));
    // repeat
-   //    TempLine:= Csv.ParseLine();
+   //    TempLine:= Csv.ParseRow();
    //    SetLength( NewLine, L);
    //    C:= Csv.PeekChr();
    //    if( C <> EOFchr) then begin

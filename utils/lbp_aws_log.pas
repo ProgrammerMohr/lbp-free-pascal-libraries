@@ -63,7 +63,7 @@ type
          procedure  SkipRestOfLine();
       public
          function   ParseHeader(): integer; override;// returns the number of cells in the header
-         function   ParseLine(): tCsvStringArray; override;
+         function   ParseRow(): tCsvCellArray; override;
       end; // tAwsLog class
 
 
@@ -110,8 +110,8 @@ procedure tAwsLog.SkipRestOfLine();
 
 function tAwsLog.ParseHeader(): integer;
    var
-      TempHeader:  tCsvStringArray;
-      TempVersion: tCsvStringArray;
+      TempHeader:  tCsvCellArray;
+      TempVersion: tCsvCellArray;
       C:             char;
       VersionFound:  boolean;
       i:             integer;
@@ -164,7 +164,7 @@ function tAwsLog.ParseHeader(): integer;
                if( (C = Delimiter) or (C in lbp_parse_helper.WhiteChrs)) then begin
                   raise tCsvException.Create( 'The #Version: line exists but no value is set!');
                end;
-               TempVersion:= ParseLine;
+               TempVersion:= ParseRow;
                C:= PeekChr;
                if( (Length(TempVersion) <> 1)) then begin
                   raise tCsvException.Create( 'The #Version: line exists but has multiple values set!');
@@ -181,7 +181,7 @@ function tAwsLog.ParseHeader(): integer;
                end;
                // Move past extra spaces immediatly after '#Fields: '
                while( C = Delimiter) do C:= Chr;
-               TempHeader:= ParseLine;
+               TempHeader:= ParseRow;
                if( (Length(TempHeader) = 0)) then begin
                   raise tCsvException.Create( 'The #Fields: line exists but has no values');
                end;
@@ -207,27 +207,27 @@ function tAwsLog.ParseHeader(): integer;
 
 
 // *************************************************************************
-// * ParseLine() - Returns an array of strings.  The returned array is 
+// * ParseRow() - Returns an array of strings.  The returned array is 
 // *               invalid if an EOF is the next character in the tChrSource.
 // *************************************************************************
 
 //{$error Add code to ignore lines starting with #}
-function tAwsLog.ParseLine(): tCsvStringArray;
+function tAwsLog.ParseRow(): tCsvCellArray;
    var
       TempCell:  string;
       C:         char;
-      Sa:        tCsvStringArray;
-      SaSize:    longint = 16;
-      SaLen:     longint = 0;
+      Ca:        tCsvCellArray;
+      CaSize:    longint = 16;
+      CaLen:     longint = 0;
       LastCell:  boolean = false;
    begin
    {$ifdef DEBUG_PARSE_HELPER}
       if( DebugParser) then begin
-         writeln( '   tAwsLog.ParseLine() called');
+         writeln( '   tAwsLog.ParseRow() called');
          MyIndent:= MyIndent + '   ';
       end;
    {$endif}
-      SetLength( Sa, SaSize);
+      SetLength( Ca, CaSize);
 
       // Strip off any white space including empty lines.  This insures the next 
       // character starts a valid cell.
@@ -253,12 +253,12 @@ function tAwsLog.ParseLine(): tCsvStringArray;
             TempCell:= ParseCell();
 
             // Add TempCell to Sa - resize as needed
-            if( SaLen = SaSize) then begin
-               SaSize:= SaSize SHL 1;
-               SetLength( Sa, SaSize);
+            if( CaLen = CaSize) then begin
+               CaSize:= CaSize SHL 1;
+               SetLength( Ca, CaSize);
             end;
-            Sa[ SaLen]:= TempCell; 
-            inc( SaLen);
+            Ca[ CaLen]:= TempCell; 
+            inc( CaLen);
 
             C:= PeekChr;
             LastCell:= C <> Delimiter;
@@ -270,12 +270,12 @@ function tAwsLog.ParseLine(): tCsvStringArray;
          if( PeekChr = EOFchr) then UngetChr( LFchr);
       end;
 
-      SetLength( Sa, SaLen);
-      result:= Sa;
+      SetLength( Ca, CaLen);
+      result:= Ca;
       {$ifdef DEBUG_PARSE_HELPER}
          if( DebugParser) then SetLength( MyIndent, Length( MyIndent) - 3);
       {$endif}
-   end; // ParseLine()
+   end; // ParseRow()
 
 
 // *************************************************************************

@@ -69,7 +69,7 @@ procedure SetGlobals();
    var
       L:            integer = 0;  // used for Length
       Field:        string;
-      GrepFields:   tCsvStringArray;
+      GrepFields:   tCsvCellArray;
       Delimiter:    string;
       DelimiterIn:  char;
    begin
@@ -108,7 +108,7 @@ procedure SetGlobals();
          Csv:= tCsv.Create( GetParam( 'header'));
          Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
          Csv.SkipNonPrintable:= ParamSet( 's');
-         GrepFields:= Csv.ParseLine;
+         GrepFields:= Csv.ParseRow;
          Csv.Destroy;
          L:= Length( GrepFields);
       end;
@@ -210,15 +210,15 @@ procedure InitArgvParser();
 
 procedure ProcessCsv();
    var
-      Line:  tCsvStringArray;
+      Line:  tCsvCellArray;
       c:     char;
       Found: boolean;
       i:     integer;
    begin
       // Output the header
-      writeln( OutputFile, Csv.Header.ToLine( DelimiterOut));
+      writeln( OutputFile, Csv.Header.ToCsv( DelimiterOut));
       repeat
-         Line:= Csv.ParseLine();
+         Line:= Csv.ParseRow();
          c:= Csv.PeekChr();
          Found:= false;
          if( c <> EOFchr) then begin
@@ -228,7 +228,7 @@ procedure ProcessCsv();
             end;  
             // Output the line if a match was found (or not found and InvertMatch)
             if( Found xor InvertMatch) then begin
-               writeln( OutputFile, Line.ToLine( DelimiterOut));
+               writeln( OutputFile, Line.ToCsv( DelimiterOut));
             end;
          end;
       until( C = EOFchr);
