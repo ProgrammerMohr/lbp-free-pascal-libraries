@@ -296,7 +296,7 @@ procedure tNetworkInfo.Dump();
 // * LongDump() - Prints the fields one per line with a separator.
 // *************************************************************************
 
-procedure tNetworkInfo.LongDump( HostName: string; PaloObj: string; Format: string = 'text');
+procedure tNetworkInfo.LongDump( HostName: string; PaloObj: string);
    begin
       writeln();
       WriteVlanVariable( 'Palo Obj:',             '',        PaloObj);

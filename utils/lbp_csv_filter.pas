@@ -121,15 +121,20 @@ type
 // *************************************************************************
 // * tCsvReorderFilter class - Specify a new header with fields in whatever
 // *    order you desire.  New fields are added to rows with empty values.
+// *    For complex situations where multiple different csv's with slightly
+// *    different input headers are being combined, this filter will allow 
+// *    multiple calls to SetInputHeader, but will only NewHeader to the 
+// *    next filter once. 
 // *************************************************************************
 
 type
    tCsvReorderFilter = class( tCsvFilter)
       protected
-         NewHeader: tCsvCellArray;
-         AllowNew:  boolean; // Allow new blank columns
-         IndexMap:  array of integer;
-         NewLength: integer;
+         HeaderSent: boolean;
+         NewHeader:  tCsvCellArray;
+         AllowNew:   boolean; // Allow new blank columns
+         IndexMap:   array of integer;
+         NewLength:  integer;
       public
          Constructor Create( iNewHeader: tCsvCellArray; iAllowNew: boolean);
          constructor Create( iNewHeader: string; iAllowNew: boolean);
@@ -426,9 +431,10 @@ constructor tCsvReorderFilter.Create( iNewHeader: tCsvCellArray;
                                       iAllowNew: boolean);
    begin
       inherited Create();
-      NewHeader:= iNewHeader;
-      NewLength:= Length( NewHeader);
-      AllowNew:=  iAllowNew;
+      NewHeader:=  iNewHeader;
+      NewLength:=  Length( NewHeader);
+      AllowNew:=   iAllowNew;
+      HeaderSent:= false;
       if( NewLength = 0) then lbp_argv.Usage( true, HeaderZeroLengthError);
    end; // Create()
 
@@ -444,10 +450,11 @@ constructor tCsvReorderFilter.Create( iNewHeader: string; iAllowNew: boolean);
       Csv:= tCsv.Create( iNewHeader);
       Csv.Delimiter:= ',';
       Csv.SkipNonPrintable:= true;
-      NewHeader:= Csv.ParseRow();
+      NewHeader:=  Csv.ParseRow();
       Csv.Destroy;
-      NewLength:= Length( NewHeader);
-      AllowNew:=  iAllowNew;
+      NewLength:=  Length( NewHeader);
+      AllowNew:=   iAllowNew;
+      HeaderSent:= false;
       if( NewLength = 0) then lbp_argv.Usage( true, HeaderZeroLengthError);
    end; // Create()
 
@@ -493,7 +500,10 @@ procedure tCsvReorderFilter.SetInputHeader( Header: tCsvCellArray);
       HeaderTree.Destroy();
  
       // Pass the new header to the next filter
-      NextFilter.SetInputHeader( NewHeader);
+      if( not HeaderSent) then begin
+         NextFilter.SetInputHeader( NewHeader);
+         HeaderSent:= true;
+      end;
    end; // SetInputHeader()
 
 
