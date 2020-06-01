@@ -48,18 +48,48 @@ uses
    lbp_generic_containers,
    lbp_parse_helper,
    lbp_csv,
+   regexpr,  // Regular expressions
    classes,
    sysutils;
 
 
-// ***************************************************************s**********
+// ************************************************************************
+// * tgCsvRowTuple - My tgDictionary class
+// ************************************************************************
 
 type
-   tHeaderTree = specialize tgDictionary<string, integer>;
-   tStringTree = specialize tgAvlTree< string>;
+   generic tgCsvRowTuple< K> = class( tObject)
+      public
+         Key: K;
+         Value: tCsvRowArray;
+      end; // tgCsvRowTuple
+
+   tCsvStringRowTubple = specialize tgCsvRowTuple< string>;
+   tCsvWord64RowwTuple = specialize tgCsvRowTuple< word64);
+   tCsvWord32RowwTuple = specialize tgCsvRowTuple< word32);
+   tCsvInt64RowwTuple  = specialize tgCsvRowTuple< int64);
+   tCsvInt32RowwTuple  = specialize tgCsvRowTuple< int32);
 
 
-// ***************************************************************s**********
+// ************************************************************************
+
+type
+   tHeaderDict         = specialize tgDictionary<string, integer>;
+   tStringTree         = specialize tgAvlTree< string>;
+   tIntegerArray       = array of integer;
+   tCsvStringRowTuple  = specialize tgCsvRowTuple< string>;
+   tCsvWord32RowTuple  = specialize tgCsvRowTuple< string>;
+   tCsvWord64RowTuple  = specialize tgCsvRowTuple< string>;
+   tCsvWordIntRowTuple  = specialize tgCsvRowTuple< string>;
+
+   // tStringRowDict  = specialize tgDictionary<string,  tCsvCellArray>;
+   // tWord64RowDict  = specialize tgDictionary<word64,  tCsvCellArray>;
+   // tWord32RowDict  = specialize tgDictionary<word32,  tCsvCellArray>;
+   // tInt64RowDict   = specialize tgDictionary<int64,   tCsvCellArray>;
+   // tInt32RowDict   = specialize tgDictionary<int32,   tCsvCellArray>;
+
+
+// *************************************************************************
 
 type
    tCsvFilter = class( tObject)
@@ -133,7 +163,7 @@ type
          HeaderSent: boolean;
          NewHeader:  tCsvCellArray;
          AllowNew:   boolean; // Allow new blank columns
-         IndexMap:   array of integer;
+         IndexMap:   tIntegerArray;
          NewLength:  integer;
       public
          Constructor Create( iNewHeader: tCsvCellArray; iAllowNew: boolean);
@@ -160,6 +190,70 @@ type
 
 
 // *************************************************************************
+// * tCsvRenameFilter class - Rename the passed iInputFields to iOutputFields.
+// *    Row data in unchanged. 
+// *************************************************************************
+
+type
+   tCsvRenameFilter = class( tCsvFilter)
+      protected
+         InputFields:   tCsvCellArray;
+         OutputFields:  tCsvCellArray;
+         HeaderSent:    boolean;
+      public
+         Constructor Create( iInputFields, iOutputFields: tCsvCellArray);
+         constructor Create( iInputFields, iOutputFields: string);
+         procedure   SetInputHeader( Header: tCsvCellArray); override;
+      end; // tCsvRenameFilter
+
+
+// *************************************************************************
+// tCsvGrepFilter class - Use regular expressions to seach through fields
+// *************************************************************************
+
+type
+   tCsvGrepFilter = class( tCsvFilter)
+      protected
+         GrepFields:   tCsvCellArray;
+         GrepIndexes:  tIntegerArray;
+         RegExpr:      tRegExpr;
+         InvertMatch:  boolean;
+      public
+         Constructor Create( iGrepFields:  tCsvCellArray;
+                             iRegExpr:     string;
+                             iInvertMatch: boolean = false;
+                             iIgnoreCase:  boolean = false);
+         Constructor Create( iGrepFields:  string;
+                             iRegExpr:     string;
+                             iInvertMatch: boolean = false;
+                             iIgnoreCase:  boolean = false);
+         Destructor  Destroy(); override;
+         procedure   SetInputHeader( Header: tCsvCellArray); override;
+         procedure   SetRow( Row: tCsvCellArray); override;
+      end; // tCsvGrepFilter
+
+
+// *************************************************************************
+// * tCsvStringSortFilter()
+// *************************************************************************
+
+type
+   tCsvStringSortFilter = class( tCsvFilter)
+      protected
+         HeaderSent: boolean;
+         NewHeader:  tCsvCellArray;
+         AllowNew:   boolean; // Allow new blank columns
+         IndexMap:   tIntegerArray;
+         NewLength:  integer;
+      public
+         Constructor Create( iNewHeader: tCsvCellArray; iAllowNew: boolean);
+         constructor Create( iNewHeader: string; iAllowNew: boolean);
+         procedure   SetInputHeader( Header: tCsvCellArray); override;
+         procedure   SetRow( Row: tCsvCellArray); override;
+      end; // tCsvReorderFilter
+
+
+// *************************************************************************
 // * Global variables
 // *************************************************************************
 
@@ -171,7 +265,26 @@ var
 
 implementation
 
+// ========================================================================
+// * Global procedures
+// ========================================================================
 // *************************************************************************
+// * StringToCsvCellArray() - Converts the passed string to a tCsvCellArray
+// *************************************************************************
+
+function StringToCsvCellArray( S: string): tCsvCellArray;
+   var
+      Csv: tCsv;
+   begin
+      // convert iNewHeader to a tCsvCellArray
+      Csv:= tCsv.Create( S);
+      Csv.Delimiter:= ',';
+      Csv.SkipNonPrintable:= true;
+      result:=  Csv.ParseRow();
+      Csv.Destroy;
+   end; // StringToCsvCellArray()
+
+
 
 // ========================================================================
 // = tCsvFilter class
@@ -374,7 +487,16 @@ constructor tCsvOutputFileFilter.Create( var iFile: text);
       inherited Create();
       CloseOnDestroy:= false;
       OutputDelimiter:= lbp_csv.CsvDelimiter;
-      OutputFile:= iFile;
+
+      // This is a fix for the case of StdOut.  For some reason even though
+      // The file handle is correct, if we use iFile it will print to stdout, 
+      // but doesn't work with pipes.  This method fixes it.
+      if( TextRec( iFile).Handle = 1) then begin
+         OutputFile:= System.Output;
+      end else begin
+         OutputFile:= iFile;
+      end;
+//      OutputFile:= iFile;
    end; // Create()
 
 
@@ -395,7 +517,7 @@ destructor tCsvOutputFileFilter.Destroy();
 
 procedure tCsvOutputFileFilter.SetInputHeader( Header: tCsvCellArray);
    begin
-      writeln( OutputFile, Header.ToCsv(OutputDelimiter));
+      writeln( Output, Header.ToCsv(OutputDelimiter));
    end; // SetInputHeader()
 
 
@@ -405,7 +527,7 @@ procedure tCsvOutputFileFilter.SetInputHeader( Header: tCsvCellArray);
 
 procedure tCsvOutputFileFilter.SetRow( Row: tCsvCellArray);
    begin
-     writeln( OutputFile, Row.ToCsv( OutputDelimiter));
+     writeln( Output, Row.ToCsv( OutputDelimiter));
    end; // SetRow()
 
 
@@ -441,17 +563,9 @@ constructor tCsvReorderFilter.Create( iNewHeader: tCsvCellArray;
 // -------------------------------------------------------------------------
 
 constructor tCsvReorderFilter.Create( iNewHeader: string; iAllowNew: boolean);
-   var
-      Csv: tCsv;
    begin
       inherited Create();
-
-      // convert iNewHeader to a tCsvCellArray
-      Csv:= tCsv.Create( iNewHeader);
-      Csv.Delimiter:= ',';
-      Csv.SkipNonPrintable:= true;
-      NewHeader:=  Csv.ParseRow();
-      Csv.Destroy;
+      NewHeader:=  StringToCsvCellArray( iNewHeader);
       NewLength:=  Length( NewHeader);
       AllowNew:=   iAllowNew;
       HeaderSent:= false;
@@ -465,17 +579,17 @@ constructor tCsvReorderFilter.Create( iNewHeader: string; iAllowNew: boolean);
 
 procedure tCsvReorderFilter.SetInputHeader( Header: tCsvCellArray);
    var
-      HeaderTree: tHeaderTree;
+      HeaderDict: tHeaderDict;
       Name:       string;
       i:          integer;
       iMax:       integer;
       ErrorMsg:   string;
    begin
       // Create and populate the temorary lookup tree
-      HeaderTree:= tHeaderTree.Create( tHeaderTree.tCompareFunction( @CompareStrings));
-      HeaderTree.AllowDuplicates:= false;
+      HeaderDict:= tHeaderDict.Create( tHeaderDict.tCompareFunction( @CompareStrings));
+      HeaderDict.AllowDuplicates:= false;
       iMax:= Length( Header) - 1;
-      for i:= 0 to iMax do HeaderTree.Add( Header[ i], i);
+      for i:= 0 to iMax do HeaderDict.Add( Header[ i], i);
 
       // Create and populate the IndexMap;
       iMax:= NewLength - 1;
@@ -483,8 +597,8 @@ procedure tCsvReorderFilter.SetInputHeader( Header: tCsvCellArray);
       for i:= 0 to iMax do begin
          Name:= NewHeader[ i];
          // Is the new header field in the old headers?
-         if( HeaderTree.Find( Name)) then begin
-            IndexMap[ i]:= HeaderTree.Value();
+         if( HeaderDict.Find( Name)) then begin
+            IndexMap[ i]:= HeaderDict.Value();
          end else begin
             if( AllowNew) then begin
                IndexMap[ i]:= -1; 
@@ -495,9 +609,9 @@ procedure tCsvReorderFilter.SetInputHeader( Header: tCsvCellArray);
          end; // if/else New Header field was found in the on header 
       end; // for
 
-      // Clean up the HeaderTree
-      HeaderTree.RemoveAll();
-      HeaderTree.Destroy();
+      // Clean up the HeaderDict
+      HeaderDict.RemoveAll();
+      HeaderDict.Destroy();
  
       // Pass the new header to the next filter
       if( not HeaderSent) then begin
@@ -571,6 +685,200 @@ procedure tCsvUniqueFilter.SetRow( Row: tCsvCellArray);
          NextFilter.SetRow( Row);
       end;
    end;  // SetRow()
+
+
+
+// ========================================================================
+// = tCsvRenameFilter class
+// ========================================================================
+var
+   RenameLengthMismatchError: string =
+   'The number of input and output fields must be the same!';
+// *************************************************************************
+// * Create() - constructor
+// *************************************************************************
+
+constructor tCsvRenameFilter.Create( iInputFields, iOutputFields: tCsvCellArray); 
+   begin
+      inherited Create();
+      InputFields:=  iInputFields;
+      OutputFields:= iOutputFields;
+      if( Length( InputFields) <> Length( OutputFields)) then begin
+         lbp_argv.Usage( true, RenameLengthMismatchError);
+      end;
+      HeaderSent:= false;
+   end; // Create()
+
+// -------------------------------------------------------------------------
+
+constructor tCsvRenameFilter.Create( iInputFields, iOutputFields: string);
+   begin
+      inherited Create();
+      InputFields:=  StringToCsvCellArray( iInputFields);
+      OutputFields:= StringToCsvCellArray( iOutputFields);      
+      if( Length( InputFields) <> Length( OutputFields)) then begin
+         lbp_argv.Usage( true, RenameLengthMismatchError);
+      end;
+      HeaderSent:= false;
+   end; // Create()
+
+
+// *************************************************************************
+// * SetInputHeader() - Simply output the header
+// *************************************************************************
+
+procedure tCsvRenameFilter.SetInputHeader( Header: tCsvCellArray);
+   var
+      i:     integer;
+      HI:    integer; // Header index
+      HIMax: integer;
+      FI:    integer; // Field index
+      FIMax: integer;
+      Found: boolean;
+   begin
+      HIMax:= Length( Header) - 1;
+      FIMax:= length( InputFields) - 1;
+
+      // For each Input field;
+      for FI:= 0 to FIMax do begin
+         // Find the Header Index
+         HI:= 0;
+         i:= 0;
+         Found:= false;
+         while( (not Found) and (i <= HIMax)) do begin
+            if( Header[ i] = InputFields[ FI]) then begin
+               Found:= true;
+               HI:= i;
+            end; // if
+            inc( i);
+         end; // While searching for the matching header field
+         if( not Found) then lbp_argv.Usage( true, HeaderUnknownField);
+         
+         Header[ HI]:= OutputFields[ FI];
+      end; // For each InputField
+
+      // Pass the new header to the next filter
+      if( not HeaderSent) then begin
+         NextFilter.SetInputHeader( Header);
+         HeaderSent:= true;
+      end;
+   end; // SetInputHeader()
+
+
+
+// ========================================================================
+// = tCsvGrepFilter class
+// ========================================================================
+// *************************************************************************
+// * Create() - constructor
+// *************************************************************************
+
+constructor tCsvGrepFilter.Create( iGrepFields:  tCsvCellArray; 
+                                   iRegExpr:     string;
+                                   iInvertMatch: boolean = false;
+                                   iIgnoreCase:  boolean = false);
+   begin
+      inherited Create();
+      GrepFields:=        iGrepFields;
+      InvertMatch:=       iInvertMatch;
+      RegExpr:=           tRegExpr.Create( iRegExpr);
+      RegExpr.ModifierI:= iIgnoreCase;
+      RegExpr.ModifierM:= true; // start and end line works for each line in a multi-line field
+   end; // Create()
+
+// -------------------------------------------------------------------------
+
+constructor tCsvGrepFilter.Create( iGrepFields:  string; 
+                                   iRegExpr:     string;
+                                   iInvertMatch: boolean = false;
+                                   iIgnoreCase:  boolean = false);
+   begin
+      inherited Create();
+      GrepFields:=        StringToCsvCellArray( iGrepFields);
+      InvertMatch:=       iInvertMatch;
+      RegExpr:=           tRegExpr.Create( iRegExpr);
+      RegExpr.ModifierI:= iIgnoreCase;
+      RegExpr.ModifierM:= true; // start and end line works for each line in a multi-line field
+   end; // Create()
+
+
+// *************************************************************************
+// * Destroy() - destructor
+// *************************************************************************
+
+destructor tCsvGrepFilter.Destroy();
+   begin
+      RegExpr.Destroy();
+      inherited Destroy;
+   end; // Destroy()
+
+
+// *************************************************************************
+// * SetInputHeader()
+// *************************************************************************
+
+procedure tCsvGrepFilter.SetInputHeader( Header: tCsvCellArray);
+   var 
+      HL:       integer; // Header Length
+      GFL:      integer; // Grep fields Length;
+      HI:       integer; // Header index
+      GFI:      integer; // Grep fields index;
+      Found:    boolean;
+      ErrorMsg: string;
+   begin
+      // If an empty GrepFields was passed to Create(), then we use all the fields
+      HL:=  Length( Header);
+      GFL:= Length( GrepFields);
+      if( GFL = 0) then begin
+         GFL:= HL;
+         GrepFields:= Header;
+      end;
+      SetLength( GrepIndexes, GFL);
+      
+      // For each Grep Field
+      GFI:= 0;
+      while( GFI < GFL) do begin
+         HI:= 0;
+         Found:= false;
+  
+         // for each Header
+         while( (not found) and (HI < HL)) do begin
+            if( Header[ HI] = GrepFields[ GFI]) then begin
+               Found:= true;
+               GrepIndexes[ GFI]:= HI;
+            end;
+            inc( HI);
+         end; // while Header
+  
+         if( Found) then begin
+            
+         end else begin
+            ErrorMsg:= Format( HeaderUnknownField, [GrepFields[ GFI]]);
+            lbp_argv.Usage( true, ErrorMsg);
+         end;
+
+         inc( GFI);  
+      end; // while GrepFields
+
+      NextFilter.SetInputHeader( Header);
+   end; // SetInputHeader
+
+
+// *************************************************************************
+// * SetRow() - Only pass rows that match the regexpr pattern
+// *************************************************************************
+
+procedure tCsvGrepFilter.SetRow( Row: tCsvCellArray);
+   var
+      Found: boolean = false;
+      i:     integer;
+   begin
+      for i in GrepIndexes do begin
+         if( RegExpr.Exec( Row[ i])) then Found:= true;
+      end;
+
+      if( Found xor InvertMatch) then NextFilter.SetRow( Row);
+   end; // SetRow()
 
 
 

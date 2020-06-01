@@ -42,137 +42,13 @@ uses
    lbp_argv,
    lbp_types,
    lbp_csv,
-   lbp_parse_helper,
-   lbp_generic_containers,
-   lbp_input_file,
-   lbp_output_file,
-   regexpr;  // Regular expressions
-
-type
-   tIntegerList = specialize tgDoubleLinkedList< integer>;
-
-var
-   SkipNonPrintable:   boolean = false;
-   InvertMatch:        boolean = false;
-   IgnoreCase:         boolean = false;
-   GrepIndexes:        tIntegerList;
-   Csv:                tCsv;
-   DelimiterOut:       char;
-   RegularExpression:  tRegExpr;
-
-
-// ************************************************************************
-// * SetGlobals() - Sets our global variables
-// ************************************************************************
-
-procedure SetGlobals();
-   var
-      L:            integer = 0;  // used for Length
-      Field:        string;
-      GrepFields:   tCsvCellArray;
-      Delimiter:    string;
-      DelimiterIn:  char;
-   begin
-      // Get the regular expression
-      if( Length( UnnamedParams) <> 1) then begin
-         raise tCsvException.Create( 'You must enter one and only one regular expression on the command line!');
-      end;
-      RegularExpression:= tRegExpr.Create( UnnamedParams[ 0]);
-      
-      GrepIndexes:= tIntegerList.Create();
-
-      // Set the input delimiter
-      if( ParamSet( 'id')) then begin
-         Delimiter:= GetParam( 'id');
-         if( Length( Delimiter) <> 1) then begin
-            raise tCsvException.Create( 'The delimiter must be a singele character!');
-         end;
-         DelimiterIn:= Delimiter[ 1];
-      end else begin
-         DelimiterIn:= CsvDelimiter; // the default value in the lbp_csv unit.
-      end;
-
-      // Set the output delimiter
-      if( ParamSet( 'od')) then begin
-         Delimiter:= GetParam( 'od');
-         if( Length( Delimiter) <> 1) then begin
-            raise tCsvException.Create( 'The delimiter must be a singele character!');
-         end;
-         DelimiterOut:= Delimiter[ 1];
-      end else begin
-         DelimiterOut:= DelimiterIn;
-      end;
-   
-      // Get the new header from the command line.
-      if( ParamSet( 'header')) then begin
-         Csv:= tCsv.Create( GetParam( 'header'));
-         Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
-         Csv.SkipNonPrintable:= ParamSet( 's');
-         GrepFields:= Csv.ParseRow;
-         Csv.Destroy;
-         L:= Length( GrepFields);
-      end;
-
-      // Open input CSV
-      Csv:= tCsv.Create( lbp_input_file.InputStream, False);
-   
-      // If we don't yet have GrepHeaders, default to searchin all headers
-      Csv.ParseHeader();
-      if( L = 0) then begin
-         GrepFields:= Csv.Header();
-      end;
-
-      // Make sure all the header fields are valid and add their indexes to GrepIndexes
-      for Field in GrepFields do begin
-         if( Csv.ColumnExists( Field)) then begin
-            GrepIndexes.Queue := Csv.IndexOf( Field);
-         end else begin
-            Usage( true, 'Your header field ''' + Field + ''' does not exist in the input CSV file!');
-         end;
-      end; // for
-
-      // Set the boolean options
-      SkipNonPrintable:= ParamSet( 'skip-non-printable');
-      InvertMatch:=      ParamSet( 'invert-match');
-      IgnoreCase:=       ParamSet( 'ignore-case');
-
-      // Apply the boolean options
-      Csv.SkipNonPrintable:= SkipNonPrintable;
-      RegularExpression.ModifierI:= IgnoreCase;
-      RegularExpression.ModifierM:= true; // start and end line works for each line in a multi-line field
-   end; // InitGlobals()
-
-
-// ************************************************************************
-// * DumpGlobals() - Dump the global variables for troubleshooting
-// ************************************************************************
-
-Procedure DumpGlobals();
-   var
-      i:        integer;
-      VarName:  string = 'GrepIndexes:        ';
-   begin
-      writeln( 'SkipNonPrintable:   ', SkipNonPrintable); 
-      writeln( 'InvertMatch:        ', InvertMatch);
-      writeln( 'IgnoreCase:         ', IgnoreCase);
-      for i in GrepIndexes do begin
-         writeln( VarName, i);
-         VarName:= '                    ';
-      end;
-      writeln( 'DelimiterOut:       ', DelimiterOut);  
-   end; // DumpFields()
-
-
-// ************************************************************************
-// * Clean up global variables;
-// ************************************************************************
-
-procedure CleanGlobals();
-   begin
-      Csv.Destroy();
-      GrepIndexes.Destroy();
-      RegularExpression.Destroy();
-   end; // CleanGlobals();
+   lbp_csv_filter,
+   lbp_csv_io_filters;
+   // lbp_parse_helper,
+   // lbp_generic_containers,
+   // lbp_input_file,
+   // lbp_output_file,
+   // regexpr;  // Regular expressions
 
 
 // ************************************************************************
@@ -191,59 +67,42 @@ procedure InitArgvParser();
       InsertUsage( '   csv_grep [--header <header1,header2,...>] [-f <input file name>] [-o <output file name>] <regular expression>');
       InsertUsage( '');
       InsertUsage( '   ========== Program Options ==========');
-      SetInputFileParam( true, true, false, true);
-      SetOutputFileParam( false, true, false, true);
-      InsertParam( ['h','header'], true, '', 'The comma separated list of column names'); 
-      InsertParam( ['d', 'id','input-delimiter'], true, ',', 'The character which separates fields on a line.'); 
-      InsertParam( ['od','output-delimiter'], true, ',', 'The character which separates fields on a line.'); 
-      InsertParam( ['s', 'skip-non-printable'], false, '', 'Try to fix files with some unicode characters.');
+      InsertParam( ['g','grep-fields'], true, '', 'The comma separated list of header fields to be searched'); 
       InsertParam( ['i', 'ignore-case'], false, '', 'Perform a case insensitive search.');
       InsertParam( ['v', 'invert-match'], false, '', 'Output rows that do not match the pattern.');
       InsertUsage();
+
       ParseParams();
    end; // InitArgvParser();
-
-
-// ************************************************************************
-// * ProcessCsv() - Main loop to process the file
-// ************************************************************************
-
-procedure ProcessCsv();
-   var
-      Line:  tCsvCellArray;
-      c:     char;
-      Found: boolean;
-      i:     integer;
-   begin
-      // Output the header
-      writeln( OutputFile, Csv.Header.ToCsv( DelimiterOut));
-      repeat
-         Line:= Csv.ParseRow();
-         c:= Csv.PeekChr();
-         Found:= false;
-         if( c <> EOFchr) then begin
-            // Test each field for a match
-            for i in GrepIndexes do begin
-               if( RegularExpression.Exec( Line[ i])) then Found:= true;
-            end;  
-            // Output the line if a match was found (or not found and InvertMatch)
-            if( Found xor InvertMatch) then begin
-               writeln( OutputFile, Line.ToCsv( DelimiterOut));
-            end;
-         end;
-      until( C = EOFchr);
-   end; // ProcessCsv();
 
 
 // ************************************************************************
 // * main()
 // ************************************************************************
 
+var
+   GrepFields:   string;
+   IgnoreCase:   boolean;
+   InvertMatch:  boolean;
+   GrepFilter:   tCsvGrepFilter;
+   RegExpr:      string;
 begin
    InitArgvParser();
-   SetGlobals();
+   
+   GrepFields:= GetParam( 'grep-fields');
+   IgnoreCase:=  ParamSet( 'i');
+   InvertMatch:= ParamSet( 'v');
+   // Get the regular expression from the command line
+   if( Length( UnnamedParams) <> 1) then begin
+      lbp_argv.Usage( true, 'You must enter one and only one regular expression on the command line!');
+   end;
+   RegExpr:= UnnamedParams[ 0];
+   GrepFilter:= tCsvGrepFilter.Create( GrepFields, RegExpr, InvertMatch, IgnoreCase);
+   
+   CsvFilterQueue.Queue:= CsvInputFilter;
+   CsvFilterQueue.Queue:= GrepFilter;
+   CsvFilterQueue.Queue:= CsvOutputFilter;
+   CsvFilterQueue.Go();
 
-   ProcessCsv();
-
-   CleanGlobals();
+   // Cleanup happens automatically in the  lbp_csv_filters unit.
 end.  // csv_grep program

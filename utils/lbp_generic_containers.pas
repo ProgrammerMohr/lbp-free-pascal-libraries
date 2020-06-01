@@ -60,10 +60,12 @@ uses
    
 // ************************************************************************
 
-function CompareStrings(  S1: string; S2: string): integer;
-function CompareWord64s( W1: word64; W2: word64): integer;
-function CompareWord32s( W1: word32; W2: word32): integer;
+function CompareStrings(  S1: string;  S2: string):  integer;
+function CompareWord64s(  W1: word64;  W2: word64):  integer;
+function CompareWord32s(  W1: word32;  W2: word32):  integer;
 function CompareIntegers( I1: integer; I2: integer): integer;
+function CompareInt64s(   I1: int64;   I2: int64):   integer;
+function CompareInt32s(   I1: int32;   I2: int32):   integer;
 
 
 // ************************************************************************
@@ -518,6 +520,40 @@ function CompareIntegers( I1: integer; I2: integer): integer;
          result:= 0;
       end;
    end; // CompareIntegers()
+
+
+
+// *************************************************************************
+// * CompareInt64 - A Common compare function used by containers
+// *************************************************************************
+
+function CompareInt64s( I1: int64; I2: int64): integer;
+   begin
+      if( I1 > I2) then begin
+         result:= 1;
+      end else if( I1 < I2) then begin
+         result:= -1;
+      end else begin
+         result:= 0;
+      end;
+   end; // CompareInt64()
+
+
+
+// *************************************************************************
+// * CompareInt32 - A Common compare function used by containers
+// *************************************************************************
+
+function CompareInt32s( I1: int32; I2: int32): integer;
+   begin
+      if( I1 > I2) then begin
+         result:= 1;
+      end else if( I1 < I2) then begin
+         result:= -1;
+      end else begin
+         result:= 0;
+      end;
+   end; // CompareInt32()
 
 
 
@@ -3441,7 +3477,7 @@ procedure tgDictionary.RebalanceAfterRemove( N: tNode);
 
 procedure tgDictionary.DestroyValue( Args: array of const);
    begin
-      if( Args[ 0].vtype = vtObject) then tObject( Args[ 0].vObject).Destroy();
+     if( Args[ 0].vtype = vtObject) then tObject( Args[ 0].vObject).Destroy();
    end; // DestroyValue;
 
 
