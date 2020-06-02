@@ -46,47 +46,12 @@ uses
    lbp_argv,
    lbp_types,
    lbp_generic_containers,
+   lbp_csv_filter_aux,
    lbp_parse_helper,
    lbp_csv,
    regexpr,  // Regular expressions
    classes,
    sysutils;
-
-
-// ************************************************************************
-// * tgCsvRowTuple - My tgDictionary class
-// ************************************************************************
-
-type
-   generic tgCsvRowTuple< K> = class( tObject)
-      public
-         Key: K;
-         Value: tCsvRowArray;
-      end; // tgCsvRowTuple
-
-   tCsvStringRowTubple = specialize tgCsvRowTuple< string>;
-   tCsvWord64RowwTuple = specialize tgCsvRowTuple< word64);
-   tCsvWord32RowwTuple = specialize tgCsvRowTuple< word32);
-   tCsvInt64RowwTuple  = specialize tgCsvRowTuple< int64);
-   tCsvInt32RowwTuple  = specialize tgCsvRowTuple< int32);
-
-
-// ************************************************************************
-
-type
-   tHeaderDict         = specialize tgDictionary<string, integer>;
-   tStringTree         = specialize tgAvlTree< string>;
-   tIntegerArray       = array of integer;
-   tCsvStringRowTuple  = specialize tgCsvRowTuple< string>;
-   tCsvWord32RowTuple  = specialize tgCsvRowTuple< string>;
-   tCsvWord64RowTuple  = specialize tgCsvRowTuple< string>;
-   tCsvWordIntRowTuple  = specialize tgCsvRowTuple< string>;
-
-   // tStringRowDict  = specialize tgDictionary<string,  tCsvCellArray>;
-   // tWord64RowDict  = specialize tgDictionary<word64,  tCsvCellArray>;
-   // tWord32RowDict  = specialize tgDictionary<word32,  tCsvCellArray>;
-   // tInt64RowDict   = specialize tgDictionary<int64,   tCsvCellArray>;
-   // tInt32RowDict   = specialize tgDictionary<int32,   tCsvCellArray>;
 
 
 // *************************************************************************
@@ -232,34 +197,6 @@ type
          procedure   SetRow( Row: tCsvCellArray); override;
       end; // tCsvGrepFilter
 
-
-// *************************************************************************
-// * tCsvStringSortFilter()
-// *************************************************************************
-
-type
-   tCsvStringSortFilter = class( tCsvFilter)
-      protected
-         HeaderSent: boolean;
-         NewHeader:  tCsvCellArray;
-         AllowNew:   boolean; // Allow new blank columns
-         IndexMap:   tIntegerArray;
-         NewLength:  integer;
-      public
-         Constructor Create( iNewHeader: tCsvCellArray; iAllowNew: boolean);
-         constructor Create( iNewHeader: string; iAllowNew: boolean);
-         procedure   SetInputHeader( Header: tCsvCellArray); override;
-         procedure   SetRow( Row: tCsvCellArray); override;
-      end; // tCsvReorderFilter
-
-
-// *************************************************************************
-// * Global variables
-// *************************************************************************
-
-var
-   HeaderZeroLengthError: string = 'The passed header can not be empty!';
-   HeaderUnknownField: string = '''%s'' is not a field in the input header!';
 
 // *************************************************************************
 
