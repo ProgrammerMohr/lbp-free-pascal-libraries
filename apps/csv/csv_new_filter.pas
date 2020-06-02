@@ -83,7 +83,7 @@ type
 implementation
 
 // ========================================================================
-// = tCsvUniqueFilter class
+// = tCsvStringSortFilter class
 // ========================================================================
 // *************************************************************************
 // * CompareStringRowTuple() - Global function to support sorting
@@ -164,6 +164,8 @@ procedure tCsvStringSortFilter.SetInputHeader( Header: tCsvCellArray);
       end;
 
       if( not Found) then Usage( true, Format( HeaderUnknownField, [FieldName]));
+
+      NextFilter.SetInputHeader( Header);
    end; // SetInputHeader();
 
 
@@ -176,6 +178,7 @@ procedure tCsvStringSortFilter.SetRow( Row: tCsvCellArray);
       Field: string;
       RowTuple: tCsvStringRowTubple;
    begin
+      RowTuple:= tCsvStringRowTubple.Create();
       Field:= Row[ FieldIndex];
       if( CaseInsensitive) then Field:= LowerCase( Field);
       RowTuple.Key:= Field;

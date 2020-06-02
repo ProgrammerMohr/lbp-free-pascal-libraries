@@ -43,233 +43,103 @@ uses
    lbp_argv,
    lbp_types,
    lbp_csv,
-   lbp_parse_helper,
-   lbp_generic_containers,
-   lbp_input_file,
-   lbp_output_file,
-   sysutils; // Conversion functions
-
-
-
-// ************************************************************************
-// * tCsvLine class - A class to hold the elements of a tCsvCellArrayraise 
-// *   We use this because LBP generic contains don't work with arrays.
-// ************************************************************************
-
-type
-   tCsvLine = class
-      public
-         Row:  tCsvCellArray;
-      end;
-      
-
-// ************************************************************************
-// * tCsvLineList class - A parent class to hold all CSV lines with the
-// *    same value in the sort field.
-// ************************************************************************
-
-type
-   tCsvLineList = specialize tgDoubleLinkedList< tCsvLine>;
+   lbp_csv_filter,
+   csv_new_filter,
+   lbp_csv_io_filters,
+   lbp_generic_containers;
 
 
 // ************************************************************************
-// * tCsvLineListByString class - The CSV Line will be sorted by a string
-// *    field
-// ************************************************************************
-
-type
-   tCsvLineListByString = class( tCsvLineList)
-      public
-         Key:    string;
-         constructor Create( iLine: tCsvCellArray);
-      end;
-
-
-// ************************************************************************
-// * tCsvLineListByInt64 class - The CSV Line will be sorted by an int64
-// *    field
-// ************************************************************************
-
-type
-   tCsvLineListByInt64 = class( tCsvLineList)
-      public
-         Key:    int64;
-         constructor Create( iLine: tCsvCellArray);
-      end;
-
-
-// ************************************************************************
-// * tCsvLineByIPv4 class - The CSV Line will be sorted by an IPv4
-// *                          address field
-// ************************************************************************
-
-type
-   tCsvLineListByIPv4 = class( tCsvLineList)
-      public
-         Key:    word32;
-         constructor Create( iLine: tCsvCellArray);
-      end;
-
-
-// ************************************************************************
-// * Global variables
+// * Command line parameters
 // ************************************************************************
 
 var
-   FieldName:          string; // From the --header parameter
-   FieldIndex:         integer;
-   SkipNonPrintable:   boolean = false;
-   IgnoreCase:         boolean = false;
-   ReverseOrder:       boolean = false;
-   DelimiterIn:        char;
-   DelimiterOut:       char;
-   Csv:                tCsv;
-   SortByIpv4:         boolean = false;
-   SortByInteger:      boolean = false;
-   SortByDouble:       boolean = false;
+   FieldName:    string = '';
+   IgnoreCase:   boolean = false;
+   ReverseOrder: boolean = false;
+   ByInt32:      boolean = false;
+   ByInt64:      boolean = false;
+   ByWord32:     boolean = false;
+   ByWord64:     boolean = false;
+   ByFloat:      boolean = false;
+   ByDate:       boolean = false;
+   ByIpv4:       boolean = false;
 
 
-
-// ========================================================================
-// = tCsvLineListByString class
-// ========================================================================
-// ************************************************************************
-// * Create() - Constructor
 // ************************************************************************
 
-constructor tCsvLineListByString.Create( iLine: tCsvCellArray);
+var
+   NoHeaderError:  string = 'The header paramter must be a valid header field name!';
+   SortParamError: string = 'Only one ''by-'' parameter can be selected at once!';
+   NotImplemented: string = 'The sort ''by-'' parameter you entered is not yet implemented!';
+
+
+// ************************************************************************
+// * ReadParams
+// ************************************************************************
+
+procedure ReadParams();
    var
-      L:  tCsvLine;
+      Count:  integer = 0;
    begin
-      inherited Create();
-      L:= tCsvLine.Create();
-      L.Row:= iLine;
-      Queue:= L;
-      if( IgnoreCase) then begin
-         Key:= LowerCase( iLine[ FieldIndex]);
-      end else begin
-         Key:= iLine[ FieldIndex];
-      end;
-   end; // Create()
+      FieldName:=    GetParam( 'h');
+      if( FieldName = '') then lbp_argv.Usage( true, NoHeaderError);
 
-
-
-// ========================================================================
-// = tCsvLineListByInt64 class
-// ========================================================================
-// ************************************************************************
-// * Constructor()
-// ************************************************************************
-
-constructor tCsvLineListByInt64.Create( iLine: tCsvCellArray);
-   var
-      L:  tCsvLine;
-   begin
-      inherited Create();
-      L:= tCsvLine.Create();
-      L.Row:= iLine;
-      Queue:= L;
-      key:= StrToInt64( iLine[ FieldIndex]);
-   end; // Create()
-
-
-
-// ========================================================================
-// = tCsvLineListByIPv4 class
-// ========================================================================
-// ************************************************************************
-// * Constructor()
-// ************************************************************************
-
-constructor tCsvLineListByIPv4.Create( iLine: tCsvCellArray);
-   var
-      L:  tCsvLine;
-   begin
-      inherited Create();
-      L:= tCsvLine.Create();
-      L.Row:= iLine;
-      Queue:= L;
-      key:= StrToInt64( iLine[ FieldIndex]);
-   end; // Create()
-
-
-
-// ************************************************************************
-// * SetGlobals() - Sets our global variables
-// ************************************************************************
-
-procedure SetGlobals();
-   var
-      Delimiter:    string;
-      Exclusive:    integer = 0;
-   begin
-      // Set the boolean options
-      SkipNonPrintable:= ParamSet( 'skip-non-printable');
-      IgnoreCase:=       ParamSet( 'ignore-case');
-      ReverseOrder:=     ParamSet( 'reverse-order');
-      if( ParamSet( 'ipv4')) then begin
-         SortByIpv4:= true;
-         Inc( Exclusive);
-      end;
-      if( ParamSet( 'number')) then begin
-         SortByInteger:= true;
-         Inc( Exclusive);
-      end;
-      if( ParamSet( 'number')) then begin
-         SortByInteger:= true;
-         Inc( Exclusive);
-      end;
-      if( ParamSet( 'double')) then begin
-         SortByDouble:= true;
-         Inc( Exclusive);
-      end;
-      if( Exclusive > 1) then begin
-         raise tCsvException.Create( 'You selected more than one field sort type!');        
-      end;
+      IgnoreCase:=   ParamSet( 'ignore-case');
+      ReverseOrder:= ParamSet( 'reverse-order');
+      ByInt32:=      ParamSet( 'by-int32');
+      ByInt64:=      ParamSet( 'by-int64');
+      ByWord32:=     ParamSet( 'by-word32');
+      ByWord64:=     ParamSet( 'by-word64');
+      ByFloat:=      ParamSet( 'by-float');
+      ByDate:=       ParamSet( 'by-date');
+      ByIpv4:=       ParamSet( 'by-ipv4');
       
-      // Set the input delimiter
-      if( ParamSet( 'id')) then begin
-         Delimiter:= GetParam( 'id');
-         if( Length( Delimiter) <> 1) then begin
-            raise tCsvException.Create( 'The delimiter must be a singele character!');
-         end;
-         DelimiterIn:= Delimiter[ 1];
-      end else begin
-         DelimiterIn:= CsvDelimiter; // the default value in the lbp_csv unit.
-      end;
+      // Check to make sure only one 'by-' Parameter is set;
+      if(  ByInt32)  then inc( Count);
+      if(  ByInt64)  then inc( Count);
+      if(  Byword32) then inc( Count);
+      if(  Byword64) then inc( Count);
+      if(  ByFloat)  then inc( Count);
+      if(  ByDate)   then inc( Count);
+      if(  ByIpv4)   then inc( Count);
+      if( Count > 1) then lbp_argv.Usage( true, SortParamError);
+   end; // ReadParams()
 
-      // Set the output delimiter
-      if( ParamSet( 'od')) then begin
-         Delimiter:= GetParam( 'od');
-         if( Length( Delimiter) <> 1) then begin
-            raise tCsvException.Create( 'The delimiter must be a singele character!');
-         end;
-         DelimiterOut:= Delimiter[ 1];
-      end else begin
-         DelimiterOut:= DelimiterIn;
-      end;
-   
-      // Open input CSV
-      Csv:= tCsv.Create( lbp_input_file.InputStream, False);
-      Csv.ParseHeader();
-   
-      // Get the header field to be sorted.
-      if( ParamSet( 'header')) then begin
-         FieldName:= GetParam( 'header');
-      end else begin
-         Usage( true, 'The header field parameter is required!');        
-      end;
 
-      // Make sure the header field is valid.
-      if( Csv.ColumnExists( FieldName)) then begin
-         FieldIndex := Csv.IndexOf( FieldName);
-      end else begin
-         Usage( true, 'Your header field ''' + FieldName + ''' does not exist in the input CSV file!');
-      end;
+// ************************************************************************
+// * GetSortByFilter() - create the proper tCsvFilter based on the command
+// *                     line parameters.
+// ************************************************************************
 
-      // Apply the boolean options
-      Csv.SkipNonPrintable:= SkipNonPrintable;
-   end; // SetGlobals()
+function GetSortByFilter(): tCsvFilter;
+   begin
+      result:= nil; // Only needed until they all are implemented
+      if( ByInt32) then begin 
+         lbp_argv.Usage( true, NotImplemented);
+         // tCsvInt32SortFilter.Create( FieldName, ReverseOrder);
+      end else if( ByInt64) then begin
+         lbp_argv.Usage( true, NotImplemented);  
+         // tCsvInt64SortFilter.Create( FieldName, ReverseOrder);
+      end else if( ByWord32) then begin
+         lbp_argv.Usage( true, NotImplemented);
+         // tCsvWord32SortFilter.Create( FieldName, ReverseOrder);
+      end else if( ByWord64) then begin
+         lbp_argv.Usage( true, NotImplemented);
+         // tCsvWord64SortFilter.Create( FieldName, ReverseOrder);
+      end else if( ByFloat) then begin
+         lbp_argv.Usage( true, NotImplemented);
+         // tCsvFloatSortFilter.Create( FieldName, ReverseOrder);
+      end else if( ByDate) then begin
+         lbp_argv.Usage( true, NotImplemented);
+         // tCsvDateSortFilter.Create( FieldName, ReverseOrder);
+      end else if( ByIpv4) then begin
+         lbp_argv.Usage( true, NotImplemented); 
+         // tCsvIpv4SortFilter.Create( FieldName, ReverseOrder);
+      end else begin
+         result:= tCsvStringSortFilter.Create( FieldName, ReverseOrder, IgnoreCase);
+      end;
+   end; // GetSortByFilter()
 
 
 // ************************************************************************
@@ -287,88 +157,19 @@ procedure InitArgvParser();
       InsertUsage( '   csv_sort [--header <header field name>] [-f <input file name>] [-o <output file name>]');
       InsertUsage( '');
       InsertUsage( '   ========== Program Options ==========');
-      SetInputFileParam( true, true, false, true);
-      SetOutputFileParam( false, true, false, true);
-      InsertParam( ['h','header'], true, '', 'The comma separated list of column names'); 
-      InsertParam( ['d', 'id','input-delimiter'], true, ',', 'The character which separates fields on a line.'); 
-      InsertParam( ['od','output-delimiter'], true, ',', 'The character which separates fields on a line.'); 
-      InsertParam( ['s', 'skip-non-printable'], false, '', 'Try to fix files with some unicode characters.');
+      InsertParam( ['h', 'header'], true, '', 'The signle header field you are sorting by.');
       InsertParam( ['i', 'ignore-case'], false, '', 'Perform a case insensitive sort.');
-      InsertParam( ['4', 'ipv4'], false, '', 'The passed field is an IPv4 address.');
-      InsertParam( ['n', 'number'], false, '', 'The passed filed is an integer number.');
-      InsertParam( ['double', 'float'], false, '', 'The passed filed is an floating point number.');
       InsertParam( ['r', 'reverse-order'], false, '', 'Outputs in decending order.');
+      InsertParam( ['by-int32'], false, '', 'The passed filed is a 32 bit signed integer.');
+      InsertParam( ['by-int64'], false, '', 'The passed filed is a 64 bit signed integer.');
+      InsertParam( ['by-word32'], false, '', 'The passed filed is a 32 bit unsigned integer.');
+      InsertParam( ['by-word64'], false, '', 'The passed filed is a 64 bit unsigned integer.');
+      InsertParam( ['by-float'], false, '', 'The passed filed is a floating point number.');
+      InsertParam( ['by-date'], false, '', 'The passed filed is a date.');
+      InsertParam( ['by-ipv4'], false, '', 'The passed field is an IPv4 address.');
       InsertUsage();
       ParseParams();
    end; // InitArgvParser();
-
-
-// ************************************************************************
-// * CompareByStrings() - Compare two Strings.  Used by tCsvTree
-// ************************************************************************
-
-function CompareString( CLL1: tCsvLineList; CLL2: tCsvLineList): int8;
-   var
-      K1: string;
-      K2: string;
-   begin
-      K1:= tCsvLineListByString( CLL1).Key;
-      K2:= tCsvLineListByString( CLL2).Key;
-      if( K1 > K2) then begin
-         result:= 1;
-      end else if( K1 < K2) then begin
-         result:= -1;
-      end else begin
-         result:= 0;
-      end;
-   end; // CompareString()
-
-
-// ************************************************************************
-// * CompareInt64() - Compare two Int64s.  Used by tCsvTree
-// ************************************************************************
-
-function CompareInt64( CLL1: tCsvLineList; CLL2: tCsvLineList): int8;
-   var
-      K1: Int64;
-      K2: Int64;
-   begin
-      K1:= tCsvLineListByInt64( CLL1).Key;
-      K2:= tCsvLineListByInt64( CLL2).Key;
-      if( K1 > K2) then begin
-         result:= 1;
-      end else if( K1 < K2) then begin
-         result:= -1;
-      end else begin
-         result:= 0;
-      end;
-   end; // CompareInt64()
-
-
-// ************************************************************************
-// * CompareWord32() - Compare two Word32s.  Used by tCsvTree
-// ************************************************************************
-
-function CompareWord32( CLL1: tCsvLineList; CLL2: tCsvLineList): int8;
-   var
-      K1: word32;
-      K2: word32;
-   begin
-      K1:= tCsvLineListByIPv4( CLL1).Key;
-      K2:= tCsvLineListByIpv4( CLL2).Key;
-      if( K1 > K2) then begin
-         result:= 1;
-      end else if( K1 < K2) then begin
-         result:= -1;
-      end else begin
-         result:= 0;
-      end;
-   end; // CompareInt64()
-
-
-// ************************************************************************
-// * 
-// ************************************************************************
 
 
 // ************************************************************************
@@ -376,69 +177,18 @@ function CompareWord32( CLL1: tCsvLineList; CLL2: tCsvLineList): int8;
 // ************************************************************************
 
 var
-   Header:    tCsvCellArray;
-   TempLine:  tCsvCellArray;
-   NewLine:   tCsvCellArray;
-   Delimiter: string;
-   OD:        char; // The output delimiter
-   S:         string;
-   C:         char;
-   L:         integer; // Header length
-   i:         integer;
-   iMax:      integer; 
+   CsvSortFilter: tCsvFilter;
+
 begin
    InitArgvParser();
-   SetGlobals();
+   ReadParams();
 
-   // // Set the input delimiter
-   // if( ParamSet( 'id')) then begin
-   //    Delimiter:= GetParam( 'id');
-   //    if( Length( Delimiter) <> 1) then begin
-   //       raise tCsvException.Create( 'The delimiter must be a singele character!');
-   //    end;
-   //    CsvDelimiter:= Delimiter[ 1];
-   // end;
-
-   // // Set the output delimiter
-   // if( ParamSet( 'od')) then begin
-   //    Delimiter:= GetParam( 'od');
-   //    if( Length( Delimiter) <> 1) then begin
-   //       raise tCsvException.Create( 'The delimiter must be a singele character!');
-   //    end;
-   //    OD:= Delimiter[ 1];
-   // end else OD:= CsvDelimiter;
+   CsvSortFilter:= GetSortByFilter();
    
-   // // Get the new header from the command line.
-   // if( not ParamSet( 'header')) then Usage( true, 'The ''--header'' parametter must be specified!');
-   // Csv:= tCsv.Create( GetParam( 'header'));
-   // Csv.Delimiter:= ','; // The delimiter for the command line is always a ','
-   // Csv.SkipNonPrintable:= ParamSet( 's');
-   // Header:= Csv.ParseRow;
-   // Csv.Destroy;
-   // L:= Length( Header);
-   // if( L < 1) then Usage( true, 'An empty string was passed in the ''--header'' parametter!');
-   // iMax:= L - 1;
+   CsvFilterQueue.Queue:= CsvInputFilter;
+   CsvFilterQueue.Queue:= CsvSortFilter;
+   CsvFilterQueue.Queue:= CsvOutputFilter;
+   CsvFilterQueue.Go();
 
-   // // Open input CSV
-   // Csv:= tCsv.Create( lbp_input_file.InputStream, False);
-   
-   // // Test to make sure the user entered a valid header,  Output it if it is OK.
-   // Csv.ParseHeader();
-   // for S in Header do begin
-   //    if( not Csv.ColumnExists( S)) then Usage( true, 'Your header field ''' + S + ''' does not exist in the input CSV file!');
-   // end; // for
-
-   // // Process the input CSV
-   // writeln( OutputFile, Header.ToLine( OD));
-   // repeat
-   //    TempLine:= Csv.ParseRow();
-   //    SetLength( NewLine, L);
-   //    C:= Csv.PeekChr();
-   //    if( C <> EOFchr) then begin
-   //       for i:= 0 to iMax do NewLine[ i]:= TempLine[ Csv.IndexOf( Header[ i])];
-   //       writeln( OutputFile, NewLine.ToLine( OD));
-   //    end;
-   // until( C = EOFchr);
-
-   Csv.Destroy;
+   // Cleanup happens automatically in the  lbp_csv_filters unit.
 end.  // csv_sort program
