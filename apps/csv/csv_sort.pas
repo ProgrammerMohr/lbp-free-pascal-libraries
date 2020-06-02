@@ -116,8 +116,8 @@ function GetSortByFilter(): tCsvFilter;
    begin
       result:= nil; // Only needed until they all are implemented
       if( ByInt32) then begin 
-         lbp_argv.Usage( true, NotImplemented);
-         // tCsvInt32SortFilter.Create( FieldName, ReverseOrder);
+//         lbp_argv.Usage( true, NotImplemented);
+         tCsvInt32SortFilter.Create( FieldName, ReverseOrder);
       end else if( ByInt64) then begin
          lbp_argv.Usage( true, NotImplemented);  
          // tCsvInt64SortFilter.Create( FieldName, ReverseOrder);

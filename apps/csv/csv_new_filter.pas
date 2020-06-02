@@ -55,27 +55,25 @@ uses
 
 
 // *************************************************************************
-// * tCsvStringSortFilter()
+// * tCsvInt32SortFilter()
 // *************************************************************************
 
 type
-   tCsvStringSortFilter = class( tCsvFilter)
+   tCsvInt32SortFilter = class( tCsvFilter)
       protected type
-         tRowTree = specialize tgAvlTree< tCsvStringRowTubple>;
+         tRowTree = specialize tgAvlTree< tCsvInt32RowTuple>;
       protected
          FieldName:        string;
          FieldIndex:       integer;
          Reverse:          boolean; // output in reverse order
-         CaseInsensitive:  boolean; // sort case insensitive
          RowTree:          tRowTree;
       public
          constructor Create( iField:           string; 
-                             iReverse:         boolean = false;
-                             iCaseInsensitive: boolean = false);
+                             iReverse:         boolean = false);
          destructor  Destroy(); override;
          procedure   SetInputHeader( Header: tCsvCellArray); override;
          procedure   SetRow( Row: tCsvCellArray); override;
-      end; // tCsvStringSortFilter
+      end; // tCsvInt32SortFilter
 
 
 // *************************************************************************
@@ -83,13 +81,13 @@ type
 implementation
 
 // ========================================================================
-// = tCsvStringSortFilter class
+// = tCsvInt32SortFilter class
 // ========================================================================
 // *************************************************************************
-// * CompareStringRowTuple() - Global function to support sorting
+// * CompareInt32RowTuple() - Global function to support sorting
 // *************************************************************************
 
-function CompareStringRowTuple( T1, T2: tCsvStringRowTuple): integer;
+function CompareInt32RowTuple( T1, T2: tCsvInt32RowTuple): integer;
    begin
       if( T1.key > T2.key) then begin
          result:= 1;
@@ -98,24 +96,22 @@ function CompareStringRowTuple( T1, T2: tCsvStringRowTuple): integer;
       end else begin
          result:= 0;
       end;
-   end; // CompareStringRowTuple();
+   end; // CompareInt32RowTuple();
 
 
 // *************************************************************************
 // * Create() - constructor
 // *************************************************************************
 
-constructor tCsvStringSortFilter.Create( iField:           string; 
-                                         iReverse:         boolean = false;
-                                         iCaseInsensitive: boolean = false);
+constructor tCsvInt32SortFilter.Create( iField:           string; 
+                                         iReverse:         boolean = false);
    var
       Func: tRowTree.tCompareFunction;
    begin
       inherited Create();
       FieldName:=       iField;
       Reverse:=         iReverse;
-      CaseInsensitive:= iCaseInsensitive;
-      Func:=            tRowTree.tCompareFunction( @CompareStringRowTuple);
+      Func:=            tRowTree.tCompareFunction( @CompareInt32RowTuple);
       RowTree:=         tRowTree.Create( Func, true);
    end; // Create()
 
@@ -124,7 +120,7 @@ constructor tCsvStringSortFilter.Create( iField:           string;
 // * Destroy() - destructor - Does the actual output
 // *************************************************************************
 
-destructor tCsvStringSortFilter.Destroy();
+destructor tCsvInt32SortFilter.Destroy();
    begin
       if( Reverse) then begin
         while RowTree.Previous() do begin
@@ -146,7 +142,7 @@ destructor tCsvStringSortFilter.Destroy();
 // *                    next filter.
 // *************************************************************************
 
-procedure tCsvStringSortFilter.SetInputHeader( Header: tCsvCellArray);
+procedure tCsvInt32SortFilter.SetInputHeader( Header: tCsvCellArray);
    var
       i:     integer;
       iMax:  integer;
@@ -173,15 +169,14 @@ procedure tCsvStringSortFilter.SetInputHeader( Header: tCsvCellArray);
 // * SetRow() - Add the row to the tree
 // *************************************************************************
 
-procedure tCsvStringSortFilter.SetRow( Row: tCsvCellArray);
+procedure tCsvInt32SortFilter.SetRow( Row: tCsvCellArray);
    var
       Field: string;
-      RowTuple: tCsvStringRowTubple;
+      RowTuple: tCsvInt32RowTuple;
    begin
-      RowTuple:= tCsvStringRowTubple.Create();
+      RowTuple:= tCsvInt32RowTuple.Create();
       Field:= Row[ FieldIndex];
-      if( CaseInsensitive) then Field:= LowerCase( Field);
-      RowTuple.Key:= Field;
+      RowTuple.Key:= Field.ToInteger;
       RowTuple.Row:= Row;
       RowTree.Add( RowTuple);
    end; // SetRow();
