@@ -61,6 +61,7 @@ var
    ByInt64:      boolean = false;
    ByWord32:     boolean = false;
    ByWord64:     boolean = false;
+   ByCurrency:   boolean = false;
    ByFloat:      boolean = false;
    ByDate:       boolean = false;
    ByIpv4:       boolean = false;
@@ -91,18 +92,20 @@ procedure ReadParams();
       ByInt64:=      ParamSet( 'by-int64');
       ByWord32:=     ParamSet( 'by-word32');
       ByWord64:=     ParamSet( 'by-word64');
+      ByCurrency:=   ParamSet( 'by-currency');
       ByFloat:=      ParamSet( 'by-float');
       ByDate:=       ParamSet( 'by-date');
       ByIpv4:=       ParamSet( 'by-ipv4');
       
       // Check to make sure only one 'by-' Parameter is set;
-      if(  ByInt32)  then inc( Count);
-      if(  ByInt64)  then inc( Count);
-      if(  Byword32) then inc( Count);
-      if(  Byword64) then inc( Count);
-      if(  ByFloat)  then inc( Count);
-      if(  ByDate)   then inc( Count);
-      if(  ByIpv4)   then inc( Count);
+      if(  ByInt32)    then inc( Count);
+      if(  ByInt64)    then inc( Count);
+      if(  Byword32)   then inc( Count);
+      if(  Byword64)   then inc( Count);
+      if(  ByCurrency) then inc( Count);
+      if(  ByFloat)    then inc( Count);
+      if(  ByDate)     then inc( Count);
+      if(  ByIpv4)     then inc( Count);
       if( Count > 1) then lbp_argv.Usage( true, SortParamError);
    end; // ReadParams()
 
@@ -116,26 +119,24 @@ function GetSortByFilter(): tCsvFilter;
    begin
       result:= nil; // Only needed until they all are implemented
       if( ByInt32) then begin 
-//         lbp_argv.Usage( true, NotImplemented);
-         tCsvInt32SortFilter.Create( FieldName, ReverseOrder);
+         result:= tCsvInt32SortFilter.Create( FieldName, ReverseOrder);
       end else if( ByInt64) then begin
-         lbp_argv.Usage( true, NotImplemented);  
-         // tCsvInt64SortFilter.Create( FieldName, ReverseOrder);
+         result:= tCsvInt64SortFilter.Create( FieldName, ReverseOrder);
       end else if( ByWord32) then begin
-         lbp_argv.Usage( true, NotImplemented);
-         // tCsvWord32SortFilter.Create( FieldName, ReverseOrder);
+         result:= tCsvWord32SortFilter.Create( FieldName, ReverseOrder);
       end else if( ByWord64) then begin
-         lbp_argv.Usage( true, NotImplemented);
-         // tCsvWord64SortFilter.Create( FieldName, ReverseOrder);
+         result:= tCsvWord64SortFilter.Create( FieldName, ReverseOrder);
+      end else if( ByCurrency) then begin
+         result:= tCsvCurrencySortFilter.Create( FieldName, ReverseOrder);
       end else if( ByFloat) then begin
          lbp_argv.Usage( true, NotImplemented);
-         // tCsvFloatSortFilter.Create( FieldName, ReverseOrder);
+         // result:= tCsvExtendedSortFilter.Create( FieldName, ReverseOrder);
       end else if( ByDate) then begin
          lbp_argv.Usage( true, NotImplemented);
-         // tCsvDateSortFilter.Create( FieldName, ReverseOrder);
+         // result:= tCsvDateSortFilter.Create( FieldName, ReverseOrder);
       end else if( ByIpv4) then begin
          lbp_argv.Usage( true, NotImplemented); 
-         // tCsvIpv4SortFilter.Create( FieldName, ReverseOrder);
+         // result:= tCsvIpv4SortFilter.Create( FieldName, ReverseOrder);
       end else begin
          result:= tCsvStringSortFilter.Create( FieldName, ReverseOrder, IgnoreCase);
       end;
@@ -160,12 +161,13 @@ procedure InitArgvParser();
       InsertParam( ['h', 'header'], true, '', 'The signle header field you are sorting by.');
       InsertParam( ['i', 'ignore-case'], false, '', 'Perform a case insensitive sort.');
       InsertParam( ['r', 'reverse-order'], false, '', 'Outputs in decending order.');
-      InsertParam( ['by-int32'], false, '', 'The passed filed is a 32 bit signed integer.');
-      InsertParam( ['by-int64'], false, '', 'The passed filed is a 64 bit signed integer.');
-      InsertParam( ['by-word32'], false, '', 'The passed filed is a 32 bit unsigned integer.');
-      InsertParam( ['by-word64'], false, '', 'The passed filed is a 64 bit unsigned integer.');
-      InsertParam( ['by-float'], false, '', 'The passed filed is a floating point number.');
-      InsertParam( ['by-date'], false, '', 'The passed filed is a date.');
+      InsertParam( ['by-int32'], false, '', 'The passed field is a 32 bit signed integer.');
+      InsertParam( ['by-int64'], false, '', 'The passed field is a 64 bit signed integer.');
+      InsertParam( ['by-word32'], false, '', 'The passed field is a 32 bit unsigned integer.');
+      InsertParam( ['by-word64'], false, '', 'The passed field is a 64 bit unsigned integer.');
+      InsertParam( ['by-currency'], false, '', 'The passed field is a currency amount.');
+      InsertParam( ['by-float'], false, '', 'The passed field is a floating point number.');
+      InsertParam( ['by-date'], false, '', 'The passed field is a date.');
       InsertParam( ['by-ipv4'], false, '', 'The passed field is an IPv4 address.');
       InsertUsage();
       ParseParams();

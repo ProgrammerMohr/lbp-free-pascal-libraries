@@ -72,21 +72,26 @@ type
 // ************************************************************************
 
 type
-   tHeaderDict         = specialize tgDictionary<string, integer>;
-   tStringTree         = specialize tgAvlTree< string>;
-   tIntegerArray       = array of integer;
-   tCsvStringRowTuple  = specialize tgCsvRowTuple<  string>;
-   tCsvWord32RowTuple  = specialize tgCsvRowTuple<  word32>;
-   tCsvWord64RowTuple  = specialize tgCsvRowTuple<  word64>;
-   tCsvInt32RowTuple   = specialize tgCsvRowTuple<  int32>;
-   tCsvInt64RowTuple   = specialize tgCsvRowTuple<  int64>;
+   tHeaderDict          = specialize tgDictionary<string, integer>;
+   tStringTree          = specialize tgAvlTree< string>;
+   tIntegerArray        = array of integer;
+   tCsvStringRowTuple   = specialize tgCsvRowTuple<  string>;
+   tCsvWord32RowTuple   = specialize tgCsvRowTuple<  word32>;
+   tCsvWord64RowTuple   = specialize tgCsvRowTuple<  word64>;
+   tCsvInt32RowTuple    = specialize tgCsvRowTuple<  int32>;
+   tCsvInt64RowTuple    = specialize tgCsvRowTuple<  int64>;
+   tCsvCurrencyRowTuple = specialize tgCsvRowTuple<  Currency>;
+   tCsvExtendedRowTuple = specialize tgCsvRowTuple<  extended>;
+   tCsvDateTimeRowTuple = specialize tgCsvRowTuple<  tDateTime>;
 
-   tStringRowDict  = specialize tgDictionary<string,  tCsvStringRowTuple>;
-   tWord64RowDict  = specialize tgDictionary<word64,  tCsvWord64RowTuple>;
-   tWord32RowDict  = specialize tgDictionary<word32,  tCsvWord32RowTuple>;
-   tInt64RowDict   = specialize tgDictionary<int64,   tCsvInt64RowTuple>;
-   tInt32RowDict   = specialize tgDictionary<int32,   tCsvInt32RowTuple>;
-
+   tStringRowDict   = specialize tgDictionary<string,    tCsvStringRowTuple>;
+   tInt64RowDict    = specialize tgDictionary<int64,     tCsvInt64RowTuple>;
+   tInt32RowDict    = specialize tgDictionary<int32,     tCsvInt32RowTuple>;
+   tWord64RowDict   = specialize tgDictionary<word64,    tCsvWord64RowTuple>;
+   tWord32RowDict   = specialize tgDictionary<word32,    tCsvWord32RowTuple>;
+   tCurrencyRowDict = specialize tgDictionary<Currency,  tCsvWord32RowTuple>;
+   tExtendedRowDict = specialize tgDictionary<Extended,  tCsvWord32RowTuple>; 
+   tDateTimeRowDict = specialize tgDictionary<tDateTime, tCsvWord32RowTuple>; 
 
 // *************************************************************************
 // * Global variables
@@ -95,7 +100,8 @@ type
 var
    HeaderZeroLengthError: string = 'The passed header can not be empty!';
    HeaderUnknownField: string = '''%s'' is not a field in the input header!';
-
+   RangeErrorInt32:    string = '''%s'' is outside the range of a 32 bit integer!';
+   RangeErrorWord32:   string =  '''%s'' is outside the range of a 32 bit unsigned integer!';
 
 // *************************************************************************
 

@@ -48,6 +48,7 @@ uses
    lbp_argv,
    lbp_types,
    lbp_generic_containers,
+   lbp_parse_helper, // CurrencyChrs
    lbp_csv_filter_aux,
    lbp_csv_filter,
    lbp_csv,
@@ -55,13 +56,13 @@ uses
 
 
 // *************************************************************************
-// * tCsvInt32SortFilter()
+// * tCsvCurrencySortFilter()
 // *************************************************************************
 
 type
-   tCsvInt32SortFilter = class( tCsvFilter)
+   tCsvCurrencySortFilter = class( tCsvFilter)
       protected type
-         tRowTree = specialize tgAvlTree< tCsvInt32RowTuple>;
+         tRowTree = specialize tgAvlTree< tCsvCurrencyRowTuple>;
       protected
          FieldName:        string;
          FieldIndex:       integer;
@@ -73,7 +74,7 @@ type
          destructor  Destroy(); override;
          procedure   SetInputHeader( Header: tCsvCellArray); override;
          procedure   SetRow( Row: tCsvCellArray); override;
-      end; // tCsvInt32SortFilter
+      end; // tCsvCurrencySortFilter
 
 
 // *************************************************************************
@@ -81,13 +82,13 @@ type
 implementation
 
 // ========================================================================
-// = tCsvInt32SortFilter class
+// = tCsvCurrencySortFilter class
 // ========================================================================
 // *************************************************************************
-// * CompareInt32RowTuple() - Global function to support sorting
+// * CompareCurrencyRowTuple() - Global function to support sorting
 // *************************************************************************
 
-function CompareInt32RowTuple( T1, T2: tCsvInt32RowTuple): integer;
+function CompareCurrencyRowTuple( T1, T2: tCsvCurrencyRowTuple): integer;
    begin
       if( T1.key > T2.key) then begin
          result:= 1;
@@ -96,22 +97,22 @@ function CompareInt32RowTuple( T1, T2: tCsvInt32RowTuple): integer;
       end else begin
          result:= 0;
       end;
-   end; // CompareInt32RowTuple();
+   end; // CompareCurrencyRowTuple();
 
 
 // *************************************************************************
 // * Create() - constructor
 // *************************************************************************
 
-constructor tCsvInt32SortFilter.Create( iField:           string; 
-                                         iReverse:         boolean = false);
+constructor tCsvCurrencySortFilter.Create( iField:           string; 
+                                        iReverse:         boolean = false);
    var
       Func: tRowTree.tCompareFunction;
    begin
       inherited Create();
       FieldName:=       iField;
       Reverse:=         iReverse;
-      Func:=            tRowTree.tCompareFunction( @CompareInt32RowTuple);
+      Func:=            tRowTree.tCompareFunction( @CompareCurrencyRowTuple);
       RowTree:=         tRowTree.Create( Func, true);
    end; // Create()
 
@@ -120,7 +121,7 @@ constructor tCsvInt32SortFilter.Create( iField:           string;
 // * Destroy() - destructor - Does the actual output
 // *************************************************************************
 
-destructor tCsvInt32SortFilter.Destroy();
+destructor tCsvCurrencySortFilter.Destroy();
    begin
       if( Reverse) then begin
         while RowTree.Previous() do begin
@@ -142,7 +143,7 @@ destructor tCsvInt32SortFilter.Destroy();
 // *                    next filter.
 // *************************************************************************
 
-procedure tCsvInt32SortFilter.SetInputHeader( Header: tCsvCellArray);
+procedure tCsvCurrencySortFilter.SetInputHeader( Header: tCsvCellArray);
    var
       i:     integer;
       iMax:  integer;
@@ -169,14 +170,18 @@ procedure tCsvInt32SortFilter.SetInputHeader( Header: tCsvCellArray);
 // * SetRow() - Add the row to the tree
 // *************************************************************************
 
-procedure tCsvInt32SortFilter.SetRow( Row: tCsvCellArray);
+procedure tCsvCurrencySortFilter.SetRow( Row: tCsvCellArray);
    var
       Field: string;
-      RowTuple: tCsvInt32RowTuple;
+      RowTuple: tCsvCurrencyRowTuple;
    begin
-      RowTuple:= tCsvInt32RowTuple.Create();
+      RowTuple:= tCsvCurrencyRowTuple.Create();
       Field:= Row[ FieldIndex];
-      RowTuple.Key:= Field.ToInteger;
+      if( Field = '') then Field:= '0';
+      if( not (Field[ 1] in CurrencyChrs)) then begin
+         Field:= Copy( Field, 2, Length( Field) - 1);
+      end; 
+      RowTuple.Key:= StrToCurr( Field);
       RowTuple.Row:= Row;
       RowTree.Add( RowTuple);
    end; // SetRow();
