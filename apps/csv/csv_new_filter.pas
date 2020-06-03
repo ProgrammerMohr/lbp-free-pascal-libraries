@@ -175,6 +175,7 @@ procedure tCsvCurrencySortFilter.SetRow( Row: tCsvCellArray);
       Field: string;
       RowTuple: tCsvCurrencyRowTuple;
    begin
+      {$WARNING Built in currency parsing is broken.  It doesn't skip the '$' nor the ','  I need to take a look at how its implemented and fix it.}
       RowTuple:= tCsvCurrencyRowTuple.Create();
       Field:= Row[ FieldIndex];
       if( Field = '') then Field:= '0';
