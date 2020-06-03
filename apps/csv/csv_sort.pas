@@ -44,7 +44,8 @@ uses
    lbp_types,
    lbp_csv,
    lbp_csv_filter,
-   csv_new_filter,
+{$warning csv_new_filter is currently not used}
+//   csv_new_filter,
    lbp_csv_io_filters,
    lbp_generic_containers;
 
@@ -57,6 +58,7 @@ var
    FieldName:    string = '';
    IgnoreCase:   boolean = false;
    ReverseOrder: boolean = false;
+   IgnoreError:  boolean = false;
    ByInt32:      boolean = false;
    ByInt64:      boolean = false;
    ByWord32:     boolean = false;
@@ -96,6 +98,7 @@ procedure ReadParams();
       ByFloat:=      ParamSet( 'by-float');
       ByDate:=       ParamSet( 'by-date');
       ByIpv4:=       ParamSet( 'by-ipv4');
+      IgnoreError:=  ParamSet( 'ignore-error');
       
       // Check to make sure only one 'by-' Parameter is set;
       if(  ByInt32)    then inc( Count);
@@ -135,8 +138,7 @@ function GetSortByFilter(): tCsvFilter;
          lbp_argv.Usage( true, NotImplemented);
          // result:= tCsvDateSortFilter.Create( FieldName, ReverseOrder);
       end else if( ByIpv4) then begin
-         lbp_argv.Usage( true, NotImplemented); 
-         // result:= tCsvIpv4SortFilter.Create( FieldName, ReverseOrder);
+         result:= tCsvIpv4SortFilter.Create( FieldName, ReverseOrder, IgnoreError);
       end else begin
          result:= tCsvStringSortFilter.Create( FieldName, ReverseOrder, IgnoreCase);
       end;
@@ -169,6 +171,8 @@ procedure InitArgvParser();
       InsertParam( ['by-float'], false, '', 'The passed field is a floating point number.');
       InsertParam( ['by-date'], false, '', 'The passed field is a date.');
       InsertParam( ['by-ipv4'], false, '', 'The passed field is an IPv4 address.');
+      InsertParam( ['ignore-error'], false, '', 'Currently for Ipv4 only, if set, conversion');
+      InsertUsage( '                                 errors are treated as the ''0.0.0.0'' address.');
       InsertUsage();
       ParseParams();
    end; // InitArgvParser();

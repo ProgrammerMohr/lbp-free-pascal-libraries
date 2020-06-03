@@ -49,6 +49,7 @@ uses
    lbp_parse_helper, // CurrencyChrs
    lbp_csv_filter_aux,
    lbp_csv,
+   lbp_ip_utils,
    regexpr,  // Regular expressions
    classes,
    sysutils;
@@ -330,6 +331,22 @@ type
          procedure   SetInputHeader( Header: tCsvCellArray); override;
          procedure   SetRow( Row: tCsvCellArray); override;
       end; // tCsvCurrencySortFilter
+
+
+// *************************************************************************
+// * tCsvIpv4SortFilter()
+// *************************************************************************
+
+type
+   tCsvIpv4SortFilter = class( tCsvWord32SortFilter)
+      private
+         IgnoreFailures: boolean;
+      public
+         constructor Create( iField:           string; 
+                             iReverse:         boolean = false;
+                             iIgnoreFailures:  boolean = false);
+         procedure   SetRow( Row: tCsvCellArray); override;
+      end; // tCsvIpv4SortFilter
 
 
 // *************************************************************************
@@ -1402,7 +1419,7 @@ function CompareWord64RowTuple( T1, T2: tCsvWord64RowTuple): integer;
 // *************************************************************************
 
 constructor tCsvWord64SortFilter.Create( iField:           string; 
-                                        iReverse:         boolean = false);
+                                         iReverse:         boolean = false);
    var
       Func: tRowTree.tCompareFunction;
    begin
@@ -1586,6 +1603,51 @@ procedure tCsvCurrencySortFilter.SetRow( Row: tCsvCellArray);
       RowTuple.Row:= Row;
       RowTree.Add( RowTuple);
    end; // SetRow();
+
+
+
+// ========================================================================
+// = tCsvIpv4SortFilter class
+// ========================================================================
+// *************************************************************************
+// * Create() - constructor
+// *************************************************************************
+
+constructor tCsvIpv4SortFilter.Create( iField:           string; 
+                                       iReverse:         boolean = false;
+                                       iIgnoreFailures:  boolean = false);
+   begin
+      inherited Create( iField, iReverse);
+      IgnoreFailures:= iIgnoreFailures;
+   end; // Create() 
+
+
+// *************************************************************************
+// * SetRow() - Add the row to the tree
+// *************************************************************************
+
+procedure tCsvIpv4SortFilter.SetRow( Row: tCsvCellArray);
+   var
+      Field:    string;
+      RowTuple: tCsvWord32RowTuple;
+      Temp:     word32;
+   begin
+      RowTuple:= tCsvWord32RowTuple.Create();
+      Field:= Row[ FieldIndex];
+      try
+         Temp:= IPStringToWord32( Field);
+      except
+        on E: Exception do
+        begin
+           Temp:= 0;
+           if( not IgnoreFailures) then raise E;
+        end;
+      end;
+      RowTuple.Key:= Temp;
+      RowTuple.Row:= Row;
+      RowTree.Add( RowTuple);
+   end; // SetRow();
+
 
 
 // *************************************************************************
