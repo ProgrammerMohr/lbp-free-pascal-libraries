@@ -57,19 +57,24 @@ uses
 
 
 // *************************************************************************
-// * tCsvIpv4SortFilter()
+// * tCsvSetFieldFilter()
 // *************************************************************************
 
 type
-   tCsvIpv4SortFilter = class( tCsvWord32SortFilter)
+   tCsvSetFieldFilter = class( tCsvFilter)
       private
-         IgnoreFailures: boolean;
+         Values:       tCsvCellArray;
+         Fields:       tCsvCellArray; 
+         FieldLength:  integer; 
+         Indexes:      tIntegerArray;
+         AllCells:     boolean;
       public
-         constructor Create( iField:           string; 
-                             iReverse:         boolean = false;
-                             iIgnoreFailures:  boolean = false);
+         constructor Create( iFieldCsv: string;
+                             iValueCsv: string;
+                             iAllCells: boolean = false);
+         procedure   SetInputHeader( Header: tCsvCellArray); override;
          procedure   SetRow( Row: tCsvCellArray); override;
-      end; // tCsvIpv4SortFilter
+      end; // tCsvSetFieldFilter
 
 
 // *************************************************************************
@@ -77,45 +82,90 @@ type
 implementation
 
 // ========================================================================
-// = tCsvIpv4SortFilter class
+// = tCsvSetFieldFilter class - Set a default value for a field
 // ========================================================================
 // *************************************************************************
 // * Create() - constructor
 // *************************************************************************
 
-constructor tCsvIpv4SortFilter.Create( iField:           string; 
-                                       iReverse:         boolean = false;
-                                       iIgnoreFailures:  boolean = false);
+constructor tCsvSetFieldFilter.Create( iFieldCsv: string;
+                                       iValueCsv: string;
+                                       iAllCells: boolean = false);
+   var
+      VL: integer;
    begin
-      inherited Create( iField, iReverse);
-      IgnoreFailures:= iIgnoreFailures;
+      inherited Create();
+      Fields:= StringToCsvCellArray( iFieldCsv);
+      Values:= StringToCsvCellArray( iValueCsv);
+      AllCells:= iAllCells;
+
+      FieldLength:= Length( Fields);
+      SetLength( Indexes, FieldLength);
+      VL:= Length( Values);
+      if( VL <> FieldLength) then lbp_argv.Usage( true, FieldValueLengthError);
    end; // Create() 
+
+
+// *************************************************************************
+// * SetInputHeader()
+// *************************************************************************
+
+procedure tCsvSetFieldFilter.SetInputHeader( Header: tCsvCellArray);
+   var 
+      HL:       integer; // Header Length
+      HI:       integer; // Header index
+      FI:       integer; // Fields index;
+      Found:    boolean;
+      ErrorMsg: string;
+   begin
+      // If an empty Fields was passed to Create(), then we use all the fields
+      HL:=  Length( Header);
+
+      // For each  Field
+      FI:= 0;
+      while( FI < FieldLength) do begin
+         HI:= 0;
+         Found:= false;
+  
+         // for each Header
+         while( (not found) and (HI < HL)) do begin
+            if( Header[ HI] = Fields[ FI]) then begin
+               Found:= true;
+               Indexes[ FI]:= HI;
+            end;
+            inc( HI);
+         end; // while Header
+  
+         if( not Found) then begin
+            ErrorMsg:= Format( HeaderUnknownField, [Fields[ FI]]);
+            lbp_argv.Usage( true, ErrorMsg);
+         end;
+
+         inc( FI);  
+      end; // while Fields
+
+      NextFilter.SetInputHeader( Header);
+   end; // SetInputHeader
 
 
 // *************************************************************************
 // * SetRow() - Add the row to the tree
 // *************************************************************************
 
-procedure tCsvIpv4SortFilter.SetRow( Row: tCsvCellArray);
+procedure tCsvSetFieldFilter.SetRow( Row: tCsvCellArray);
    var
-      Field:    string;
-      RowTuple: tCsvWord32RowTuple;
-      Temp:     word32;
+      i:      integer;
+      iMax:   integer;
+      iCell:  integer;
    begin
-      RowTuple:= tCsvWord32RowTuple.Create();
-      Field:= Row[ FieldIndex];
-      try
-         Temp:= IPStringToWord32( Field);
-      except
-        on E: Exception do
-        begin
-           Temp:= 0;
-           if( not IgnoreFailures) then raise E;
-        end;
+      // Set default values for fields
+      iMax:= FieldLength - 1;
+      for i:= 0 to iMax do begin
+         iCell:= Indexes[ i];
+         if( AllCells or (Row[ iCell] = '')) then Row[ iCell]:= Values[ i];
       end;
-      RowTuple.Key:= Temp;
-      RowTuple.Row:= Row;
-      RowTree.Add( RowTuple);
+      
+      NextFilter.SetRow( Row);
    end; // SetRow();
 
 

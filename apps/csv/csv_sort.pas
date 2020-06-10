@@ -44,8 +44,6 @@ uses
    lbp_types,
    lbp_csv,
    lbp_csv_filter,
-{$warning csv_new_filter is currently not used}
-//   csv_new_filter,
    lbp_csv_io_filters,
    lbp_generic_containers;
 

@@ -51,6 +51,8 @@ uses
    sysutils;
 
 
+function StringToCsvCellArray( S: string): tCsvCellArray;
+
 // ************************************************************************
 // * tgCsvRowTuple - My tgDictionary class
 // ************************************************************************
@@ -99,13 +101,35 @@ type
 
 var
    HeaderZeroLengthError: string = 'The passed header can not be empty!';
-   HeaderUnknownField: string = '''%s'' is not a field in the input header!';
-   RangeErrorInt32:    string = '''%s'' is outside the range of a 32 bit integer!';
-   RangeErrorWord32:   string =  '''%s'' is outside the range of a 32 bit unsigned integer!';
+   HeaderUnknownField:    string = '''%s'' is not a field in the input header!';
+   RangeErrorInt32:       string = '''%s'' is outside the range of a 32 bit integer!';
+   RangeErrorWord32:      string =  '''%s'' is outside the range of a 32 bit unsigned integer!';
+   FieldValueLengthError: string = 'You must specify the same number of values as you do fields in a one to one relationship!';
 
 // *************************************************************************
 
 implementation
+
+// ========================================================================
+// * Global procedures
+// ========================================================================
+// *************************************************************************
+// * StringToCsvCellArray() - Converts the passed string to a tCsvCellArray
+// *************************************************************************
+
+function StringToCsvCellArray( S: string): tCsvCellArray;
+   var
+      Csv: tCsv;
+   begin
+      // convert iNewHeader to a tCsvCellArray
+      Csv:= tCsv.Create( S);
+      Csv.Delimiter:= ',';
+      Csv.SkipNonPrintable:= true;
+      result:=  Csv.ParseRow();
+      Csv.Destroy;
+   end; // StringToCsvCellArray()
+
+
 
 // *************************************************************************
 

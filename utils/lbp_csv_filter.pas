@@ -119,7 +119,7 @@ type
 // *    order you desire.  New fields are added to rows with empty values.
 // *    For complex situations where multiple different csv's with slightly
 // *    different input headers are being combined, this filter will allow 
-// *    multiple calls to SetInputHeader, but will only NewHeader to the 
+// *    multiple calls to SetInputHeader, but will only NewHeader() to the 
 // *    next filter once. 
 // *************************************************************************
 
@@ -350,29 +350,29 @@ type
 
 
 // *************************************************************************
+// * tCsvSetFieldFilter()
+// *************************************************************************
+
+type
+   tCsvSetFieldFilter = class( tCsvFilter)
+      private
+         Values:       tCsvCellArray;
+         Fields:       tCsvCellArray; 
+         FieldLength:  integer; 
+         Indexes:      tIntegerArray;
+         AllCells:     boolean;
+      public
+         constructor Create( iFieldCsv: string;
+                             iValueCsv: string;
+                             iAllCells: boolean = false);
+         procedure   SetInputHeader( Header: tCsvCellArray); override;
+         procedure   SetRow( Row: tCsvCellArray); override;
+      end; // tCsvSetFieldFilter
+
+
+// *************************************************************************
 
 implementation
-
-// ========================================================================
-// * Global procedures
-// ========================================================================
-// *************************************************************************
-// * StringToCsvCellArray() - Converts the passed string to a tCsvCellArray
-// *************************************************************************
-
-function StringToCsvCellArray( S: string): tCsvCellArray;
-   var
-      Csv: tCsv;
-   begin
-      // convert iNewHeader to a tCsvCellArray
-      Csv:= tCsv.Create( S);
-      Csv.Delimiter:= ',';
-      Csv.SkipNonPrintable:= true;
-      result:=  Csv.ParseRow();
-      Csv.Destroy;
-   end; // StringToCsvCellArray()
-
-
 
 // ========================================================================
 // = tCsvFilter class
@@ -817,12 +817,13 @@ constructor tCsvRenameFilter.Create( iInputFields, iOutputFields: string);
 
 procedure tCsvRenameFilter.SetInputHeader( Header: tCsvCellArray);
    var
-      i:     integer;
-      HI:    integer; // Header index
-      HIMax: integer;
-      FI:    integer; // Field index
-      FIMax: integer;
-      Found: boolean;
+      i:        integer;
+      HI:       integer; // Header index
+      HIMax:    integer;
+      FI:       integer; // Field index
+      FIMax:    integer;
+      Found:    boolean;
+      ErrorStr: string;
    begin
       HIMax:= Length( Header) - 1;
       FIMax:= length( InputFields) - 1;
@@ -840,8 +841,10 @@ procedure tCsvRenameFilter.SetInputHeader( Header: tCsvCellArray);
             end; // if
             inc( i);
          end; // While searching for the matching header field
-         if( not Found) then lbp_argv.Usage( true, HeaderUnknownField);
-         
+         if( not Found) then begin
+            ErrorStr:= Format( HeaderUnknownField, [InputFields[ FI]]);
+            lbp_argv.Usage( true, ErrorStr);
+         end;
          Header[ HI]:= OutputFields[ FI];
       end; // For each InputField
 
@@ -1646,6 +1649,95 @@ procedure tCsvIpv4SortFilter.SetRow( Row: tCsvCellArray);
       RowTuple.Key:= Temp;
       RowTuple.Row:= Row;
       RowTree.Add( RowTuple);
+   end; // SetRow();
+
+
+
+// ========================================================================
+// = tCsvSetFieldFilter class - Set a default value for a field
+// ========================================================================
+// *************************************************************************
+// * Create() - constructor
+// *************************************************************************
+
+constructor tCsvSetFieldFilter.Create( iFieldCsv: string;
+                                       iValueCsv: string;
+                                       iAllCells: boolean = false);
+   var
+      VL: integer;
+   begin
+      inherited Create();
+      Fields:= StringToCsvCellArray( iFieldCsv);
+      Values:= StringToCsvCellArray( iValueCsv);
+      AllCells:= iAllCells;
+
+      FieldLength:= Length( Fields);
+      SetLength( Indexes, FieldLength);
+      VL:= Length( Values);
+      if( VL <> FieldLength) then lbp_argv.Usage( true, FieldValueLengthError);
+   end; // Create() 
+
+
+// *************************************************************************
+// * SetInputHeader()
+// *************************************************************************
+
+procedure tCsvSetFieldFilter.SetInputHeader( Header: tCsvCellArray);
+   var 
+      HL:       integer; // Header Length
+      HI:       integer; // Header index
+      FI:       integer; // Fields index;
+      Found:    boolean;
+      ErrorMsg: string;
+   begin
+      // If an empty Fields was passed to Create(), then we use all the fields
+      HL:=  Length( Header);
+
+      // For each  Field
+      FI:= 0;
+      while( FI < FieldLength) do begin
+         HI:= 0;
+         Found:= false;
+  
+         // for each Header
+         while( (not found) and (HI < HL)) do begin
+            if( Header[ HI] = Fields[ FI]) then begin
+               Found:= true;
+               Indexes[ FI]:= HI;
+            end;
+            inc( HI);
+         end; // while Header
+  
+         if( not Found) then begin
+            ErrorMsg:= Format( HeaderUnknownField, [Fields[ FI]]);
+            lbp_argv.Usage( true, ErrorMsg);
+         end;
+
+         inc( FI);  
+      end; // while Fields
+
+      NextFilter.SetInputHeader( Header);
+   end; // SetInputHeader
+
+
+// *************************************************************************
+// * SetRow() - Add the row to the tree
+// *************************************************************************
+
+procedure tCsvSetFieldFilter.SetRow( Row: tCsvCellArray);
+   var
+      i:      integer;
+      iMax:   integer;
+      iCell:  integer;
+   begin
+      // Set default values for fields
+      iMax:= FieldLength - 1;
+      for i:= 0 to iMax do begin
+         iCell:= Indexes[ i];
+         if( AllCells or (Row[ iCell] = '')) then Row[ iCell]:= Values[ i];
+      end;
+      
+      NextFilter.SetRow( Row);
    end; // SetRow();
 
 
