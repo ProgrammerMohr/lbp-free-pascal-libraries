@@ -149,7 +149,6 @@ function tSpreadsheetColumnLabel.GetLabelDigits( FieldCount: integer): integer;
    var
       iFCT:   integer; // index to FieldCountTest;
       MFCT:   integer;  // Maximum FCT
-      TL:  integer;  // temporary length
    begin
       result:= 1; // It will allways take at least one digit.
       iFCT:= 1;
@@ -158,8 +157,6 @@ function tSpreadsheetColumnLabel.GetLabelDigits( FieldCount: integer): integer;
          inc( iFCT);
          result:= iFCT;
       end;
-      Writeln( 'GetLabelDigits(): FieldCount = ', FieldCount);
-      Writeln( '                  result     = ', result);
    end; // GetLabelDigits()
 
 
@@ -167,6 +164,17 @@ function tSpreadsheetColumnLabel.GetLabelDigits( FieldCount: integer): integer;
 // ========================================================================
 // =  Global functions
 // ========================================================================
+
+var  // Command line parameter related variables 
+   Delimiter:      string;
+   HorizontalView: boolean;
+   ColumnView:     boolean;
+   SortedView:     boolean;
+   ColumnError:    string =
+      'Column and horizontal view may not be specified at the same time!';
+   SortedError:    string =
+      'Simultaneous sorted and column view modes are not supported!';
+
 
 // ************************************************************************
 // * InitArgvParser() - Initialize the command line usage message and
@@ -193,24 +201,27 @@ procedure InitArgvParser();
       InsertUsage();
 
       ParseParams();
+
+      HorizontalView:= ParamSet( 'horizontal');
+      ColumnView:=     ParamSet( 'column');
+      SortedView:=     ParamSet( 'sort');
+
+      // Set the delimiter
+      if( ParamSet( 'delimiter')) then begin
+         Delimiter:= GetParam( 'delimiter');
+         if( Length( Delimiter) <> 1) then begin
+            raise tCsvException.Create( 'The delimiter must be a singele character!');
+         end;
+      end else Delimiter:= ',';
+
+      // Check for parameter misuse
+      if( ColumnView and HorizontalView) then begin
+         lbp_argv.Usage( true, ColumnError);
+      end;
+      if( ColumnView and SortedView) then begin
+        lbp_argv.Usage( true, SortedError);
+      end;
    end; // InitArgvParser();
-
-
-// ************************************************************************
-// * Global Variables
-// ************************************************************************
-
-var
-   Csv:         tCsv;
-//    AlphaLookup: string = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-   Header:      tCsvCellArray;
-//    HLetters:    integer;
-   Hi:          integer;
-   HL:          integer;
-   HiMax:       integer;
-   S:           string;
-   Delimiter:   string;
-   ShowColunns: boolean = false;
 
 
 // ************************************************************************
@@ -218,50 +229,40 @@ var
 // ************************************************************************
 
 var
-   i: integer;
+   Csv:                   tCsv;
+   Header:                tCsvCellArray;
+   FieldName:             string;
    SpreadSheetCoumnLabel: tSpreadsheetColumnLabel;
    Sscl:                  string; // Spreadsheet Column Label 
 begin
    InitArgvParser();
 
-      // Set the delimiter
-   if( ParamSet( 'delimiter')) then begin
-      Delimiter:= GetParam( 'delimiter');
-      if( Length( Delimiter) <> 1) then begin
-         raise tCsvException.Create( 'The delimiter must be a singele character!');
-      end;
-      lbp_csv.CsvDelimiter:= Delimiter[ 1];
-   end;
-
-   Csv:= tCsv.Create( lbp_input_file.InputStream, False); 
+   // Get the header
+   Csv:= tCsv.Create( lbp_input_file.InputStream, False);
+   Csv.Delimiter:= Delimiter[ 1];
    Csv.ParseHeader();
-   if( ParamSet( 's')) then Header:= Csv.SortedHeader else Header:= Csv.Header;
-   // HL:= Length( Header);
-   // if( ParamSet( 'Column')) then begin
-   //    SpreadSheetCoumnLabel:= tSpreadsheetColumnLabel.Create( Length( Header));
-   // end;
-
-   if( ParamSet( 'column')) then begin
-      HL:= Length( Header);
-      HiMax:= HL - 1;
-      SpreadSheetCoumnLabel:= tSpreadsheetColumnLabel.Create( HL);
-      For Hi:= 0 to HiMax do begin
-          Sscl:= SpreadSheetCoumnLabel.Increment();
-          Writeln( Sscl);
-      end;
-   end;
-
-   // Iterate through the header
-//    HL:= Length( Header);
-//    HL:= 703;
-//    HLetters:= GetColumnSize( HL);
-//    HiMax:= HL - 1;
-//    for HI:= 0 to HiMax do begin
-//       writeln( GetColumn());
-// //      if( ParamSet( 'horizontal'))
-//    end;
-//    // for S in Header do writeln( OutputFile, CsvQuote( S));
-
-   if( ParamSet( 'column')) then SpreadSheetCoumnLabel.Destroy();
-   Csv.Destroy;
+   if( SortedView) then Header:= Csv.SortedHeader else Header:= Csv.Header;
+   Csv.Destroy();
+   
+   if( HorizontalView) then begin
+      // Handle Horizontal view
+      writeln( Header.ToCsv);
+   end else begin
+     
+      // Handle vertical view
+      if( ColumnView) then begin
+         // Handle column view
+         SpreadSheetCoumnLabel:= tSpreadsheetColumnLabel.Create( Length( Header));
+         for FieldName in Header do begin
+            Sscl:= SpreadSheetCoumnLabel.Increment(); 
+            writeln( Sscl, '  ', FieldName);
+         end; // for
+         SpreadSheetCoumnLabel.Destroy();
+      end else begin
+         // Handle non-column view
+         for FieldName in Header do begin
+            writeln( OutputFile, CsvQuote( FieldName));
+         end; // for
+      end; // else non-column view
+   end; // Horizontal else Vertical
 end.  // csv_header program
