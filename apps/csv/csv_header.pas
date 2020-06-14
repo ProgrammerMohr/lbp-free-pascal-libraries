@@ -44,8 +44,129 @@ uses
    lbp_csv,
    lbp_generic_containers,
    lbp_input_file,
-   lbp_output_file;
+   lbp_output_file,
+   sysutils;  // EIntOverflow
 
+
+// ************************************************************************
+
+type
+   tSpreadsheetColumnLabel = class( tobject)
+      private
+         FieldCountTest:  array [1..6] of integer;
+         MyValue:         string;
+         MyValueLength:   integer;
+         MyHeaderIndex:   integer;
+         MaxHeaderIndex:  integer;
+         FirstChr:        char;
+         LastChr:         char;
+         Lowest:          integer;  // Debuging only
+      public
+         constructor Create( HeaderLength: integer);
+         function    Increment(): string; // return the next label;
+      private
+         procedure   IncrementDigit( DigitIndex: integer);
+         function    GetLabelDigits( FieldCount: integer): integer;
+   end; // tSpreadsheetColumnLabel() class
+
+
+
+// ========================================================================
+// = tSpreadsheetColumnLabel class
+// ========================================================================
+// *************************************************************************
+// * Create() - Constructor
+// *************************************************************************
+
+constructor tSpreadsheetColumnLabel.Create( HeaderLength: integer);
+   begin
+      FieldCountTest[ 1]:= 26;
+      FieldCountTest[ 2]:= 702;
+      FieldCountTest[ 3]:= 18278;
+      FieldCountTest[ 4]:= 475254;
+      FieldCountTest[ 5]:= 12356630;
+      FieldCountTest[ 6]:= 321272406;
+      MyValue:=            '            '; // Bigger than we will ever need.
+      MyHeaderIndex:=      -1;
+      MaxHeaderIndex:=     HeaderLength - 1;
+      FirstChr:=           'A';
+      LastChr:=            'Z';
+      MyValueLength:=      GetLabelDigits( HeaderLength);
+      Lowest:=             MyValueLength;
+      SetLength( MyValue, MyValueLength);
+   end; // Create()
+
+
+// *************************************************************************
+// * Increment - Return the next SpreadSheetCoumnLabel
+// *************************************************************************
+
+function tSpreadsheetColumnLabel.Increment(): string;
+   begin
+      Inc( MyHeaderIndex);
+      If( MyHeaderIndex > MaxHeaderIndex) then begin
+         raise EIntOverflow.Create( 'Attempt to Increment the spreadsheet column label beyond its maximum value');
+      end;
+      IncrementDigit( MyValueLength); // The rightmost digit
+      result:= MyValue; 
+   end; // Increment();
+
+
+// *************************************************************************
+// * IncrementDigit() - Internal function to increment each digit of
+// *                    MyValue as needed
+// *************************************************************************
+
+procedure tSpreadsheetColumnLabel.IncrementDigit( DigitIndex: integer);
+   var
+      NewIndex: integer;
+      V:        char;
+   begin
+      V:= MyValue[ DigitIndex];
+      if( V = ' ') then begin
+         MyValue[ DigitIndex]:= FirstChr;
+      end else if( V = LastChr) then begin
+         MyValue[ DigitIndex]:= FirstChr;
+         NewIndex:= DigitIndex - 1;
+         if( NewIndex < 1) then raise EIntOverflow.Create( 'The column index value overflowed');
+         if( NewIndex < Lowest) then begin
+            Lowest:= NewIndex;
+            writeln( 'First use of digit ', Length( MyValue) - Lowest + 1, ' at i = ', MyHeaderIndex);
+         end;
+         IncrementDigit( NewIndex);
+      end else begin
+         MyValue[ DigitIndex]:= Chr( ord( V) + 1);
+      end;
+   end; // IncrementDigital()
+
+
+// ************************************************************************
+// * GetLabelDigits() - Returns the number of digits needed to display final
+// *                    header's column labels. 
+// ************************************************************************
+
+function tSpreadsheetColumnLabel.GetLabelDigits( FieldCount: integer): integer;
+   var
+      iFCT:   integer; // index to FieldCountTest;
+      MFCT:   integer;  // Maximum FCT
+      TL:  integer;  // temporary length
+   begin
+      result:= 1; // It will allways take at least one digit.
+      iFCT:= 1;
+      MFCT:= Length( FieldCountTest);
+      while( (iFct <= MFct) and (FieldCount > FieldCountTest[ iFCT])) do begin
+         inc( iFCT);
+         result:= iFCT;
+      end;
+      Writeln( 'GetLabelDigits(): FieldCount = ', FieldCount);
+      Writeln( '                  result     = ', result);
+   end; // GetLabelDigits()
+
+
+
+// ========================================================================
+// =  Global functions
+// ========================================================================
 
 // ************************************************************************
 // * InitArgvParser() - Initialize the command line usage message and
@@ -64,11 +185,32 @@ procedure InitArgvParser();
       InsertUsage( '   ========== Program Options ==========');
       SetInputFileParam( true, true, false, true);
       SetOutputFileParam( false, true, false, true);
-      InsertParam( ['s','sort'], false, '', 'Sort the output.'); 
+      InsertParam( ['h','horizontal'], false, '', 'Print in the headers horizontally.');
+      InsertParam( ['c', 'column'], false, '', 'Prefix the spreadsheet column letter to each row');
+      InsertUsage( '                                  in the standard vertical mode.');
+      InsertParam( ['s','sort'], false, '', 'Sort the output.');
       InsertParam( ['d','delimiter'], true, ',', 'The character which separates fields on a line.'); 
       InsertUsage();
+
       ParseParams();
    end; // InitArgvParser();
+
+
+// ************************************************************************
+// * Global Variables
+// ************************************************************************
+
+var
+   Csv:         tCsv;
+//    AlphaLookup: string = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+   Header:      tCsvCellArray;
+//    HLetters:    integer;
+   Hi:          integer;
+   HL:          integer;
+   HiMax:       integer;
+   S:           string;
+   Delimiter:   string;
+   ShowColunns: boolean = false;
 
 
 // ************************************************************************
@@ -76,10 +218,9 @@ procedure InitArgvParser();
 // ************************************************************************
 
 var
-   Csv:        tCsv;
-   Header:     tCsvCellArray;
-   S:          string;
-   Delimiter:  string;
+   i: integer;
+   SpreadSheetCoumnLabel: tSpreadsheetColumnLabel;
+   Sscl:                  string; // Spreadsheet Column Label 
 begin
    InitArgvParser();
 
@@ -95,7 +236,32 @@ begin
    Csv:= tCsv.Create( lbp_input_file.InputStream, False); 
    Csv.ParseHeader();
    if( ParamSet( 's')) then Header:= Csv.SortedHeader else Header:= Csv.Header;
-   for S in Header do writeln( OutputFile, CsvQuote( S));
+   // HL:= Length( Header);
+   // if( ParamSet( 'Column')) then begin
+   //    SpreadSheetCoumnLabel:= tSpreadsheetColumnLabel.Create( Length( Header));
+   // end;
 
+   if( ParamSet( 'column')) then begin
+      HL:= Length( Header);
+      HiMax:= HL - 1;
+      SpreadSheetCoumnLabel:= tSpreadsheetColumnLabel.Create( HL);
+      For Hi:= 0 to HiMax do begin
+          Sscl:= SpreadSheetCoumnLabel.Increment();
+          Writeln( Sscl);
+      end;
+   end;
+
+   // Iterate through the header
+//    HL:= Length( Header);
+//    HL:= 703;
+//    HLetters:= GetColumnSize( HL);
+//    HiMax:= HL - 1;
+//    for HI:= 0 to HiMax do begin
+//       writeln( GetColumn());
+// //      if( ParamSet( 'horizontal'))
+//    end;
+//    // for S in Header do writeln( OutputFile, CsvQuote( S));
+
+   if( ParamSet( 'column')) then SpreadSheetCoumnLabel.Destroy();
    Csv.Destroy;
 end.  // csv_header program
