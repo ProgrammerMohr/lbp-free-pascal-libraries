@@ -58,6 +58,9 @@ type
          MyValueLength:   integer;
          MyHeaderIndex:   integer;
          MaxHeaderIndex:  integer;
+{$WARNING I'm adding Index numbers in the verticle view in addition to the existing column view.}
+         MyIndexString:   string;
+         MyIndexStrLen:   integer;
          FirstChr:        char;
          LastChr:         char;
          Lowest:          integer;  // Debuging only
@@ -67,6 +70,9 @@ type
       private
          procedure   IncrementDigit( DigitIndex: integer);
          function    GetLabelDigits( FieldCount: integer): integer;
+      public
+         property   Value:    string read MyValue;
+         property   IndexStr: string read MyIndexString;
    end; // tSpreadsheetColumnLabel() class
 
 
@@ -79,6 +85,8 @@ type
 // *************************************************************************
 
 constructor tSpreadsheetColumnLabel.Create( HeaderLength: integer);
+   var
+      Temp: string;
    begin
       FieldCountTest[ 1]:= 26;
       FieldCountTest[ 2]:= 702;
@@ -86,14 +94,17 @@ constructor tSpreadsheetColumnLabel.Create( HeaderLength: integer);
       FieldCountTest[ 4]:= 475254;
       FieldCountTest[ 5]:= 12356630;
       FieldCountTest[ 6]:= 321272406;
-      MyValue:=            '            '; // Bigger than we will ever need.
+      MyValue:=            '              '; // Bigger than we will ever need.
       MyHeaderIndex:=      -1;
       MaxHeaderIndex:=     HeaderLength - 1;
       FirstChr:=           'A';
       LastChr:=            'Z';
       MyValueLength:=      GetLabelDigits( HeaderLength);
       Lowest:=             MyValueLength;
-      SetLength( MyValue, MyValueLength);
+      SetLength( MyValue, MyValueLength + 2);
+      MyIndexString:=      '';
+      Temp:= MaxHeaderIndex.ToString;
+      MyIndexStrLen:=      Length( Temp);
    end; // Create()
 
 
@@ -102,8 +113,19 @@ constructor tSpreadsheetColumnLabel.Create( HeaderLength: integer);
 // *************************************************************************
 
 function tSpreadsheetColumnLabel.Increment(): string;
+   var
+      L: integer;
    begin
       Inc( MyHeaderIndex);
+      MyIndexString:= MyHeaderIndex.ToString;
+      L:= MyIndexString.Length;
+      while( L < MyIndexStrLen) do begin
+         MyIndexString:= ' ' + MyIndexString;
+         inc( L);
+      end; 
+      MyIndexString:= MyIndexString + '  ';
+
+
       If( MyHeaderIndex > MaxHeaderIndex) then begin
          raise EIntOverflow.Create( 'Attempt to Increment the spreadsheet column label beyond its maximum value');
       end;
@@ -169,11 +191,13 @@ var  // Command line parameter related variables
    Delimiter:      string;
    HorizontalView: boolean;
    ColumnView:     boolean;
+   IndexView:      boolean;
+   PrefixView:     boolean;   // Column or Index views
    SortedView:     boolean;
    ColumnError:    string =
-      'Column and horizontal view may not be specified at the same time!';
+      'Column/index and horizontal view may not be specified at the same time!';
    SortedError:    string =
-      'Simultaneous sorted and column view modes are not supported!';
+      'Simultaneous sorted and column/index view modes are not supported!';
 
 
 // ************************************************************************
@@ -196,6 +220,8 @@ procedure InitArgvParser();
       InsertParam( ['h','horizontal'], false, '', 'Print in the headers horizontally.');
       InsertParam( ['c', 'column'], false, '', 'Prefix the spreadsheet column letter to each row');
       InsertUsage( '                                  in the standard vertical mode.');
+      InsertParam( ['i', 'index'], false, '', 'Prefix the CSV field index to each row in the');
+      InsertUsage( '                                  standard vertical mode.');
       InsertParam( ['s','sort'], false, '', 'Sort the output.');
       InsertParam( ['d','delimiter'], true, ',', 'The character which separates fields on a line.'); 
       InsertUsage();
@@ -204,7 +230,9 @@ procedure InitArgvParser();
 
       HorizontalView:= ParamSet( 'horizontal');
       ColumnView:=     ParamSet( 'column');
+      IndexView:=      ParamSet( 'index');
       SortedView:=     ParamSet( 'sort');
+      PrefixView:=     (ColumnView or IndexView);
 
       // Set the delimiter
       if( ParamSet( 'delimiter')) then begin
@@ -215,10 +243,10 @@ procedure InitArgvParser();
       end else Delimiter:= ',';
 
       // Check for parameter misuse
-      if( ColumnView and HorizontalView) then begin
+      if( (ColumnView or IndexView) and HorizontalView) then begin
          lbp_argv.Usage( true, ColumnError);
       end;
-      if( ColumnView and SortedView) then begin
+      if( (ColumnView or IndexView) and SortedView) then begin
         lbp_argv.Usage( true, SortedError);
       end;
    end; // InitArgvParser();
@@ -233,7 +261,7 @@ var
    Header:                tCsvCellArray;
    FieldName:             string;
    SpreadSheetCoumnLabel: tSpreadsheetColumnLabel;
-   Sscl:                  string; // Spreadsheet Column Label 
+   Prefix:                string; // Spreadsheet Column Label
 begin
    InitArgvParser();
 
@@ -250,12 +278,15 @@ begin
    end else begin
      
       // Handle vertical view
-      if( ColumnView) then begin
+      if( PrefixView) then begin
          // Handle column view
          SpreadSheetCoumnLabel:= tSpreadsheetColumnLabel.Create( Length( Header));
          for FieldName in Header do begin
-            Sscl:= SpreadSheetCoumnLabel.Increment(); 
-            writeln( Sscl, '  ', FieldName);
+            SpreadSheetCoumnLabel.Increment();
+            Prefix:= '';
+            if( IndexView) then Prefix:= Prefix + SpreadSheetCoumnLabel.IndexStr; 
+            if( ColumnView) then Prefix:= Prefix + SpreadSheetCoumnLabel.Value; 
+            writeln( Prefix, FieldName);
          end; // for
          SpreadSheetCoumnLabel.Destroy();
       end else begin
