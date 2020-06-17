@@ -64,7 +64,7 @@ type
          Row: tCsvCellArray;
       end; // tgCsvRowTuple
 
-   tCsvStringRowTubple = specialize tgCsvRowTuple< string>;
+   tCsvStringRowTuble  = specialize tgCsvRowTuple< string>;
    tCsvWord64RowwTuple = specialize tgCsvRowTuple< word64>;
    tCsvWord32RowwTuple = specialize tgCsvRowTuple< word32>;
    tCsvInt64RowwTuple  = specialize tgCsvRowTuple< int64>;

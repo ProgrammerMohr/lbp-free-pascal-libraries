@@ -206,7 +206,7 @@ type
 type
    tCsvStringSortFilter = class( tCsvFilter)
       protected type
-         tRowTree = specialize tgAvlTree< tCsvStringRowTubple>;
+         tRowTree = specialize tgAvlTree< tCsvStringRowTuple>;
       protected
          FieldName:        string;
          FieldIndex:       integer;
@@ -368,6 +368,37 @@ type
          procedure   SetInputHeader( Header: tCsvCellArray); override;
          procedure   SetRow( Row: tCsvCellArray); override;
       end; // tCsvSetFieldFilter
+
+
+// *************************************************************************
+// * tCsvStripEmptyRowFilter class - Strips out rows where every field is
+// *                                  an empty string.
+// *************************************************************************
+
+type
+   tCsvStripEmptyRowFilter = class( tCsvFilter)
+      public
+         procedure   SetRow( Row: tCsvCellArray); override;
+   end; // tCsvStripEmptyRowFilter
+
+
+// *************************************************************************
+// * tCsvSequenceFilter class - Replaces the values in a singel field with
+// *                            a sequence number. 
+// *************************************************************************
+
+type
+   tCsvSequenceFilter  = class( tCsvFilter)
+      protected
+         FieldName:     string;
+         FieldIndex:    integer;
+         CurrentValue:  int64;
+      public
+         constructor Create( Field: string; InitialValue: string);
+         constructor Create( Field: string; InitialValue: int64);
+         procedure   SetInputHeader( Header: tCsvCellArray); override;
+         procedure   SetRow( Row: tCsvCellArray); override;
+   end; // tCsvSequenceFilter 
 
 
 // *************************************************************************
@@ -1067,9 +1098,9 @@ procedure tCsvStringSortFilter.SetInputHeader( Header: tCsvCellArray);
 procedure tCsvStringSortFilter.SetRow( Row: tCsvCellArray);
    var
       Field: string;
-      RowTuple: tCsvStringRowTubple;
+      RowTuple: tCsvStringRowTuple;
    begin
-      RowTuple:= tCsvStringRowTubple.Create();
+      RowTuple:= tCsvStringRowTuple.Create();
       Field:= Row[ FieldIndex];
       if( CaseInsensitive) then Field:= LowerCase( Field);
       RowTuple.Key:= Field;
@@ -1739,6 +1770,100 @@ procedure tCsvSetFieldFilter.SetRow( Row: tCsvCellArray);
       
       NextFilter.SetRow( Row);
    end; // SetRow();
+
+
+
+// ========================================================================
+// = tCsvStripEmptyRowFilter class - Strips out rows where every field is
+// =                                  an empty string.
+// ========================================================================
+// ************************************************************************
+// * SetRow() - This does all the work for each row.
+// ************************************************************************
+
+procedure tCsvStripEmptyRowFilter.SetRow( Row: tCsvCellArray);
+   var
+      Field: string;
+      Found: boolean = false;
+   begin
+      for Field in Row do begin
+         if( Field.Length > 0) then begin
+            Found:= true;
+            break; 
+         end;
+      end;
+
+      if( Found) then NextFilter.SetRow( Row);
+   end; // SetRow()
+
+
+
+// ========================================================================
+// = tCsvSequenceFilter class - Replaces the values in a singel field with
+// =                            a sequence number. 
+// ========================================================================
+// ************************************************************************
+// * Create() - Constructor
+// ************************************************************************
+
+constructor tCsvSequenceFilter.Create( Field: string; InitialValue: string);
+   begin     
+      Create( Field, InitialValue.ToInt64);
+   end; // Create();
+
+// ------------------------------------------------------------------------
+
+constructor tCsvSequenceFilter.Create( Field: string; InitialValue: int64);
+   begin
+      inherited Create();
+      CurrentValue:= InitialValue;
+      FieldName:= Field;
+   end; // Create()
+
+
+// ************************************************************************
+// * SetInputHeader() - Get the FieldIndex and forward the header as normal.
+// ************************************************************************
+
+procedure tCsvSequenceFilter.SetInputHeader( Header: tCsvCellArray);
+   var
+      Found:    boolean;
+      i:        integer;
+      iMax:     integer;
+      ErrorMsg: string;
+   begin
+      Found:= false;
+      iMax:= Length( Header) - 1;
+      for i:= 0 to iMax do begin
+         if( Header[ i] = FieldName) then begin
+            Found:= true;
+            FieldIndex:= i;
+            break;
+         end;
+      end;
+
+      // handle errors
+      if( not Found) then begin
+         ErrorMsg:= sysutils.Format( HeaderUnknownField, [FieldName]);
+         lbp_argv.Usage( true, ErrorMsg);
+      end;
+
+      NextFilter.SetInputHeader( Header);
+   end; // SetHeader
+
+
+
+// ************************************************************************
+// * SetRow() - This does all the work for each row.
+// ************************************************************************
+
+procedure tCsvSequenceFilter.SetRow( Row: tCsvCellArray);
+   begin
+      Row[ FieldIndex]:= CurrentValue.ToString;
+      inc( CurrentValue);
+      
+      NextFilter.SetRow( Row);
+   end; // SetRow()
 
 
 
