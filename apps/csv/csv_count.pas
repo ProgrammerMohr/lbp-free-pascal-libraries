@@ -93,7 +93,7 @@ begin
    repeat
       Row:= Csv.ParseRow();
       C:= Csv.PeekChr();
-      if( (C <> EOFchr) and (Length( Row) > 0)) then inc( RowCount);
+      if(Length( Row) > 0) then inc( RowCount);
    until( C = EOFchr);
 
    writeln( RowCount);
