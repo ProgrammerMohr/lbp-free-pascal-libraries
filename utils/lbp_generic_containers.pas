@@ -252,7 +252,8 @@ type
             public
                constructor Create( iTree: tgAvlTree);
                function    MoveNext: Boolean;
-               property    Current: V read Node.Value;
+               function    GetCurrent(): V;
+               property    Current: V read GetCurrent;
             end; // enumerator class
       // ---------------------------------------------------------------
       private type
@@ -264,7 +265,8 @@ type
                constructor Create( iTree: tgAvlTree);
                function    MoveNext: Boolean;
                function    GetEnumerator(): tReverseEnumerator;
-               property    Current: V read Node.Value;
+               function    GetCurrent(): V;
+               property    Current: V read GetCurrent;
             end; // enumerator class
       // ---------------------------------------------------------------
 
@@ -354,7 +356,8 @@ type
             public
                constructor Create( iTree: tgDictionary);
                function    MoveNext: Boolean;
-               property    Current: V read Node.Value;
+               function    GetCurrent(): V;
+               property    Current: V read GetCurrent;
             end; // enumerator class
       // ---------------------------------------------------------------
       private type
@@ -366,7 +369,8 @@ type
                constructor Create( iTree: tgDictionary);
                function    MoveNext: Boolean;
                function    GetEnumerator(): tReverseEnumerator;
-               property    Current: V read Node.Value;
+               function    GetCurrent(): V;
+               property    Current: V read GetCurrent;
             end; // enumerator class
       // ---------------------------------------------------------------
       private type
@@ -378,7 +382,8 @@ type
                constructor Create( iTree: tgDictionary);
                function    MoveNext: Boolean;
                function    GetEnumerator(): tKeyEnumerator;
-               property    Current: K read Node.Key;
+               function    GetCurrent(): K;
+               property    Current: K read GetCurrent;
             end; // enumerator class
       // ---------------------------------------------------------------
       private type
@@ -390,7 +395,8 @@ type
                constructor Create( iTree: tgDictionary);
                function    MoveNext: Boolean;
                function    GetEnumerator(): tReverseKeyEnumerator;
-               property    Current: K read Node.Key;
+               function    GetCurrent(): K;
+               property    Current: K read GetCurrent;
             end; // enumerator class
       // ---------------------------------------------------------------
 
@@ -1546,6 +1552,16 @@ function tgAvlTree.tEnumerator.MoveNext(): boolean;
    end; // MoveNext()
 
 
+// ************************************************************************
+// * GetCurrent()
+// ************************************************************************
+
+function tgAvlTree.tEnumerator.GetCurrent(): V;
+   begin
+      result:= Node.Value;
+   end; // GetCurrent()
+
+
 
 // ========================================================================
 // = tReverseEnumerator class
@@ -1586,6 +1602,16 @@ function tgAvlTree.tReverseEnumerator.GetEnumerator: tReverseEnumerator;
    begin
       result:= self;  
    end; // GetEnumerator()
+
+
+// ************************************************************************
+// * GetCurrent()
+// ************************************************************************
+
+function tgAvlTree.tReverseEnumerator.GetCurrent(): V;
+   begin
+      result:= Node.Value;
+   end; // GetCurrent()
 
 
 
@@ -2532,6 +2558,16 @@ function tgDictionary.tEnumerator.MoveNext(): boolean;
    end; // MoveNext()
 
 
+// ************************************************************************
+// * GetCurrent()
+// ************************************************************************
+
+function tgDictionary.tEnumerator.GetCurrent(): V;
+   begin
+      result:= Node.Value;
+   end; // GetCurrent()
+
+
 
 // ========================================================================
 // = tReverseEnumerator class
@@ -2572,6 +2608,16 @@ function tgDictionary.tReverseEnumerator.GetEnumerator: tReverseEnumerator;
    begin
       result:= self;  
    end; // GetEnumerator()
+
+
+// ************************************************************************
+// * GetCurrent()
+// ************************************************************************
+
+function tgDictionary.tReverseEnumerator.GetCurrent(): V;
+   begin
+      result:= Node.Value;
+   end; // GetCurrent()
 
 
 
@@ -2616,6 +2662,16 @@ function tgDictionary.tKeyEnumerator.GetEnumerator: tKeyEnumerator;
    end; // GetEnumerator()
 
 
+// ************************************************************************
+// * GetCurrent()
+// ************************************************************************
+
+function tgDictionary.tKeyEnumerator.GetCurrent(): K;
+   begin
+      result:= Node.Key;
+   end; // GetCurrent()
+
+
 
 // ========================================================================
 // = tReverseKeyEnumerator class
@@ -2656,6 +2712,16 @@ function tgDictionary.tReverseKeyEnumerator.GetEnumerator: tReverseKeyEnumerator
    begin
       result:= self;  
    end; // GetEnumerator()
+
+
+// ************************************************************************
+// * GetCurrent()
+// ************************************************************************
+
+function tgDictionary.tReverseKeyEnumerator.GetCurrent(): K;
+   begin
+      result:= Node.Key;
+   end; // GetCurrent()
 
 
 

@@ -64,7 +64,7 @@ uses
 // * tgNVPNode - Name Value Pair node.
 // *************************************************************************
 type
-   generic tgNVPNode<T> = class( tgDoubleLinkedList)
+   generic tNVPNode<T> = class
       protected
          MyName:  string;
          MyValue: T;

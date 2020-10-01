@@ -35,6 +35,8 @@ This file is part of Lloyd's Free Pascal Libraries (LFPL).
 *************************************************************************** *}
 
 {$WARNING This unit can be replaced by Free Pascal's built in libraries}
+{$WARNING Specifically, use URIParser ParseURI() and EncodeURI}
+{$WARNING https://www.freepascal.org/docs-html/current/fcl/uriparser/turi.html
 // ========================================================================
 // = The unit defines a URL class which parses a URL to it's component 
 // = parts and assembles the components into a URL
