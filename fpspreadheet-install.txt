@@ -6,9 +6,14 @@
 cd /opt/lazarus/current/components/lazutils
 recompile_pas
 </code>
-    - In the default OS X location.
+    - In the default pre OS X 10.15 location.
 <code>
 cd /Developer/lazarus/components/lazutils/
+recompile_pas
+</code>
+    - In the default post OS X 10.15 location.
+<code>
+cd /Library/Lazarus/components/lazutils
 recompile_pas
 </code>
   - Compile fpspreadsheet <code>
