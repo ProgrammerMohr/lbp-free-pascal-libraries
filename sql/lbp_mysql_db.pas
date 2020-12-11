@@ -48,6 +48,10 @@ uses
    lbp_types,       // Ordinal types, lbpExceptions
    lbp_sql_db,      // Abstract classes for our classes
    lbp_sql_fields,
+   fpopenssl,
+   openssl,
+//   sslsockets,
+//   opensslsockets,
    mysql55;
 
 
