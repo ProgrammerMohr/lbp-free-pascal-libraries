@@ -47,8 +47,7 @@ uses
    lbp_current_time,  // CurrentTime access.
    lbp_lists,
    lbp_types,         // int32, etc
-   lbp_vararray,      // variable length arrays.
-   lbp_log;
+   lbp_vararray;      // variable length arrays.
 
 
 // *************************************************************************
@@ -359,7 +358,6 @@ type
          procedure     VarInit(); virtual;
          procedure     SetBit( BitPattern: word64; Value: boolean); virtual;
          function      GetBit( BitPattern: word64): boolean; virtual;
-         procedure     LogBits( const Level: smallint); virtual;
       protected
          procedure     AddDescription( S: string);
       end; // dbBitSetField
@@ -2833,28 +2831,6 @@ function dbBitSetField.GetBit( BitPattern: word64): boolean;
       GetBit:= (BitPattern = (NewValue and BitPattern));
    end; // GetBit
 
-
-// *************************************************************************
-// * LogBits() - Send each bits true/false state to the Log.
-// *************************************************************************
-
-procedure dbBitSetField.LogBits( const Level: smallint);
-   var
-      i:         integer;
-      TempName:  StringPtr;
-      TempValue: String;
-   begin
-      TempName:= StringPtr( Descriptions.GetFirst());
-      for i:= 0 to BitValues.UpperBound do begin
-         if( GetBit( BitValues[ i])) then begin
-            TempValue:= 'true';
-         end else begin
-            TempValue:= 'false';
-         end;
-         Log( Level, TempName^ + ' = ' + TempValue);
-         TempName:= StringPtr( Descriptions.GetNext());
-      end; // for
-   end; // LogBits();
 
 // *************************************************************************
 // * AddDescription() - A protected helper app to make the VarInit

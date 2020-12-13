@@ -47,10 +47,6 @@ uses
    lbp_types,       // Ordinal types, lbp_exceptions
    lbp_lists,       // Double linked lists
    lbp_vararray,
-   {$ifdef SQL_TIMEOUT}
-   lbp_cron,        // To implement timeouts.
-   {$endif}
-   lbp_log,         // To log the fact we timed out.
    lbp_sql_fields;
 //   baseunix;
 
@@ -60,13 +56,12 @@ uses
 type
    SQLdbException = class( lbp_exception);
    SQLdbCriticalException = class( lbp_exception);
-   SQLTimeoutException = class( SQLdbCriticalException);
 
 // -------------------------------------------------------------------------
 
 type
-   dbConnection = class   {$ifdef SQL_TIMEOUT} ( tCronJob) {$endif}  // Inherit from tCronJob to implement
-      protected                     // timeouts
+   dbConnection = class
+      protected
          Opened:          boolean;
          Used:            boolean;
          UsedTime:        word32;
@@ -76,10 +71,6 @@ type
          UserStr:         string;
          PasswordStr:     string;
          dbTypeStr:       string;  // eg:  'MySQL', 'Postgresql', etc
-         dbTimeout:       word32;  // Timeout for SQL commands.
-                                   //    May require lbp_cron.StartCron
-         dbOpenTimeout:   word32;  // Timeout when opening a connection
-                                   //    May require lbp_cron.StartCron
 
       public
          constructor  Create( const idbType:   string;
@@ -91,14 +82,8 @@ type
          destructor   Destroy();         override;
          procedure    Open();            virtual; abstract;
          procedure    Close();           virtual; abstract;
-         {$ifdef SQL_TIMEOUT}
-            // what to do when we timeout
-            procedure    DoEvent();         override;
-         {$endif}
       protected
          procedure    SetDatabase( dbName: string);     virtual;
-         procedure    SetTimeout( TimeoutInSeconds: word32); virtual;
-         procedure    SetOpenTimeout( TimeoutInSeconds: word32); virtual;
          procedure    SetUsed( IsInUse: boolean); virtual;
       public
          property     IsOpen:   boolean read Opened;
@@ -109,9 +94,6 @@ type
          property     User:     string  read UserStr;
          property     Password: string  read PasswordStr;
          property     dbType:   string  read dbTypeStr;
-         property     Timeout:  word32  read dbTimeout write SetTimeout;
-         property     OpenTimeout: word32 read dbOpenTimeout
-                                          write SetOpenTimeout;
    end; // dbConnection
 
 
@@ -314,12 +296,6 @@ constructor dbConnection.Create( const idbType:   string;
       if( not lbp_argv.Parsed) then begin
          raise argv_exception.Create( 'lbp_sql_db.dbConnection.Create() called before lbp_argv.ParseParams()!');
       end;
-      {$ifdef SQL_TIMEOUT}
-         // No timeout by default
-         inherited Create( 0, 0);
-      {$endif}
-      dbTimeout:=     0;
-      dbOpenTimeout:= 0;
 
       Opened:=        false;
       Used:=          false;
@@ -344,20 +320,6 @@ destructor dbConnection.Destroy();
 
 
 // ************************************************************************
-// * DoEvent() - What to do if the connection times out.
-// ************************************************************************
-
-{$ifdef SQL_TIMEOUT}
-   procedure dbConnection.DoEvent();
-      begin
-         Log( LOG_CRIT, dbType + ':' + Database +
-                        ' connection timmed out!  Exiting application!');
-         fpkill( fpGetPID(), SIGHUP);
-      end; // DoEvent()
-{$endif}
-
-
-// ************************************************************************
 // * SetDatabae() - Set the database used.  Children should override to
 // *                perform the actual databse switch call to the server.
 // ************************************************************************
@@ -369,42 +331,11 @@ procedure dbConnection.SetDatabase( dbName: string);
 
 
 // ************************************************************************
-// * SetTimeout() - Set the timeout value for this connection.
-// ************************************************************************
-
-procedure dbConnection.SetTimeout( TimeoutInSeconds: word32);
-   begin
-      dbTimeout:= TimeoutInSeconds;
-   end; // SetTimeout()
-
-
-// ************************************************************************
-// * SetOpenTimeout() - Set the timeout value for opening this connection.
-// ************************************************************************
-
-procedure dbConnection.SetOpenTimeout( TimeoutInSeconds: word32);
-   begin
-      dbOpenTimeout:= TimeoutInSeconds;
-   end; // SetOpenTimeout()
-
-
-// ************************************************************************
-// * SetUsed() - Mark this connection as used and setup our CronJob to
-// *             to trigger after the timeout.  (A timeout of 0 means
-// *             no timeouts.)
+// * SetUsed() - Mark this connection as used.
 // ************************************************************************
 
 procedure dbConnection.SetUsed( IsInUse: boolean);
    begin
-      {$ifdef SQL_TIMEOUT}
-         if( IsInUse) then begin
-            // Set our cron job to trigger
-            Interval:= dbTimeout;
-         end else begin
-            // disable our cron job.
-            Interval:= 0;
-         end;
-      {$endif}
       Used:= IsInUse;
    end; // SetUsed()
 
@@ -769,11 +700,6 @@ procedure dbResults.EmptyTable();
       try // to drop the table
          DropTable();
       except
-         // We have to catch timeouts first because they are a subclass of
-         // SQLdbException which we do not want to ignore.
-         on E: SQLTimeoutException do begin
-            raise;
-         end;
          on F: SQLdbException do begin
             // Do nothing if we just have an error because
             //     the table didn't exist.

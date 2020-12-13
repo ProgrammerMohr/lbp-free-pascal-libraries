@@ -89,7 +89,6 @@ IniFileObj = class // A class is always a pointer
       constructor Open( iFileName: String; iCaseSensitive: boolean);
       constructor Open( iFileName: String);  // Opens FileName and reads it
                                // into buffer.  The file is then closed!
-      constructor Open();     // Opens the default INI file
       destructor  Close();    // Opens File_Name and writes buffer into it.
       procedure   Read();     // Read the file and store the variables.
       function    ReadIfChanged(): boolean;
@@ -141,30 +140,15 @@ var
    Ini:                  IniFileObj = nil;
 
 const
-   // If the IniFile is not found in the executable's directory, Look for
-   //   it here also.
-   FallbackIniDirectory: String = '/etc';
-
    DefaultSectionName:   String = 'DefaultSection';
-
-
-procedure AddDefaultFileName( var Name: string);
-
 
 // ************************************************************************
 
 implementation
 
-const
+var
    InInitialization:     Boolean = false;
 
-var
-   PossibleDefaultNames: DoubleLinkedList = nil;  // Add to this to create a list
-                                            // of possible names for the
-                                            // .ini file.  The first one
-                                            // found will be used by Open().
-   NoINI:                Boolean = false;   // Can be turned on by the --no-ini
-                                            // command line parameter.
 
 // ************************************************************************
 // * Open() - CONSTRUCTOR - Open and read the file
@@ -189,53 +173,6 @@ constructor IniFileObj.Open( iFileName: string; iCaseSensitive: boolean);
       CaseSensitive:=  iCaseSensitive;
       Dirty:=          false;
       ProcStack:=      DoubleLinkedList.Create();
-      Read();
-   end; // Open()
-
-
-// ------------------------------------------------------------------------
-
-constructor IniFileObj.Open();
-   var
-      TempName: StringPtr;
-      Found:    boolean = false;
-   begin
-      // Try the file name passed on the command line first
-      if( ParamSet( 'ini-file')) then begin
-         FileName:= GetParam( 'ini-file');
-         Found:= FileExists( FileName);
-      end;
-       
-      // Try to find the Ini file named after the program in the program's
-      // directory
-      if( not Found) then begin
-         FileName:= ParamStr( 0) + '.ini';
-         Found:= FileExists( FileName);
-      end;
-{$ifndef win32}
-      if( not Found) then begin
-         // Since that didn't work, try to find the Ini file named after
-         // the program in the /etc directory.
-         FileName:= FallbackINIDirectory + '/' +
-                       ExtractFileName( ParamStr( 0)) + '.ini';
-         Found:= FileExists( FileName);
-      end;
-
-      // If neither of the above worked, then try our PossibleDefaultNames
-      if( not Found) then begin
-
-         // Now search for any defaults in the
-         TempName:= StringPtr( PossibleDefaultNames.GetFirst());
-         while( not FileExists( FileName) and (TempName <> nil)) do begin
-            FileName:= TempName^;
-            TempName:= PossibleDefaultNames.GetNext();
-         end;
-      end;
-{$endif}
-
-      CaseSensitive:= false;
-      Dirty:=         false;
-      ProcStack:=     DoubleLinkedList.Create();
       Read();
    end; // Open()
 
@@ -988,93 +925,6 @@ procedure IniFileObj.EmptyQueues();
    end; // EmptyQueues();
 
 
-// ========================================================================
-// = Global functions and procedures
-// ========================================================================
-// ************************************************************************
-// * AddDefaultFileName() - Add this FileName to the list of names to
-// *
-// ************************************************************************
-
-procedure AddDefaultFileName( var Name: string);
-   begin
-      PossibleDefaultNames.Enqueue( @Name);
-   end; // AddDefaultFileName
-
-
-// ========================================================================
-// * Unit initialization and finalization.
-// ========================================================================
-// *************************************************************************
-// * ParseArgV() - Read and initialize INI variables.  Then parse the
-// *               command line parameters which will override INI settings.
-// *************************************************************************
-
-procedure ParseArgv();
-   begin
-      if( lbp_types.show_init) then writeln( 'lbp_ini_files.ParseArgV:  begin');
-
-      NoINI:= ParamSet( 'no-ini');
-        
-      if( not NoINI) then begin
-//          if( Debug_Unit_Initialization) then begin
-//             writeln( 'Initialization of lbp_ini_files started');
-//          end;
-         if( not InInitialization) then begin
-            InInitialization:=     true;
-            PossibleDefaultNames:= DoubleLinkedList.Create();
-            INI:=                  INIFileObj.Open();
-            if( not InInitialization) then begin
-               // Ini.Read() failed!
-               INI.Close();
-               INI:= nil;
-            end;
-            InInitialization:= false;
-         end;
-//          if( Debug_Unit_Initialization) then begin
-//             writeln( 'Initialization of lbp_ini_files ended.');
-//          end;
-      end; // if not NoINI
-      if( lbp_types.show_init) then writeln( 'lbp_ini_files.ParseArgV:  end');
-   end; // ParseArgV
-
-
-// *************************************************************************
-
-initialization
-   begin
-      // Add Usage messages
-      if( lbp_types.show_init) then writeln( 'lbp_ini_files.initialization:  begin');
-      AddUsage( '   ========== INI file reader library ==========');
-      AddParam( ['no-ini'], false, '', 'Don''t read any INI Files');
-      AddParam( ['ini-file'], true, '', 'Attempt to read the passed file name before ');
-      AddUsage( '                                 trying the default file names.');
-      AddUsage( '');
-      AddPostParseProcedure( @ParseArgv);
-
-      if( lbp_types.show_init) then writeln( 'lbp_ini_files.initialization:  end');
-   end;
-
-
-// ************************************************************************
-
-finalization
-   begin
-      if( lbp_types.show_init) then writeln( 'lbp_ini_files.finalization:  begin');
-      if( Ini <> nil) then begin
-         Ini.Close();
-      end;
-      if( PossibleDefaultNames <> nil) then begin
-         while( not PossibleDefaultNames.Empty()) do begin
-            PossibleDefaultnames.Dequeue();
-         end;
-         PossibleDefaultNames.Destroy();
-      end; 
-      if( lbp_types.show_init) then writeln( 'lbp_ini_files.finalization:  end');
-   end;
-
-
 // *************************************************************************
 
 end. // lbp_ini_files
-

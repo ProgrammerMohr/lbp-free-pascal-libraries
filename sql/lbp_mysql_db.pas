@@ -206,9 +206,6 @@ procedure MySQLdbConnection.Open();
          TempDatabase:= @DatabaseStr[ 1]
       end;
 
-      mysql_options( DBHandle, MYSQL_OPT_CONNECT_TIMEOUT, pchar( @dbOpenTimeout));
-      {$WARNING If I can ever find the API, I would like to set read and write timeouts!}
-
       // Connect to the server
       InUse:= true;
       ConnResult:= mysql_real_connect( DBHandle, @HostStr[1], @UserStr[ 1],
@@ -216,7 +213,7 @@ procedure MySQLdbConnection.Open();
                                        nil, 0);
       InUse:= false;
       if( ConnResult = nil) then begin
-         raise SQLTimeoutException.Create( mysql_error( dbHandle));
+         raise SQLdbException.Create( mysql_error( dbHandle));
       end;
 
       Opened:= true;
