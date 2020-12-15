@@ -32,8 +32,118 @@ program ipdb2_home_import_csv;
 uses
    lbp_argv,
    lbp_types,
+   lbp_sql_db,  // SQL Exceptions
    ipdb2_home_config,
-   lbp_input_file;
+   ipdb2_tables,
+   lbp_ip_utils,
+   lbp_input_file,
+   lbp_csv;
+
+var
+   Csv:              tCsv;
+   Cells:            tCsvCellArray;
+   NodeInfo:         NodeInfoTable;
+   Aliases:          AliasesTable;
+   AllIP:            AllIPTable;
+   ParkHomeDomainID: word64 = 5;
+   la_parkDomainID:  word64 = 3; 
+   DeptID:           word64 = 1;
+   EcUnknownID:      word64 = 1;
+   EcPrinterID:      word64 = 18;
+   EcVMServerID:     word64 = 16;
+   EcVMDesktopID:    word64 = 15;
+   EcTabletID:       word64 = 14;
+   EcPhoneID:        word64 = 13;
+   EcDesktopID:      word64 = 11;
+   EcLaptopID:       word64 = 12;
+   EcIOTID:          word64 = 19;
+   EcNetworkID:      word64 = 20;
+   EcServerID:       word64 = 22;
+
+
+// ************************************************************************
+// * GetEquipCategory() - Given the string returns the ID number
+// ************************************************************************
+
+function GetEquipCategory( EC: string): word64;
+   begin
+      if( EC = 'Printer') then result:= ecPrinterID else
+      if( EC = 'VM Server') then result:= ecVMServerID else
+      if( EC = 'VM Desktop') then result:= ecVMDesktopID else
+      if( EC = 'Tablet') then result:= ecTabletID else
+      if( EC = 'Phone') then result:= ecPhoneID else
+      if( EC = 'Desktop') then result:= ecDesktopID else
+      if( EC = 'Laptop') then result:= ecLaptopID else
+      if( EC = 'IOT') then result:= ecIOTID else
+      if( EC = 'Network') then result:= ecNetworkID else
+      if( EC = 'Server') then result:= ecServerID else
+      result:= EcUnknownID;
+   end; // GetEquipCategory()
+
+
+// ************************************************************************
+// * AddLaParkNode() - Add the passed Cells as NodeInfo records to the 
+// *                   la-park.org domain
+// ************************************************************************
+
+procedure AddLaParkNode( Cells: tCsvCellArray);
+   begin
+      if( Cells[ 0] = '2') then exit;
+      if( Cells[ 0] = '3') then exit;
+      if( Cells[ 8] = 'in storage') then exit;
+      if( Cells[ 8] = 'retired') then exit;
+      NodeInfo.Clear();
+      NodeInfo.Name.SetValue( Cells[ 1]);
+      NodeInfo.HomeIP.SetValue( Cells[ 2]);
+      NodeInfo.CurrentIP.SetValue( Cells[ 2]);
+      NodeInfo.NIC.SetValue( Cells[ 3]);
+      NodeInfo.SwitchPortID.SetValue( GetEquipCategory( Cells[ 9]));      
+      NodeInfo.Notes.SetValue( Cells[ 10]);
+      NodeInfo.Flags.SetValue( 5);
+      NodeInfo.DeptID.SetValue( DeptID);
+      NodeInfo.DomainID.SetValue( la_parkDomainID);
+      try
+         NodeInfo.Insert;
+      except   
+         on e: SqlDbException do begin
+            write( NodeInfo.CurrentIP.GetValue, '  ', NodeInfo.Name.GetValue, '');
+            writeln( e.Message);
+         end;
+      end; // try/except
+//      writeln( NodeInfo.GetSQLInsert);
+   end; // AddLaParkNode()
+
+// ************************************************************************
+// * AddParkHome() - Add an Alias record in park.home pointing to the 
+// *                 current la-park.org record in NodeInfo.
+// ************************************************************************
+
+procedure AddParkHome();
+   var
+      Proceed: boolean = false;
+   begin
+      if( NodeInfo.SwitchPortID.OrigValue = 18) then Proceed:= true;
+      if( NodeInfo.SwitchPortID.OrigValue = 16) then Proceed:= true;
+      if( NodeInfo.SwitchPortID.OrigValue = 19) then Proceed:= true;
+      if( NodeInfo.SwitchPortID.OrigValue = 20) then Proceed:= true;
+      if( NodeInfo.SwitchPortID.OrigValue = 22) then Proceed:= true;
+      if( not Proceed) then exit;
+
+      Aliases.Clear;
+      Aliases.Name.SetValue( NodeInfo.Name.GetValue);  
+      Aliases.DomainID.SetValue( ParkHomeDomainID);
+      Aliases.NodeID.SetValue( NodeInfo.ID.GetValue);
+      Aliases.Notes.SetValue( NodeInfo.Notes.GetValue);
+      Aliases.Flags.SetValue( 1);
+      try
+         Aliases.Insert();
+      except
+         on e:SqlDbException do begin
+            write( NodeInfo.Name.GetValue, '');
+            writeln( e.Message);
+         end;
+      end; // try/except
+   end; // AddParkHome()
 
 
 // ************************************************************************
@@ -63,11 +173,53 @@ procedure InitArgvParser();
 
 
 // ************************************************************************
+// * Initialize
+// ************************************************************************
+
+procedure Initialize();
+   begin
+      InitArgvParser();
+      NodeInfo:= NodeInfoTable.Create();
+      Aliases:=  AliasesTable.Create();
+      AllIP:=    AllIPTable.Create();
+
+      Csv:= tCsv.Create( InputFile);
+      Csv.ParseHeader;
+   end; // Initialize()
+
+
+// ************************************************************************
+// * Finalize
+// ************************************************************************
+
+procedure Finalize();
+   begin
+      Csv.Destroy;
+      AllIP.Destroy;
+      Aliases.Destroy;
+      NodeInfo.Destroy;
+   end; // Finalize()
+
+
+// ************************************************************************
 // * main()
 // ************************************************************************
 
 begin
-   InitArgvParser();
+   Initialize();
 
-   writeln( 'This is just a placeholder to test ipdb2_home_config for now.');
+   // Initial import to la-park.org from the CSV file
+   Cells:= Csv.ParseRow;
+   while( Length( Cells) > 0) do begin
+//      AddLaParkNode( Cells);
+      Cells:= Csv.ParseRow;
+   end;
+
+   // Now duplicate many of the names in park.home
+   NodeInfo.Query();
+   while( NodeInfo.Next) do begin
+      AddParkHome();
+   end;
+
+   Finalize();
 end. // ipdb2_home_import_csv program
