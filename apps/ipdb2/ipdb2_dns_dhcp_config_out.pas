@@ -51,10 +51,16 @@ var
    ProdDhcpFolder:   string = '/etc/dhcp/';
    DhcpdConf:        text;
    NamedConf:        text;
+   DhcpMaxLeaseSecs: string = '3600'; // 1 hour
+   DhcpDefLeaseSecs: string = '3600'; // 1 hour
 
 
 // ************************************************************************
+// * ProcessSubnet() - Process the passed IPRanges record
 // ************************************************************************
+
+
+
 
 // ************************************************************************
 // * BuildFolder() - takes an array of strings representing a parent folder
@@ -115,6 +121,18 @@ procedure Initialize();
       StaticFolder:=  BuildFolder(  [ StaticFolder, 'lbp', 'ipdb2_dns_dhcp_config_out', 'static']);
       WorkingFolder:= lbp_xdg_basedir.CacheFolder;
       WorkingFolder:= BuildFolder(  [ WorkingFolder, 'lbp', 'ipdb2_dns_dhcp_config_out', 'working']);
+      DhcpdConfWorking:= WorkingFolder + DhcpdConfWorking;
+      NamedConfWorking:= WorkingFolder + NamedConfWorking;
+
+      Assign( DhcpdConf, DhcpdConfWorking);
+      rewrite( DhcpdConf);
+      writeln( DhcpdConf, 'ddns-update-style none;');
+      writeln( DhcpdConf, 'authoritative;');
+      writeln( DhcpdConf);
+
+      Assign( NamedConf, NamedConfWorking);
+      rewrite( NamedConf);
+
       Writeln( 'StaticFolder = ', StaticFolder);
       Writeln( 'WorkingFolder = ', WorkingFolder);
    end; // Initialize()
@@ -126,6 +144,9 @@ procedure Initialize();
 
 procedure Finalize();
    begin
+      Close( NamedConf);
+      Close( DhcpdConf);
+
       Domains.Destroy;
       IPRanges.Destroy;
       FullAlias.Destroy;
@@ -139,7 +160,7 @@ procedure Finalize();
 
 begin
    Initialize();
-
-
+ 
+   IPRanges.Query( 'where NetMask >= ' + Slash[ 8])
    Finalize();
 end. // ipdb2_dns_dhcp_config_out program
