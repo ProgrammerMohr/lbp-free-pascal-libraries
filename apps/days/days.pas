@@ -40,7 +40,7 @@ var
    NumberOfDays: integer = 8;
    DoCovidEmail: boolean = false;
    ToMonday:     array[ 1..7] of integer = ( +1, 0, -1, -2, 4, 3, 2);
-   DowStr:       array[ 0..6] of string = ( 'Sunday', 'Monday', 'Tuesday',
+   DowStr:       array[ 1..7] of string = ( 'Sunday', 'Monday', 'Tuesday',
                     'Wednesday', 'Thursday', 'Friday', 'Saturday');
    MonthStr:     array[ 1..12] of string = ( 'January', 'February', 'March',
                     'April', 'May', 'June', 'July', 'August', 'September',
@@ -159,10 +159,10 @@ procedure PrintEmail();
       MondayDT:= IncDay( DT, MondayOffset);
       FridayDT:= IncDay( DT, FridayOffset);
 
-      MondayStr:= DowStr[ DayOfTheWeek( MondayDT)] + ', ' +
+      MondayStr:= DowStr[ DayOfWeek( MondayDT)] + ', ' +
                   MonthStr[ MonthOf( MondayDT)] + ' ' + 
                   DayStr[ DayOfTheMonth( MondayDT)];
-      FridayStr:= DowStr[ DayOfTheWeek( FridayDT)] + ', ' +
+      FridayStr:= DowStr[ DayOfWeek( FridayDT)] + ', ' +
                   MonthStr[ MonthOf( FridayDT)] + ' ' + 
                   DayStr[ DayOfTheMonth( FridayDT)];
 
