@@ -38,11 +38,18 @@ uses
 
 var
    NumberOfDays: integer = 8;
-   DowStr:       array[ 1..7] of string = ( 'Sunday', 'Monday', 'Tuesday',
+   DoCovidEmail: boolean = false;
+   ToMonday:     array[ 1..7] of integer = ( +1, 0, -1, -2, 4, 3, 2);
+   DowStr:       array[ 0..6] of string = ( 'Sunday', 'Monday', 'Tuesday',
                     'Wednesday', 'Thursday', 'Friday', 'Saturday');
    MonthStr:     array[ 1..12] of string = ( 'January', 'February', 'March',
                     'April', 'May', 'June', 'July', 'August', 'September',
                     'October', 'November', 'December');
+   DayStr:       array[ 1..31] of string = ('1st', '2nd', '3rd', '4th', '5th',
+                    '6th', '7th', '8th', '9th', '10th', '11th', '12th', '13th',
+                    '14th', '15th', '16th', '17th', '18th', '19th', '20th',
+                    '21st', '22nd', '23rd', '24th', '25th', '26th', '27th',
+                    '28th', '29th', '30th', '31st');
    
    
 
@@ -76,6 +83,7 @@ procedure ParseArgv();
             raise Exception.Create( 'The number of days must be equal to or greater than 1!');
          end;   
       end; 
+      DoCovidEmail:= ParamSet( 'covid');
    end; // ParseArgv();
 
    
@@ -96,6 +104,8 @@ procedure InitArgvParser();
       InsertUsage( '   Start date is optional.  Today''s date is used if none is specified.');
       InsertUsage( '');
       InsertParam( ['n', 'd', 'number-of-days'], true, '', 'The number of days to print.  Defaults to 8');
+      InsertParam( ['c', 'covid'], false, '', 'Print out the subject line and body for a work');
+      InsertUsage( '                                 from home message to Bob.');
       AddPostParseProcedure( @ParseArgv);
       ParseParams();
    end; // InitArgvParser()
@@ -123,13 +133,65 @@ procedure PrintDays();
 
 
 // ************************************************************************
+// * DateTimeToString() - Return the date time in this format:
+// *                      Monday, June 23rd
+// ************************************************************************
+
+// ************************************************************************
+// * PrintEmail()
+// ************************************************************************
+
+procedure PrintEmail();
+   var
+      DT:           tDateTime;
+      MondayDT:     tDateTime;
+      FridayDT:     tDateTime;
+      ThisOrNext:   string = 'next';
+      MondayOffset: integer;
+      FridayOffset: integer;
+      MondayStr:    string;
+      FridayStr:    string;
+   begin
+      DT:= CurrentTime.TimeOfDay;
+      MondayOffset:= ToMonday[ DayOfWeek( DT)];
+      FridayOffset:= MondayOffset + 4;
+
+      MondayDT:= IncDay( DT, MondayOffset);
+      FridayDT:= IncDay( DT, FridayOffset);
+
+      MondayStr:= DowStr[ DayOfTheWeek( MondayDT)] + ', ' +
+                  MonthStr[ MonthOf( MondayDT)] + ' ' + 
+                  DayStr[ DayOfTheMonth( MondayDT)];
+      FridayStr:= DowStr[ DayOfTheWeek( FridayDT)] + ', ' +
+                  MonthStr[ MonthOf( FridayDT)] + ' ' + 
+                  DayStr[ DayOfTheMonth( FridayDT)];
+
+      writeln( 'Working from home the week of ' + MondayStr + ' through ' +
+               FridayStr);
+      writeln;
+      writeln;
+      writeln( 'Hi Bob,');
+      writeln;
+      if( MondayOffset <= 0) then begin
+         write( 'I''m sorry I''m late sending this to you.  I''m working ' +
+                'from home this week, ' + MondayStr + ' through ' +
+                FridayStr);
+      end else begin
+         write( 'I''m planning on working from home next week, ' +
+                 MondayStr + ' through ' + FridayStr);
+      end;
+      writeln;
+      writeln;
+   end; // PrintEmail()
+
+
+// ************************************************************************
 // * main()
 // ************************************************************************
 
 begin
    InitArgvParser;
    writeln;
-   PrintDays;
+   if( DoCovidEmail) then PrintEmail() else PrintDays();
    writeln;
 end.  // days
-
