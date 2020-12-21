@@ -39,6 +39,10 @@ uses
    lbp_generic_containers,
    sysutils;
 
+// ************************************************************************
+// * tSimpleNode class - Hold a subset of Node information.
+// *                     Used by tNodeDictionary.
+// ************************************************************************
 type
    tSimpleNode = class
       FullName: string;
@@ -46,9 +50,32 @@ type
       IPWord32: word32;
    end;  // tSimpleNode Class
 
+
+// ************************************************************************
+// * tDynInfo clas - Used to hold the state information about DHCP Dynamic
+// * ranges which need output
+// ************************************************************************
+type
+   tDynInfo = class
+      InDynRange:  boolean;
+      DynStart:     string;
+      DynEnd:       string;
+   end; // tDynInfo class
+   
+
+
+
+// ************************************************************************
+// * tNodeDictionary - A simple dictionary to hold Node information which 
+// *                   is often looked up by Node ID such as DNS servers.
+// ************************************************************************
 type
    tNodeDictionary = specialize tgDictionary< word64, tSimpleNode>;
 
+
+// ************************************************************************
+// * Global Variable
+// ************************************************************************
 var
    FullNode:         FullNodeQuery;
    FullAlias:        FullAliasQuery;
@@ -64,8 +91,8 @@ var
    DhcpdConf:        text;
    NamedConf:        text;
    Zone:             text;
-   DhcpMaxLeaseSecs: string = '3600'; // 1 hour
-   DhcpDefLeaseSecs: string = '3600'; // 1 hour
+   DhcpMaxLeaseSecs: string = '900'; // 1 hour
+   DhcpDefLeaseSecs: string = '900'; // 1 hour
    DhcpDefDomain:    string = 'la-park.org';
 
 
@@ -75,7 +102,6 @@ var
 
 function LookupNode( ID: Word64): tSimpleNode;
    var
-      IdStr:      string;
       SimpleNode: tSimpleNode;
    begin
       result:= nil;
@@ -103,28 +129,56 @@ function LookupNode( ID: Word64): tSimpleNode;
 
 
 // ************************************************************************
-// * ProcessDynamicRanges() - Output the DHCP Dynamic Ranges in this subnet
+// * ProcessDhcpDynRange()
 // ************************************************************************
 
-procedure ProcessDynamicRanges();
+procedure ProcessDhcpDynRange( DynInfo: tDynInfo);
    begin
-     
-   end; // ProcessDynamicRanges()
+      DynInfo.InDynRange:= false;
+      writeln( DhcpdConf, '   range ', DynInfo.DynStart, ' ', DynInfo.DynEnd, ';');
+      writeln( DhcpdConf);
+   end; // ProcessDhcpDynRange()
 
 
 // ************************************************************************
-// * ProcessDhcpNode()
+// * ProcessDhcpNode()  Output the DHCP configuration for a Node.
 // ************************************************************************
 
-procedure ProcessDhcpNode()
+procedure ProcessDhcpNode( DynInfo: tDynInfo);
+   var
+      IsDyn:      boolean;
    begin
-     
+      IsDyn:= FullNode.Flags.GetBit( ipdb2_flags.IsDynamic);
+      if( IsDyn) then begin
+         DynInfo.DynEnd:= FullNode.CurrentIP.GetValue;
+         if( not DynInfo.InDynRange) then begin
+            DynInfo.InDynRange:= true;
+            DynInfo.DynStart:= DynInfo.DynEnd;
+         end;
+      end else begin
+         // If a dynamic range was in progress, the output it.
+         if( DynInfo.InDynRange) then ProcessDhcpDynRange( DynInfo);
+
+         // Output the Node's DHCP information
+         writeln( DhcpdConf, '   host ', FullNode.Name.GetValue, ' {');
+         writeln( DhcpdConf, '      hardware ethernet ', 
+                              MacWord64ToString( FullNode.NIC.OrigValue, ':', 2), ';');
+         writeln( DhcpdConf, '      fixed-address ', FullNode.CurrentIP.GetValue, ';');
+         writeln( DhcpdConf, '      option host-name "', FullNode.Name.GetValue, '";');
+         writeln( DhcpdConf, '      option domain-name "', FullNode.DomainName.GetValue, '";');
+         writeln( DhcpdConf, '   } # ', FullNode.FullName);
+         writeln( DhcpdConf);
+      end;
    end; // ProcessDhcpNode()
 
 
 // ************************************************************************
 // * ProcessDNSPtr() Output the current FullNode record to the Zone file.
 // ************************************************************************
+
+procedure ProcessDNSPtr();
+   begin
+   end; // ProcessDNSPtr()
 
 
 // ************************************************************************
@@ -134,8 +188,13 @@ procedure ProcessDhcpNode()
 
 procedure ProcessDhcpNetwork();
    var
-      DNS:         string = '';
-      SimpleNode:  tSimpleNode;
+      DNS:             string = '';
+      SimpleNode:      tSimpleNode;
+      NodeStartIp:     word32;
+      NodeEndIp:       word32;
+      NodeStartIpStr:  string;
+      NodeEndIpStr:    string;
+      DynInfo:         tDynInfo;
    begin
       // Build the list of DNS servers
       SimpleNode:= LookupNode( IPRanges.ClientDNS1.OrigValue);
@@ -147,17 +206,38 @@ procedure ProcessDhcpNetwork();
       if( SimpleNode <> nil) then DNS:= DNS + ', ' + SimpleNode.IPString;
       DNS:= DNS + ';';
       
-
+      // Output the shared/common network configuration.
       writeln( DhcpdConf, 'subnet ', IpRanges.StartIP.GetValue(), ' netmask ',
                IpRanges.NetMask.GetValue, ' {');
-      writeln( DhcpdConf, '   default-lease-time ', DhcpDefLeaseSecs);
-      writeln( DhcpdConf, '   max-lease-time ', DhcpMaxLeaseSecs);
-      writeln( DhcpdConf, '   option broadcast-address ', IpRanges.EndIp.GetValue);
-      writeln( DhcpdConf, '   option subnet-mask ', IpRanges.NetMask.GetValue);
-      writeln( DhcpdConf, '   option routers ', IpRanges.Gateway.GetValue);
+      writeln( DhcpdConf, '   default-lease-time ', DhcpDefLeaseSecs, ';');
+      writeln( DhcpdConf, '   max-lease-time ', DhcpMaxLeaseSecs, ';');
+      writeln( DhcpdConf, '   option broadcast-address ', IpRanges.EndIp.GetValue, ';');
+      writeln( DhcpdConf, '   option subnet-mask ', IpRanges.NetMask.GetValue, ';');
+      writeln( DhcpdConf, '   option routers ', IpRanges.Gateway.GetValue, ';');
       writeln( DhcpdConf, '   option domain-name-servers ', DNS);
-      writeln( DhcpdConf, '   option domain-name ', DhcpDefDomain); 
-      writeln( DhcpdConf);  
+      writeln( DhcpdConf, '   option domain-name "', DhcpDefDomain, '";'); 
+      writeln( DhcpdConf, '} # End of subnet ', IpRanges.StartIP.GetValue, 
+               ' ', IpRanges.EndIP.GetValue);
+      writeln( DhcpdConf);
+
+      // Setup our Dynamic DHCP Range state object
+      DynInfo:= tDynInfo.Create;
+      DynInfo.InDynRange:= false;
+
+      // Step through each FullNode in the DHCP Subnet
+      NodeStartIp:=  IPRanges.StartIP.OrigValue + 1;
+      NodeEndIp:=    IPRanges.EndIP.OrigValue - 1;
+      Str( NodeStartIp, NodeStartIpStr);
+      Str( NodeEndIp, NodeEndIpStr);
+      FullNode.Query( ' and CurrentIP >= ' + NodeStartIpStr + ' and CurrentIP <= ' +
+                      NodeEndIpStr + ' order by NodeInfo.CurrentIP');
+      while( FullNode.Next) do begin
+         ProcessDhcpNode( DynInfo);   
+      end;
+
+      // If a dynamic range was in progress, the output it.
+      if( DynInfo.InDynRange) then ProcessDhcpDynRange( DynInfo);
+      DynInfo.Destroy;
    end; // ProcessDhcpNetwork()
 
 
