@@ -198,8 +198,8 @@ initialization
       AddParam( ['ipdb2-home-password'], true, '', 'The password');
       AddParam( ['ipdb2-home-database'], true, '', 'The database name');
       AddParam( ['ipdb2-home-save'], False, '', 'Save youor changes to the ipdb2-home settings');
-      AddUsage( '   --testbed                   By default, use the testbed rather than the');
-      AddUsage( '                                 production IPdb MySQL server');
+      AddUsage( '   --testbed                   Set/retrieve the testbed rather than the');
+      AddUsage( '                                 production IPdb MySQL connection settings.');
       AddUsage( '');
       AddPostParseProcedure( @ParseArgv);
       if( lbp_types.show_init) then writeln( 'ipdb_home_config.initialization:  end');

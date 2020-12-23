@@ -31,9 +31,10 @@ uses
    lbp_argv,
    lbp_types,
    lbp_sql_db,  // SQL Exceptions
-   ipdb2_home_config,
+   // ipdb2_home_config,
    ipdb2_tables,
    ipdb2_flags,
+   ipdb2_dns_dhcp_config_classes,
    lbp_xdg_basedir,
    lbp_ip_utils,
    lbp_generic_containers,
@@ -63,8 +64,6 @@ type
    end; // tDynInfo class
    
 
-
-
 // ************************************************************************
 // * tNodeDictionary - A simple dictionary to hold Node information which 
 // *                   is often looked up by Node ID such as DNS servers.
@@ -85,7 +84,7 @@ var
    WorkingFolder:    string;  // The name of the working folder
    StaticFolder:     string;  // The name of the folder where static include data is stored.
    DhcpdConfWorking: string = 'dhcpd.conf';
-   NamedConfWorking: string = 'named.conf';
+   NamedConfWorking: string = 'named.conf.local';
    ProdDnsFolder:    string = '/etc/bind/';
    ProdDhcpFolder:   string = '/etc/dhcp/';
    DhcpdConf:        text;
@@ -173,6 +172,15 @@ procedure ProcessDhcpNode( DynInfo: tDynInfo);
 
 
 // ************************************************************************
+// * ProcessNamedConfReverse() Output the current IPRange Named.Conf zone info FullNode record to the Zone file.
+// ************************************************************************
+
+// procedure ProcessDNSPtr();
+//    begin
+//    end; // ProcessDNSPtr()
+
+
+// ************************************************************************
 // * ProcessDNSPtr() Output the current FullNode record to the Zone file.
 // ************************************************************************
 
@@ -216,8 +224,6 @@ procedure ProcessDhcpNetwork();
       writeln( DhcpdConf, '   option routers ', IpRanges.Gateway.GetValue, ';');
       writeln( DhcpdConf, '   option domain-name-servers ', DNS);
       writeln( DhcpdConf, '   option domain-name "', DhcpDefDomain, '";'); 
-      writeln( DhcpdConf, '} # End of subnet ', IpRanges.StartIP.GetValue, 
-               ' ', IpRanges.EndIP.GetValue);
       writeln( DhcpdConf);
 
       // Setup our Dynamic DHCP Range state object
@@ -238,6 +244,9 @@ procedure ProcessDhcpNetwork();
       // If a dynamic range was in progress, the output it.
       if( DynInfo.InDynRange) then ProcessDhcpDynRange( DynInfo);
       DynInfo.Destroy;
+
+      writeln( DhcpdConf, '} # End of subnet ', IpRanges.StartIP.GetValue, 
+               ' ', IpRanges.EndIP.GetValue);
    end; // ProcessDhcpNetwork()
 
 
@@ -336,9 +345,22 @@ procedure Initialize();
 
       Assign( NamedConf, NamedConfWorking);
       rewrite( NamedConf);
+      writeln( NamedConf, '//');
+      writeln( NamedConf, '// Do any local configuration here');
+      writeln( NamedConf, '//');
+      writeln( NamedConf);
+      writeln( NamedConf, 'include "rndc.include";');
+      writeln( NamedConf);
+      writeln( NamedConf, 'logging {');
+      writeln( NamedConf, '   channel queries_log {');
+      writeln( NamedConf, '      syslog;');
+      writeln( NamedConf, '      severity info;');
+      writeln( NamedConf, '   };');
+      writeln( NamedConf, '   category default { default_syslog; default_debug; };');
+      writeln( NamedConf, '   category unmatched { null; };');
+      writeln( NamedConf, '};');
+      writeln( NamedConf);
 
-      Writeln( 'StaticFolder = ', StaticFolder);
-      Writeln( 'WorkingFolder = ', WorkingFolder);
    end; // Initialize()
 
 
