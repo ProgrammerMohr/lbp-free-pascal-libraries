@@ -56,7 +56,9 @@ uses
    ipdb2_home_config, // Set/save/retrieve db connection settings.
    lbp_ini_files,
    lbp_sql_db,   // SQLCriticalException
-   ipdb2_tables, // 
+   ipdb2_tables,
+   ipdb2_flags,
+   lbp_ip_utils,  // MAC and IP coversion between words and strings
    sysutils;     // Exceptions, DirectoryExists, mkdir, etc
 
 
@@ -78,9 +80,11 @@ type
 // ************************************************************************
 type
    tDynInfo = class
-      InDynRange:  boolean;
-      DynStart:     string;
-      DynEnd:       string;
+      public
+         InDynRange:  boolean;
+         DynStart:     string;
+         DynEnd:       string;
+         procedure DhcpdConfOut( var DhcpdConf: text);
    end; // tDynInfo class
    
 
@@ -89,7 +93,11 @@ type
 // *                   is often looked up by Node ID such as DNS servers.
 // ************************************************************************
 type
-   tNodeDictionary = specialize tgDictionary< word64, tSimpleNode>;
+   tNodeDictionarySub = specialize tgDictionary< word64, tSimpleNode>;
+   tNodeDictionary = class( tNodeDictionarySub)
+      public
+         function FindNodeInfo( ID: Word64): tSimpleNode; virtual;
+      end; // tNodeDictionary class
 
 
 // *************************************************************************
@@ -99,9 +107,9 @@ type
 type
    tDdiFullNodeQuery = class( IPdb2_tables.FullNodeQuery)
       public
-         procedure DhcpdConfOut( var DhcpdConf: text);
+         procedure DhcpdConfOut( var DhcpdConf: text; DynInfo: tDynInfo);
          procedure DnsConfOut( var DnsConf: text);
-      end; // tDdiFullNodeQuery;
+      end; // tDdiFullNodeQuery class
 
 
 // *************************************************************************
@@ -112,7 +120,7 @@ type
    tDdiFullAliasQuery = class( FullAliasQuery)
       public
          procedure DnsConfOut( var DnsConf: text);
-      end; // tDdiFullAliasQuery;
+      end; // tDdiFullAliasQuery class
 
 
 // *************************************************************************
@@ -123,7 +131,7 @@ type
    tDdiDomainsTable = class( DomainsTable)
       public
          procedure DnsConfOut( var DnsConf: text);
-      end; // tDdiDomainsTable;
+      end; // tDdiDomainsTable class
 
 
 // *************************************************************************
@@ -135,7 +143,7 @@ type
       public
          procedure DhcpdConfOut( var DhcpdConf: text);
          procedure DnsConfOut( var DnsConf: text);
-      end; // tDdiIpRangesTable;
+      end; // tDdiIpRangesTable class
 
 
 // ************************************************************************
@@ -157,11 +165,63 @@ var
    FullAlias:           tDdiFullAliasQuery;
    Domains:             tDdiDomainsTable;
    IPRanges:            tDdiIpRangesTable;
+   NamedConf:           Text;
+   DhcpdConf:           Text;
 
 
 // *************************************************************************
 
 implementation
+// =========================================================================
+// = tDynInfo class - Used to hold the state information about DHCP Dynamic
+// = ranges which need output
+// =========================================================================
+// ************************************************************************
+// * DhcpdConfOut( var DhcpdConf: text
+// ************************************************************************
+
+procedure tDynInfo.DhcpdConfOut( var DhcpdConf: text);
+   begin
+      InDynRange:= false;
+      writeln( DhcpdConf, '   range ', DynStart, ' ', DynEnd, ';');
+      writeln( DhcpdConf);
+   end; // DhcpdConfOut()
+
+
+// =========================================================================
+// = tNodeDictionary - A simple dictionary to hold Node information which 
+// =                   is often looked up by Node ID such as DNS servers.
+// =========================================================================
+// ************************************************************************
+// * FindNodeInfo() - Returns the tSimpleNode associated with the passed ID
+// ************************************************************************
+
+function tNodeDictionary.FindNodeInfo( ID: Word64): tSimpleNode;
+   var
+      SimpleNode: tSimpleNode;
+   begin
+      result:= nil;
+      if( ID = 0) then exit;
+
+      // Try to get it from NodeDict
+      if( Find( ID)) then begin
+         result:= Value;
+      end else begin
+
+         // Try to look it up in FullNode and add it to NodeDict
+         FullNode.NodeID.SetValue( ID);
+         FullNode.Query( ' and NodeInfo.ID = ' + FullNode.NodeID.GetSqlValue);
+         if( FullNode.Next) then begin
+            SimpleNode:= tSimpleNode.Create();
+            SimpleNode.FullName:= FullNode.FullName;
+            SimpleNode.IPString:= FullNode.CurrentIP.GetValue;
+            SimpleNode.IPWord32:= FullNode.CurrentIP.OrigValue;
+
+            Add( FullNode.NodeID.OrigValue, SimpleNode);
+            result:= SimpleNode;
+         end; // If found in FullNode
+      end; // else try FullNode lookup
+   end; // FindNodeInfo()
 
 // =========================================================================
 // = tDdiFullNodeQuery class
@@ -170,8 +230,31 @@ implementation
 // *  DhcpdConfOut() - Output the record's DHCPD configuration 
 // ************************************************************************
 
-procedure tDdiFullNodeQuery.DhcpdConfOut( var DhcpdConf: text);
+procedure tDdiFullNodeQuery.DhcpdConfOut( var DhcpdConf: text; DynInfo: tDynInfo);
+    var
+      IsDyn:      boolean;
    begin
+      IsDyn:= Flags.GetBit( ipdb2_flags.IsDynamic);
+      if( IsDyn) then begin
+         DynInfo.DynEnd:= CurrentIP.GetValue;
+         if( not DynInfo.InDynRange) then begin
+            DynInfo.InDynRange:= true;
+            DynInfo.DynStart:= DynInfo.DynEnd;
+         end;
+      end else begin
+         // If a dynamic range was in progress, the output it.
+         if( DynInfo.InDynRange) then DynInfo.DhcpdConfOut( DhcpdConf);
+
+         // Output the Node's DHCP information
+         writeln( DhcpdConf, '   host ', Name.GetValue, ' {');
+         writeln( DhcpdConf, '      hardware ethernet ', 
+                              MacWord64ToString( NIC.OrigValue, ':', 2), ';');
+         writeln( DhcpdConf, '      fixed-address ', CurrentIP.GetValue, ';');
+         writeln( DhcpdConf, '      option host-name "', Name.GetValue, '";');
+         writeln( DhcpdConf, '      option domain-name "', DomainName.GetValue, '";');
+         writeln( DhcpdConf, '   } # ', FullName);
+         writeln( DhcpdConf);
+      end;
    end; // DhcpdConfOut()
 
 
@@ -219,7 +302,58 @@ procedure tDdiDomainsTable.DnsConfOut( var DnsConf: text);
 // ************************************************************************
 
 procedure tDdiIpRangesTable.DhcpdConfOut( var DhcpdConf: text);
+   var
+      DNS:             string = '';
+      SimpleNode:      tSimpleNode;
+      NodeStartIp:     word32;
+      NodeEndIp:       word32;
+      NodeStartIpStr:  string;
+      NodeEndIpStr:    string;
+      DynInfo:         tDynInfo;
    begin
+      // Build the list of DNS servers
+      SimpleNode:= NodeDict.FindNodeInfo( IPRanges.ClientDNS1.OrigValue);
+      if( SimpleNode = nil) then raise SQLdbException.Create( 'A Subnet doesn''t have DNS servers set!');
+      DNS:= SimpleNode.IPString;
+      SimpleNode:= NodeDict.FindNodeInfo( IPRanges.ClientDNS2.OrigValue);
+      if( SimpleNode <> nil) then DNS:= DNS + ', ' + SimpleNode.IPString;
+      SimpleNode:= NodeDict.FindNodeInfo( IPRanges.ClientDNS3.OrigValue);
+      if( SimpleNode <> nil) then DNS:= DNS + ', ' + SimpleNode.IPString;
+      DNS:= DNS + ';';
+      
+      // Output the shared/common network configuration.
+      writeln( DhcpdConf, 'subnet ', IpRanges.StartIP.GetValue(), ' netmask ',
+               IpRanges.NetMask.GetValue, ' {');
+      writeln( DhcpdConf, '   default-lease-time ', dhcp_def_lease_secs, ';');
+      writeln( DhcpdConf, '   max-lease-time ', dhcp_max_lease_secs, ';');
+      writeln( DhcpdConf, '   option broadcast-address ', IpRanges.EndIp.GetValue, ';');
+      writeln( DhcpdConf, '   option subnet-mask ', IpRanges.NetMask.GetValue, ';');
+      writeln( DhcpdConf, '   option routers ', IpRanges.Gateway.GetValue, ';');
+      writeln( DhcpdConf, '   option domain-name-servers ', DNS);
+      writeln( DhcpdConf, '   option domain-name "', dhcp_def_domain, '";'); 
+      writeln( DhcpdConf);
+
+      // Setup our Dynamic DHCP Range state object
+      DynInfo:= tDynInfo.Create;
+      DynInfo.InDynRange:= false;
+
+      // Step through each FullNode in the DHCP Subnet
+      NodeStartIp:=  IPRanges.StartIP.OrigValue + 1;
+      NodeEndIp:=    IPRanges.EndIP.OrigValue - 1;
+      Str( NodeStartIp, NodeStartIpStr);
+      Str( NodeEndIp, NodeEndIpStr);
+      FullNode.Query( ' and CurrentIP >= ' + NodeStartIpStr + ' and CurrentIP <= ' +
+                      NodeEndIpStr + ' order by NodeInfo.CurrentIP');
+      while( FullNode.Next) do begin
+          FullNode.DhcpdConfOut( DhcpdConf, DynInfo);
+      end;
+
+      // If a dynamic range was in progress, the output it.
+      if( DynInfo.InDynRange) then DynInfo.DhcpdConfOut( DhcpdConf);
+      DynInfo.Destroy;
+
+      writeln( DhcpdConf, '} # End of subnet ', IpRanges.StartIP.GetValue, 
+               ' ', IpRanges.EndIP.GetValue);
    end; // DhcpdConfOut()
 
 
@@ -319,7 +453,8 @@ procedure ReadIni();
 
 
 // *************************************************************************
-// * ParseArgV() - Parse the command line parameters
+// * ParseArgV() - Parse the command line parameters and initialize variables
+// *               which require command line variables.
 // *************************************************************************
 
 procedure ParseArgv();
@@ -367,13 +502,39 @@ procedure ParseArgv();
       dhcpd_conf:= WorkingFolder + dhcpd_conf;
       named_conf:= WorkingFolder + named_conf;
 
-      // Now that the command line and INI variables are read, we can reate the 
+      // Now that the command line and INI variables are read, we can create the 
       //   global tables
       NodeDict:=   tNodeDictionary.Create( tNodeDictionary.tCompareFunction( @CompareWord64s));
       FullNode:=   tDdiFullNodeQuery.Create();
       FullAlias:=  tDdiFullAliasQuery.Create();
       Domains:=    tDdiDomainsTable.Create();
       IPRanges:=   tDdiIPRangesTable.Create();
+
+      // Opent the DHCPd configuration file and output the global portion
+      Assign( DhcpdConf, dhcpd_conf);
+      rewrite( DhcpdConf);
+      writeln( DhcpdConf, 'ddns-update-style none;');
+      writeln( DhcpdConf, 'authoritative;');
+      writeln( DhcpdConf);
+
+      // Open the Named configuration file and output the global portion
+      Assign( NamedConf, named_conf);
+      rewrite( NamedConf);
+      writeln( NamedConf, '//');
+      writeln( NamedConf, '// Do any local configuration here');
+      writeln( NamedConf, '//');
+      writeln( NamedConf);
+      writeln( NamedConf, 'include "rndc.include";');
+      writeln( NamedConf);
+      writeln( NamedConf, 'logging {');
+      writeln( NamedConf, '   channel queries_log {');
+      writeln( NamedConf, '      syslog;');
+      writeln( NamedConf, '      severity info;');
+      writeln( NamedConf, '   };');
+      writeln( NamedConf, '   category default { default_syslog; default_debug; };');
+      writeln( NamedConf, '   category unmatched { null; };');
+      writeln( NamedConf, '};');
+      writeln( NamedConf);
 
       if( lbp_types.show_init) then writeln( 'ipdb2_dns_dhcp_config_classes.initialization:  end');
       if( lbp_types.show_init) then writeln( 'ipdb2_dns_dhcp_config_classes.ParseArgv(): end');
@@ -413,6 +574,9 @@ initialization
 
 finalization
    begin
+      Close( NamedConf);
+      Close( DhcpdConf);
+
       IPRanges.Destroy;
       Domains.Destroy;
       FullAlias.Destroy;

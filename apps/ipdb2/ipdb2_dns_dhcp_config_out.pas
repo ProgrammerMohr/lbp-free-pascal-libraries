@@ -44,164 +44,16 @@ uses
 // * Global Variable
 // ************************************************************************
 var
-   DhcpdConf:        text;
-   NamedConf:        text;
    Zone:             text;
 
 
-// ************************************************************************
-// * LookupNode() - Returns the tSimpleNode matching the passed ID value.
-// ************************************************************************
-
-function LookupNode( ID: Word64): tSimpleNode;
-   var
-      SimpleNode: tSimpleNode;
-   begin
-      result:= nil;
-      if( ID = 0) then exit;
-
-      // Try to get it from NodeDict
-      if NodeDict.Find( ID) then begin
-         result:= NodeDict.Value;
-      end else begin
-
-         // Try to look it up in FullNode and add it to NodeDict
-         FullNode.NodeID.SetValue( ID);
-         FullNode.Query( ' and NodeInfo.ID = ' + FullNode.NodeID.GetSqlValue);
-         if( FullNode.Next) then begin
-            SimpleNode:= tSimpleNode.Create();
-            SimpleNode.FullName:= FullNode.FullName;
-            SimpleNode.IPString:= FullNode.CurrentIP.GetValue;
-            SimpleNode.IPWord32:= FullNode.CurrentIP.OrigValue;
-
-            NodeDict.Add( FullNode.NodeID.OrigValue, SimpleNode);
-            result:= SimpleNode;
-         end; // If found in FullNode
-      end; // else try FullNode lookup
-   end; // LookupNode()
-
-
-// ************************************************************************
-// * ProcessDhcpDynRange()
-// ************************************************************************
-
-procedure ProcessDhcpDynRange( DynInfo: tDynInfo);
-   begin
-      DynInfo.InDynRange:= false;
-      writeln( DhcpdConf, '   range ', DynInfo.DynStart, ' ', DynInfo.DynEnd, ';');
-      writeln( DhcpdConf);
-   end; // ProcessDhcpDynRange()
-
-
-// ************************************************************************
-// * ProcessDhcpNode()  Output the DHCP configuration for a Node.
-// ************************************************************************
-
-procedure ProcessDhcpNode( DynInfo: tDynInfo);
-   var
-      IsDyn:      boolean;
-   begin
-      IsDyn:= FullNode.Flags.GetBit( ipdb2_flags.IsDynamic);
-      if( IsDyn) then begin
-         DynInfo.DynEnd:= FullNode.CurrentIP.GetValue;
-         if( not DynInfo.InDynRange) then begin
-            DynInfo.InDynRange:= true;
-            DynInfo.DynStart:= DynInfo.DynEnd;
-         end;
-      end else begin
-         // If a dynamic range was in progress, the output it.
-         if( DynInfo.InDynRange) then ProcessDhcpDynRange( DynInfo);
-
-         // Output the Node's DHCP information
-         writeln( DhcpdConf, '   host ', FullNode.Name.GetValue, ' {');
-         writeln( DhcpdConf, '      hardware ethernet ', 
-                              MacWord64ToString( FullNode.NIC.OrigValue, ':', 2), ';');
-         writeln( DhcpdConf, '      fixed-address ', FullNode.CurrentIP.GetValue, ';');
-         writeln( DhcpdConf, '      option host-name "', FullNode.Name.GetValue, '";');
-         writeln( DhcpdConf, '      option domain-name "', FullNode.DomainName.GetValue, '";');
-         writeln( DhcpdConf, '   } # ', FullNode.FullName);
-         writeln( DhcpdConf);
-      end;
-   end; // ProcessDhcpNode()
-
-
-// ************************************************************************
-// * ProcessNamedConfReverse() Output the current IPRange Named.Conf zone info FullNode record to the Zone file.
-// ************************************************************************
-
-// procedure ProcessDNSPtr();
-//    begin
-//    end; // ProcessDNSPtr()
-
-
-// ************************************************************************
+/// ************************************************************************
 // * ProcessDNSPtr() Output the current FullNode record to the Zone file.
 // ************************************************************************
 
 procedure ProcessDNSPtr();
    begin
    end; // ProcessDNSPtr()
-
-
-// ************************************************************************
-// ProcessDhcpNetwork() - Output DHCP configuration for the current
-//                        IPRange
-// ************************************************************************
-
-procedure ProcessDhcpNetwork();
-   var
-      DNS:             string = '';
-      SimpleNode:      tSimpleNode;
-      NodeStartIp:     word32;
-      NodeEndIp:       word32;
-      NodeStartIpStr:  string;
-      NodeEndIpStr:    string;
-      DynInfo:         tDynInfo;
-   begin
-      // Build the list of DNS servers
-      SimpleNode:= LookupNode( IPRanges.ClientDNS1.OrigValue);
-      if( SimpleNode = nil) then raise SQLdbException.Create( 'A Subnet doesn''t have DNS servers set!');
-      DNS:= SimpleNode.IPString;
-      SimpleNode:= LookupNode( IPRanges.ClientDNS2.OrigValue);
-      if( SimpleNode <> nil) then DNS:= DNS + ', ' + SimpleNode.IPString;
-      SimpleNode:= LookupNode( IPRanges.ClientDNS3.OrigValue);
-      if( SimpleNode <> nil) then DNS:= DNS + ', ' + SimpleNode.IPString;
-      DNS:= DNS + ';';
-      
-      // Output the shared/common network configuration.
-      writeln( DhcpdConf, 'subnet ', IpRanges.StartIP.GetValue(), ' netmask ',
-               IpRanges.NetMask.GetValue, ' {');
-      writeln( DhcpdConf, '   default-lease-time ', dhcp_def_lease_secs, ';');
-      writeln( DhcpdConf, '   max-lease-time ', dhcp_max_lease_secs, ';');
-      writeln( DhcpdConf, '   option broadcast-address ', IpRanges.EndIp.GetValue, ';');
-      writeln( DhcpdConf, '   option subnet-mask ', IpRanges.NetMask.GetValue, ';');
-      writeln( DhcpdConf, '   option routers ', IpRanges.Gateway.GetValue, ';');
-      writeln( DhcpdConf, '   option domain-name-servers ', DNS);
-      writeln( DhcpdConf, '   option domain-name "', dhcp_def_domain, '";'); 
-      writeln( DhcpdConf);
-
-      // Setup our Dynamic DHCP Range state object
-      DynInfo:= tDynInfo.Create;
-      DynInfo.InDynRange:= false;
-
-      // Step through each FullNode in the DHCP Subnet
-      NodeStartIp:=  IPRanges.StartIP.OrigValue + 1;
-      NodeEndIp:=    IPRanges.EndIP.OrigValue - 1;
-      Str( NodeStartIp, NodeStartIpStr);
-      Str( NodeEndIp, NodeEndIpStr);
-      FullNode.Query( ' and CurrentIP >= ' + NodeStartIpStr + ' and CurrentIP <= ' +
-                      NodeEndIpStr + ' order by NodeInfo.CurrentIP');
-      while( FullNode.Next) do begin
-         ProcessDhcpNode( DynInfo);   
-      end;
-
-      // If a dynamic range was in progress, the output it.
-      if( DynInfo.InDynRange) then ProcessDhcpDynRange( DynInfo);
-      DynInfo.Destroy;
-
-      writeln( DhcpdConf, '} # End of subnet ', IpRanges.StartIP.GetValue, 
-               ' ', IpRanges.EndIP.GetValue);
-   end; // ProcessDhcpNetwork()
 
 
 // ************************************************************************
@@ -222,7 +74,7 @@ procedure ProcessSubnets();
                       ' Order by NetMask, StartIP');
       while( IPRanges.Next) do begin
 //         if( IPRanges.Flags.GetBit( OutputDNS)) then ProcessReverseZone();
-         if( IPRanges.Flags.GetBit( OutputDhcp)) then ProcessDhcpNetwork();
+         if( IPRanges.Flags.GetBit( OutputDhcp)) then IpRanges.DhcpdConfOut( DhcpdConf);
       end; // For each range
    end; // ProcessSubnets()
 
@@ -249,62 +101,13 @@ procedure InitArgvParser();
    end;
 
 
-
-// ************************************************************************
-// * Initialize
-// ************************************************************************
-
-procedure Initialize();
-   begin
-      InitArgvParser();
-      Assign( DhcpdConf, dhcpd_conf);
-      rewrite( DhcpdConf);
-      writeln( DhcpdConf, 'ddns-update-style none;');
-      writeln( DhcpdConf, 'authoritative;');
-      writeln( DhcpdConf);
-
-      Assign( NamedConf, named_conf);
-      rewrite( NamedConf);
-      writeln( NamedConf, '//');
-      writeln( NamedConf, '// Do any local configuration here');
-      writeln( NamedConf, '//');
-      writeln( NamedConf);
-      writeln( NamedConf, 'include "rndc.include";');
-      writeln( NamedConf);
-      writeln( NamedConf, 'logging {');
-      writeln( NamedConf, '   channel queries_log {');
-      writeln( NamedConf, '      syslog;');
-      writeln( NamedConf, '      severity info;');
-      writeln( NamedConf, '   };');
-      writeln( NamedConf, '   category default { default_syslog; default_debug; };');
-      writeln( NamedConf, '   category unmatched { null; };');
-      writeln( NamedConf, '};');
-      writeln( NamedConf);
-
-   end; // Initialize()
-
-
-// ************************************************************************
-// * Finalize
-// ************************************************************************
-
-procedure Finalize();
-   begin
-      Close( NamedConf);
-      Close( DhcpdConf);
-
-   end; // Finalize()
-
-
 // ************************************************************************
 // * main()
 // ************************************************************************
 
 begin
-   Initialize();
+   InitArgvParser();
 
    ProcessSubnets();
  
-
-   Finalize();
 end. // ipdb2_dns_dhcp_config_out program
