@@ -52,6 +52,7 @@ uses
    lbp_types,     // lbp_exception
    lbp_testbed,
    lbp_xdg_basedir,
+   lbp_generic_containers,
    ipdb2_home_config, // Set/save/retrieve db connection settings.
    lbp_ini_files,
    lbp_sql_db,   // SQLCriticalException
@@ -59,12 +60,90 @@ uses
    sysutils;     // Exceptions, DirectoryExists, mkdir, etc
 
 
+// ************************************************************************
+// * tSimpleNode class - Hold a subset of Node information.
+// *                     Used by tNodeDictionary.
+// ************************************************************************
+type
+   tSimpleNode = class
+      FullName: string;
+      IPString: string;
+      IPWord32: word32;
+   end;  // tSimpleNode Class
+
+
+// ************************************************************************
+// * tDynInfo clas - Used to hold the state information about DHCP Dynamic
+// * ranges which need output
+// ************************************************************************
+type
+   tDynInfo = class
+      InDynRange:  boolean;
+      DynStart:     string;
+      DynEnd:       string;
+   end; // tDynInfo class
+   
+
+// ************************************************************************
+// * tNodeDictionary - A simple dictionary to hold Node information which 
+// *                   is often looked up by Node ID such as DNS servers.
+// ************************************************************************
+type
+   tNodeDictionary = specialize tgDictionary< word64, tSimpleNode>;
+
+
+// *************************************************************************
+// * tDdiFullNodeQuery - An IPdb2 FullNodeQuery that can output itself to
+// *                      DNS and DHCP configuration files
+// *************************************************************************
+type
+   tDdiFullNodeQuery = class( IPdb2_tables.FullNodeQuery)
+      public
+         procedure DhcpdConfOut( var DhcpdConf: text);
+         procedure DnsConfOut( var DnsConf: text);
+      end; // tDdiFullNodeQuery;
+
+
+// *************************************************************************
+// * tDdiFullAliasQuery - An IPdb2 FullAliasQuery that can output itself to
+// *                      DNS configuration files
+// *************************************************************************
+type
+   tDdiFullAliasQuery = class( FullAliasQuery)
+      public
+         procedure DnsConfOut( var DnsConf: text);
+      end; // tDdiFullAliasQuery;
+
+
+// *************************************************************************
+// * tDdiDomainsTable - An IPdb2 DomainsTable that can output itself to
+// *                     DNS configuration files
+// *************************************************************************
+type
+   tDdiDomainsTable = class( DomainsTable)
+      public
+         procedure DnsConfOut( var DnsConf: text);
+      end; // tDdiDomainsTable;
+
+
+// *************************************************************************
+// * tDdiIpRangesTable - An IPdb2 IpRangesTable that can output itself to
+// *                     DNS and DHCP configuration files
+// *************************************************************************
+type
+   tDdiIpRangesTable = class( IpRangesTable)
+      public
+         procedure DhcpdConfOut( var DhcpdConf: text);
+         procedure DnsConfOut( var DnsConf: text);
+      end; // tDdiIpRangesTable;
+
 
 // ************************************************************************
 // * Global variables
 // ************************************************************************
-
 var
+   WorkingFolder:       string;  // The name of the working folder
+//   StaticFolder:        string;  // The name of the folder where static include data is stored.
    dhcpd_conf:          string;
    named_conf:          string;
    dns_folder:          string;
@@ -72,20 +151,115 @@ var
    dhcp_max_lease_secs: string;
    dhcp_def_lease_secs: string;
    dhcp_def_domain:     string;
+   {$warning ===== Move this to the implementation once all the code that references it has been moved to this unit! =====}
+   NodeDict:            tNodeDictionary;
+   FullNode:            tDdiFullNodeQuery;
+   FullAlias:           tDdiFullAliasQuery;
+   Domains:             tDdiDomainsTable;
+   IPRanges:            tDdiIpRangesTable;
 
 
 // *************************************************************************
 
 implementation
 
-// -------------------------------------------------------------------------
-// - Global functions
-// -------------------------------------------------------------------------
+// =========================================================================
+// = tDdiFullNodeQuery class
+// =========================================================================
+// ************************************************************************
+// *  DhcpdConfOut() - Output the record's DHCPD configuration 
+// ************************************************************************
+
+procedure tDdiFullNodeQuery.DhcpdConfOut( var DhcpdConf: text);
+   begin
+   end; // DhcpdConfOut()
+
+
+// ************************************************************************
+// *  DnsConfOut() - Output the record's DNS configuration 
+// ************************************************************************
+
+procedure tDdiFullNodeQuery.DnsConfOut( var DnsConf: text);
+   begin
+   end; // DnsConfOut()
+
+   
+
+// =========================================================================
+// = tDdiFullAliasQuery class
+// =========================================================================
+// ************************************************************************
+// *  DnsConfOut() - Output the record's DNS configuration 
+// ************************************************************************
+
+procedure tDdiFullAliasQuery.DnsConfOut( var DnsConf: text);
+   begin
+   end; // DnsConfOut()
+
+
+
+// =========================================================================
+// = tDdiDomainsTable class
+// =========================================================================
+// ************************************************************************
+// *  DnsConfOut() - Output the record's DNS configuration 
+// ************************************************************************
+
+procedure tDdiDomainsTable.DnsConfOut( var DnsConf: text);
+   begin
+   end; // DnsConfOut()
+
+
+   
+// =========================================================================
+// = tDdiIpRangesTable class
+// =========================================================================
+// ************************************************************************
+// *  DhcpdConfOut() - Output the record's DHCPD configuration 
+// ************************************************************************
+
+procedure tDdiIpRangesTable.DhcpdConfOut( var DhcpdConf: text);
+   begin
+   end; // DhcpdConfOut()
+
+
+// ************************************************************************
+// *  DnsConfOut() - Output the record's DNS configuration 
+// ************************************************************************
+
+procedure tDdiIpRangesTable.DnsConfOut( var DnsConf: text);
+   begin
+   end; // DnsConfOut()
+
+   
+
+// =========================================================================
+// = Global functions
+// =========================================================================
 
 var
    ini_file_name: string;
    ini_file:      IniFileObj;
    ini_section:   string;
+
+
+// ************************************************************************
+// * BuildFolder() - takes an array of strings representing a parent folder
+// *    and the child folders which make up the path.  Each subfolder is
+// *    created if it doesn't exist.  The single string representing the 
+// *    complete path is returned.
+// ************************************************************************
+
+function BuildFolder( A: array of string): string;
+   var
+      SubFolder: string;
+   begin
+      result:= '';
+      for SubFolder in A do begin
+         result:= result + SubFolder + DirectorySeparator;
+         if( not DirectoryExists( result)) then mkdir( result);
+      end;
+   end; // BuildFolder()
 
 
 // *************************************************************************
@@ -185,12 +359,29 @@ procedure ParseArgv();
       end; 
       ini_file.close();
 
+      // Set our static and working folders
+//      StaticFolder:=  lbp_xdg_basedir.CacheFolder;
+//      StaticFolder:=  BuildFolder(  [ StaticFolder, 'lbp', 'ipdb2_dns_dhcp_config_out', 'static']);
+      WorkingFolder:= lbp_xdg_basedir.CacheFolder;
+      WorkingFolder:= BuildFolder(  [ WorkingFolder, 'lbp', 'ipdb2_dns_dhcp_config_out', 'working']);
+      dhcpd_conf:= WorkingFolder + dhcpd_conf;
+      named_conf:= WorkingFolder + named_conf;
+
+      // Now that the command line and INI variables are read, we can reate the 
+      //   global tables
+      NodeDict:=   tNodeDictionary.Create( tNodeDictionary.tCompareFunction( @CompareWord64s));
+      FullNode:=   tDdiFullNodeQuery.Create();
+      FullAlias:=  tDdiFullAliasQuery.Create();
+      Domains:=    tDdiDomainsTable.Create();
+      IPRanges:=   tDdiIPRangesTable.Create();
+
+      if( lbp_types.show_init) then writeln( 'ipdb2_dns_dhcp_config_classes.initialization:  end');
       if( lbp_types.show_init) then writeln( 'ipdb2_dns_dhcp_config_classes.ParseArgv(): end');
    end; // ParseArgV
 
 
 // *************************************************************************
-// * Initialization - Set default connection info
+// * Initialization - Setup the command line parameters and global variables
 // *************************************************************************
 
 initialization
@@ -213,8 +404,23 @@ initialization
       AddUsage( '                                 settings');
       AddUsage( '');
       AddPostParseProcedure( @ParseArgv);
-      if( lbp_types.show_init) then writeln( 'ipdb2_dns_dhcp_config_classes.initialization:  end');
    end; // initialization
+
+
+// *************************************************************************
+// * finalization
+// *************************************************************************
+
+finalization
+   begin
+      IPRanges.Destroy;
+      Domains.Destroy;
+      FullAlias.Destroy;
+      FullNode.Destroy;
+
+      NodeDict.RemoveAll( True);
+      NodeDict.Destroy;
+   end; // finalization
 
 
 // *************************************************************************

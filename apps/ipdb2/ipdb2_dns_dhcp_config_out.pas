@@ -35,64 +35,18 @@ uses
    ipdb2_tables,
    ipdb2_flags,
    ipdb2_dns_dhcp_config_classes,
-   lbp_xdg_basedir,
+   // lbp_xdg_basedir,
    lbp_ip_utils,
    lbp_generic_containers,
    sysutils;
 
 // ************************************************************************
-// * tSimpleNode class - Hold a subset of Node information.
-// *                     Used by tNodeDictionary.
-// ************************************************************************
-type
-   tSimpleNode = class
-      FullName: string;
-      IPString: string;
-      IPWord32: word32;
-   end;  // tSimpleNode Class
-
-
-// ************************************************************************
-// * tDynInfo clas - Used to hold the state information about DHCP Dynamic
-// * ranges which need output
-// ************************************************************************
-type
-   tDynInfo = class
-      InDynRange:  boolean;
-      DynStart:     string;
-      DynEnd:       string;
-   end; // tDynInfo class
-   
-
-// ************************************************************************
-// * tNodeDictionary - A simple dictionary to hold Node information which 
-// *                   is often looked up by Node ID such as DNS servers.
-// ************************************************************************
-type
-   tNodeDictionary = specialize tgDictionary< word64, tSimpleNode>;
-
-
-// ************************************************************************
 // * Global Variable
 // ************************************************************************
 var
-   FullNode:         FullNodeQuery;
-   FullAlias:        FullAliasQuery;
-   IPRanges:         IPRangesTable;
-   Domains:          DomainsTable;
-   NodeDict:         tNodeDictionary;
-   WorkingFolder:    string;  // The name of the working folder
-   StaticFolder:     string;  // The name of the folder where static include data is stored.
-   DhcpdConfWorking: string = 'dhcpd.conf';
-   NamedConfWorking: string = 'named.conf.local';
-   ProdDnsFolder:    string = '/etc/bind/';
-   ProdDhcpFolder:   string = '/etc/dhcp/';
    DhcpdConf:        text;
    NamedConf:        text;
    Zone:             text;
-   DhcpMaxLeaseSecs: string = '900'; // 1 hour
-   DhcpDefLeaseSecs: string = '900'; // 1 hour
-   DhcpDefDomain:    string = 'la-park.org';
 
 
 // ************************************************************************
@@ -217,13 +171,13 @@ procedure ProcessDhcpNetwork();
       // Output the shared/common network configuration.
       writeln( DhcpdConf, 'subnet ', IpRanges.StartIP.GetValue(), ' netmask ',
                IpRanges.NetMask.GetValue, ' {');
-      writeln( DhcpdConf, '   default-lease-time ', DhcpDefLeaseSecs, ';');
-      writeln( DhcpdConf, '   max-lease-time ', DhcpMaxLeaseSecs, ';');
+      writeln( DhcpdConf, '   default-lease-time ', dhcp_def_lease_secs, ';');
+      writeln( DhcpdConf, '   max-lease-time ', dhcp_max_lease_secs, ';');
       writeln( DhcpdConf, '   option broadcast-address ', IpRanges.EndIp.GetValue, ';');
       writeln( DhcpdConf, '   option subnet-mask ', IpRanges.NetMask.GetValue, ';');
       writeln( DhcpdConf, '   option routers ', IpRanges.Gateway.GetValue, ';');
       writeln( DhcpdConf, '   option domain-name-servers ', DNS);
-      writeln( DhcpdConf, '   option domain-name "', DhcpDefDomain, '";'); 
+      writeln( DhcpdConf, '   option domain-name "', dhcp_def_domain, '";'); 
       writeln( DhcpdConf);
 
       // Setup our Dynamic DHCP Range state object
@@ -274,25 +228,6 @@ procedure ProcessSubnets();
 
 
 // ************************************************************************
-// * BuildFolder() - takes an array of strings representing a parent folder
-// *    and the child folders which make up the path.  Each subfolder is
-// *    created if it doesn't exist.  The single string representing the 
-// *    complete path is returned.
-// ************************************************************************
-
-function BuildFolder( A: array of string): string;
-   var
-      SubFolder: string;
-   begin
-      result:= '';
-      for SubFolder in A do begin
-         result:= result + SubFolder + DirectorySeparator;
-         if( not DirectoryExists( result)) then mkdir( result);
-      end;
-   end; // BuildFolder()
-
-
-// ************************************************************************
 // * InitArgvParser() - Initialize the command line usage message and
 // *                    parse the command line.
 // ************************************************************************
@@ -322,28 +257,13 @@ procedure InitArgvParser();
 procedure Initialize();
    begin
       InitArgvParser();
-      FullNode:=   FullNodeQuery.Create();
-      FullAlias:=  FullAliasQuery.Create();
-      IPRanges:=   IPRangesTable.Create();
-      Domains:=    DomainsTable.Create();
-
-      NodeDict:=   tNodeDictionary.Create( tNodeDictionary.tCompareFunction( @CompareWord64s));
-
-      // Set our static and working folders
-      StaticFolder:=  lbp_xdg_basedir.CacheFolder;
-      StaticFolder:=  BuildFolder(  [ StaticFolder, 'lbp', 'ipdb2_dns_dhcp_config_out', 'static']);
-      WorkingFolder:= lbp_xdg_basedir.CacheFolder;
-      WorkingFolder:= BuildFolder(  [ WorkingFolder, 'lbp', 'ipdb2_dns_dhcp_config_out', 'working']);
-      DhcpdConfWorking:= WorkingFolder + DhcpdConfWorking;
-      NamedConfWorking:= WorkingFolder + NamedConfWorking;
-
-      Assign( DhcpdConf, DhcpdConfWorking);
+      Assign( DhcpdConf, dhcpd_conf);
       rewrite( DhcpdConf);
       writeln( DhcpdConf, 'ddns-update-style none;');
       writeln( DhcpdConf, 'authoritative;');
       writeln( DhcpdConf);
 
-      Assign( NamedConf, NamedConfWorking);
+      Assign( NamedConf, named_conf);
       rewrite( NamedConf);
       writeln( NamedConf, '//');
       writeln( NamedConf, '// Do any local configuration here');
@@ -373,12 +293,6 @@ procedure Finalize();
       Close( NamedConf);
       Close( DhcpdConf);
 
-      NodeDict.RemoveAll( True);
-      NodeDict.Destroy;
-      Domains.Destroy;
-      IPRanges.Destroy;
-      FullAlias.Destroy;
-      FullNode.Destroy;
    end; // Finalize()
 
 
