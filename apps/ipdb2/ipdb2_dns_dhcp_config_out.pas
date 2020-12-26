@@ -108,6 +108,6 @@ procedure InitArgvParser();
 begin
    InitArgvParser();
 
-   ProcessSubnets();
+   IpRanges.OutputConfigs( DhcpdConf, NamedConf);
  
 end. // ipdb2_dns_dhcp_config_out program

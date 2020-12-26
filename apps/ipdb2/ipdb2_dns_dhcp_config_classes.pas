@@ -59,6 +59,8 @@ uses
    ipdb2_tables,
    ipdb2_flags,
    lbp_ip_utils,  // MAC and IP coversion between words and strings
+   lbp_ip_network,  // Manipulate CIDRs
+   lbp_unix_time,  // Gets the current time.  Used for generating SOA Serial Numbers
    sysutils;     // Exceptions, DirectoryExists, mkdir, etc
 
 
@@ -108,7 +110,8 @@ type
    tDdiFullNodeQuery = class( IPdb2_tables.FullNodeQuery)
       public
          procedure DhcpdConfOut( var DhcpdConf: text; DynInfo: tDynInfo);
-         procedure DnsConfOut( var DnsConf: text);
+         procedure FwdZoneOut( var Zone: text);
+         procedure RevZoneOut( var Zone: text);
       end; // tDdiFullNodeQuery class
 
 
@@ -119,7 +122,8 @@ type
 type
    tDdiFullAliasQuery = class( FullAliasQuery)
       public
-         procedure DnsConfOut( var DnsConf: text);
+         procedure FwdZoneOut( var Zone: text);
+         procedure RevZoneOut( var Zone: text);
       end; // tDdiFullAliasQuery class
 
 
@@ -130,7 +134,9 @@ type
 type
    tDdiDomainsTable = class( DomainsTable)
       public
-         procedure DnsConfOut( var DnsConf: text);
+         Zone:   Text;
+         SoaSerial:   string;  // The serial numbers to use for the zone
+         procedure DnsConfOut( var DnsConf: text); // Output a record
       end; // tDdiDomainsTable class
 
 
@@ -141,8 +147,18 @@ type
 type
    tDdiIpRangesTable = class( IpRangesTable)
       public
+         DynInfo:         tDynInfo;  // current dyanic DHCP range info
+         NetInfo:         tNetworkInfo; // Get network prefix
+         ForwardNet:      string;  // The network portion of a /8, /16, or /32 network
+         ReverseNet:      string;
+         Zone:            Text; // Reverse zone file
+         SoaSerial:       string;  // The serial numbers to use for the zone
+         NodeStartIpStr:  string;
+         NodeEndIpStr:    string;
+
          procedure DhcpdConfOut( var DhcpdConf: text);
          procedure DnsConfOut( var DnsConf: text);
+         procedure OutputConfigs( var DhcpdConf, DnsConf: text);
       end; // tDdiIpRangesTable class
 
 
@@ -159,6 +175,12 @@ var
    dhcp_max_lease_secs: string;
    dhcp_def_lease_secs: string;
    dhcp_def_domain:     string;
+   dns_contact:         string;
+   dns_refresh:         string;
+   dns_retry:           string;
+   dns_expire:          string;
+   dns_min_ttl:         string;
+   dns_def_ttl:         string;
    {$warning ===== Move this to the implementation once all the code that references it has been moved to this unit! =====}
    NodeDict:            tNodeDictionary;
    FullNode:            tDdiFullNodeQuery;
@@ -223,6 +245,7 @@ function tNodeDictionary.FindNodeInfo( ID: Word64): tSimpleNode;
       end; // else try FullNode lookup
    end; // FindNodeInfo()
 
+
 // =========================================================================
 // = tDdiFullNodeQuery class
 // =========================================================================
@@ -259,12 +282,32 @@ procedure tDdiFullNodeQuery.DhcpdConfOut( var DhcpdConf: text; DynInfo: tDynInfo
 
 
 // ************************************************************************
-// *  DnsConfOut() - Output the record's DNS configuration 
+// *  FwdZoneOut() - Output the record's forward zone configuration 
 // ************************************************************************
 
-procedure tDdiFullNodeQuery.DnsConfOut( var DnsConf: text);
+procedure tDdiFullNodeQuery.FwdZoneOut( var Zone: text);
+   var
+      ShortName:  string;
    begin
-   end; // DnsConfOut()
+      ShortName:= Name.OrigValue;
+      if( Length( ShortName) = 0) then ShortName:= '@';
+      writeln( Zone, ShortName, '  IN  A  ', CurrentIP.GetSQLValue);
+   end; // FwdZoneOut()
+
+   
+// ************************************************************************
+// *  RevZoneOut() - Output the record's reverse zone configuration 
+// ************************************************************************
+
+procedure tDdiFullNodeQuery.RevZoneOut( var Zone: text);
+   var
+      RightOctet:    word32;
+      RightOctetStr: string;
+   begin
+      RightOctet:= CurrentIP.OrigValue mod 256;
+      Str( RightOctet, RightOctetStr);
+      writeln( Zone, RightOctetStr, '  IN PTR  ', FullName, '.');
+   end; // RevZoneOut()
 
    
 
@@ -272,12 +315,39 @@ procedure tDdiFullNodeQuery.DnsConfOut( var DnsConf: text);
 // = tDdiFullAliasQuery class
 // =========================================================================
 // ************************************************************************
-// *  DnsConfOut() - Output the record's DNS configuration 
+// *  FwdZoneOut() - Output the record's forward zone configuration 
 // ************************************************************************
 
-procedure tDdiFullAliasQuery.DnsConfOut( var DnsConf: text);
+procedure tDdiFullAliasQuery.FwdZoneOut( var Zone: text);
+   var
+      ShortName:  string;
    begin
-   end; // DnsConfOut()
+      ShortName:= AliasName.OrigValue;
+      if( Length( ShortName) = 0) then ShortName:= '@';
+      if( AliasFlags.GetBit( OutputARecord)) then begin
+         writeln( Zone, ShortName, '  IN  A  ', CurrentIP.GetSQLValue);
+      end else begin
+         writeln( Zone, ShortName, '  IN  CNAME  ', FullNodeName, '.');
+      end;
+   end; // FwdZoneOut()
+
+
+
+// ************************************************************************
+// *  RevZoneOut() - Output the record's reverse zone configuration 
+// ************************************************************************
+
+procedure tDdiFullAliasQuery.RevZoneOut( var Zone: text);
+   var
+      RightOctet:    word32;
+      RightOctetStr: string;
+   begin
+      if( AliasFlags.GetBit( OutputARecord)) then begin
+         RightOctet:= CurrentIP.OrigValue mod 256;
+         Str( RightOctet, RightOctetStr);
+         writeln( Zone, RightOctetStr, '  IN PTR  ', FullName, '.');
+      end;
+   end; // RevZoneOut()
 
 
 
@@ -290,6 +360,60 @@ procedure tDdiFullAliasQuery.DnsConfOut( var DnsConf: text);
 
 procedure tDdiDomainsTable.DnsConfOut( var DnsConf: text);
    begin
+{$ERROR this was copied from DdiIpRangesTable.DnsConfOut and needs converted!}
+      // Open the reverse zone file
+      assign( Zone, WorkingFolder + 'db.' + ForwardNet);
+      rewrite( Zone);
+
+      writeln( Zone, '$TTL ', dns_def_ttl);
+      SimpleNode:= NodeDict.FindNodeInfo( DNS1.OrigValue);
+      writeln( Zone, ReverseNet, '.in-addr.arpa. IN SOA ', SimpleNode.FullName,
+               '. ', dns_contact, ' (');
+      writeln( Zone, '   ', SoaSerial, '  ; serial number');
+      writeln( Zone, '   ', dns_refresh, '      ; refresh');
+      writeln( Zone, '   ', dns_retry, '       ; retry');
+      writeln( Zone, '   ', dns_expire, '   ; expire');
+      writeln( Zone, '   ', dns_min_ttl, ' )     ; minimum TTL');
+      writeln( Zone);
+
+      writeln( Zone, '; ****************');
+      writeln( Zone, '; * IPRange NS');
+      writeln( Zone, '; ****************');
+      if( DNS1.OrigValue <> 0) then begin
+         SimpleNode:= NodeDict.FindNodeInfo( DNS1.OrigValue);
+         writeln( Zone, '@  IN  NS  ', SimpleNode.FullName, '.');
+      end;
+      if( DNS2.OrigValue <> 0) then begin
+         SimpleNode:= NodeDict.FindNodeInfo( DNS2.OrigValue);
+         writeln( Zone, '@  IN  NS  ', SimpleNode.FullName, '.');
+      end;
+      if( DNS3.OrigValue <> 0) then begin
+         SimpleNode:= NodeDict.FindNodeInfo( DNS3.OrigValue);
+         writeln( Zone, '@  IN  NS  ', SimpleNode.FullName, '.');
+      end;
+      writeln( Zone);
+
+      writeln( Zone, '; ****************');
+      writeln( Zone, '; * NodeInfo PTR');
+      writeln( Zone, '; ****************');
+      FullNode.Query( ' and CurrentIP > ' + StartIP.GetSQLValue + 
+                      ' and CurrentIP < ' + EndIP.GetSQLValue +
+                      ' order by NodeInfo.CurrentIP');
+      while( FullNode.Next) do begin
+         FullNode.RevZoneOut( Zone);
+      end;
+      writeln( Zone);
+
+      writeln( Zone, '; ****************');
+      writeln( Zone, '; * Aliases PTR or CNAME');
+      writeln( Zone, '; ****************');
+      FullAlias.Query( ' and CurrentIP > ' + StartIP.GetSQLValue + 
+                      ' and CurrentIP < ' + EndIP.GetSQLValue +
+                      ' order by NodeInfo.CurrentIP');
+      while( FullAlias.Next) do begin
+         FullAlias.RevZoneOut( Zone);
+      end;
+      close( Zone);
    end; // DnsConfOut()
 
 
@@ -307,34 +431,30 @@ procedure tDdiIpRangesTable.DhcpdConfOut( var DhcpdConf: text);
       SimpleNode:      tSimpleNode;
       NodeStartIp:     word32;
       NodeEndIp:       word32;
-      NodeStartIpStr:  string;
-      NodeEndIpStr:    string;
-      DynInfo:         tDynInfo;
    begin
       // Build the list of DNS servers
-      SimpleNode:= NodeDict.FindNodeInfo( IPRanges.ClientDNS1.OrigValue);
+      SimpleNode:= NodeDict.FindNodeInfo( ClientDNS1.OrigValue);
       if( SimpleNode = nil) then raise SQLdbException.Create( 'A Subnet doesn''t have DNS servers set!');
       DNS:= SimpleNode.IPString;
-      SimpleNode:= NodeDict.FindNodeInfo( IPRanges.ClientDNS2.OrigValue);
+      SimpleNode:= NodeDict.FindNodeInfo( ClientDNS2.OrigValue);
       if( SimpleNode <> nil) then DNS:= DNS + ', ' + SimpleNode.IPString;
-      SimpleNode:= NodeDict.FindNodeInfo( IPRanges.ClientDNS3.OrigValue);
+      SimpleNode:= NodeDict.FindNodeInfo( ClientDNS3.OrigValue);
       if( SimpleNode <> nil) then DNS:= DNS + ', ' + SimpleNode.IPString;
       DNS:= DNS + ';';
       
       // Output the shared/common network configuration.
-      writeln( DhcpdConf, 'subnet ', IpRanges.StartIP.GetValue(), ' netmask ',
-               IpRanges.NetMask.GetValue, ' {');
+      writeln( DhcpdConf, 'subnet ', StartIP.GetValue(), ' netmask ',
+               NetMask.GetValue, ' {');
       writeln( DhcpdConf, '   default-lease-time ', dhcp_def_lease_secs, ';');
       writeln( DhcpdConf, '   max-lease-time ', dhcp_max_lease_secs, ';');
-      writeln( DhcpdConf, '   option broadcast-address ', IpRanges.EndIp.GetValue, ';');
-      writeln( DhcpdConf, '   option subnet-mask ', IpRanges.NetMask.GetValue, ';');
-      writeln( DhcpdConf, '   option routers ', IpRanges.Gateway.GetValue, ';');
+      writeln( DhcpdConf, '   option broadcast-address ', EndIp.GetValue, ';');
+      writeln( DhcpdConf, '   option subnet-mask ', NetMask.GetValue, ';');
+      writeln( DhcpdConf, '   option routers ', Gateway.GetValue, ';');
       writeln( DhcpdConf, '   option domain-name-servers ', DNS);
       writeln( DhcpdConf, '   option domain-name "', dhcp_def_domain, '";'); 
       writeln( DhcpdConf);
 
-      // Setup our Dynamic DHCP Range state object
-      DynInfo:= tDynInfo.Create;
+      // Reset our Dynamic DHCP Range state object
       DynInfo.InDynRange:= false;
 
       // Step through each FullNode in the DHCP Subnet
@@ -350,7 +470,6 @@ procedure tDdiIpRangesTable.DhcpdConfOut( var DhcpdConf: text);
 
       // If a dynamic range was in progress, the output it.
       if( DynInfo.InDynRange) then DynInfo.DhcpdConfOut( DhcpdConf);
-      DynInfo.Destroy;
 
       writeln( DhcpdConf, '} # End of subnet ', IpRanges.StartIP.GetValue, 
                ' ', IpRanges.EndIP.GetValue);
@@ -362,10 +481,126 @@ procedure tDdiIpRangesTable.DhcpdConfOut( var DhcpdConf: text);
 // ************************************************************************
 
 procedure tDdiIpRangesTable.DnsConfOut( var DnsConf: text);
+   var
+      SimpleNode:  tSimpleNode;
    begin
+      // Open the reverse zone file
+      assign( Zone, WorkingFolder + 'db.' + ForwardNet);
+      rewrite( Zone);
+
+      writeln( Zone, '$TTL ', dns_def_ttl);
+      SimpleNode:= NodeDict.FindNodeInfo( DNS1.OrigValue);
+      writeln( Zone, ReverseNet, '.in-addr.arpa. IN SOA ', SimpleNode.FullName,
+               '. ', dns_contact, ' (');
+      writeln( Zone, '   ', SoaSerial, '  ; serial number');
+      writeln( Zone, '   ', dns_refresh, '      ; refresh');
+      writeln( Zone, '   ', dns_retry, '       ; retry');
+      writeln( Zone, '   ', dns_expire, '   ; expire');
+      writeln( Zone, '   ', dns_min_ttl, ' )     ; minimum TTL');
+      writeln( Zone);
+
+      writeln( Zone, '; ****************');
+      writeln( Zone, '; * IPRange NS');
+      writeln( Zone, '; ****************');
+      if( DNS1.OrigValue <> 0) then begin
+         SimpleNode:= NodeDict.FindNodeInfo( DNS1.OrigValue);
+         writeln( Zone, '@  IN  NS  ', SimpleNode.FullName, '.');
+      end;
+      if( DNS2.OrigValue <> 0) then begin
+         SimpleNode:= NodeDict.FindNodeInfo( DNS2.OrigValue);
+         writeln( Zone, '@  IN  NS  ', SimpleNode.FullName, '.');
+      end;
+      if( DNS3.OrigValue <> 0) then begin
+         SimpleNode:= NodeDict.FindNodeInfo( DNS3.OrigValue);
+         writeln( Zone, '@  IN  NS  ', SimpleNode.FullName, '.');
+      end;
+      writeln( Zone);
+
+      writeln( Zone, '; ****************');
+      writeln( Zone, '; * NodeInfo PTR');
+      writeln( Zone, '; ****************');
+      FullNode.Query( ' and CurrentIP > ' + StartIP.GetSQLValue + 
+                      ' and CurrentIP < ' + EndIP.GetSQLValue +
+                      ' order by NodeInfo.CurrentIP');
+      while( FullNode.Next) do begin
+         FullNode.RevZoneOut( Zone);
+      end;
+      writeln( Zone);
+
+      writeln( Zone, '; ****************');
+      writeln( Zone, '; * Aliases PTR or CNAME');
+      writeln( Zone, '; ****************');
+      FullAlias.Query( ' and CurrentIP > ' + StartIP.GetSQLValue + 
+                      ' and CurrentIP < ' + EndIP.GetSQLValue +
+                      ' order by NodeInfo.CurrentIP');
+      while( FullAlias.Next) do begin
+         FullAlias.RevZoneOut( Zone);
+      end;
+      close( Zone);
    end; // DnsConfOut()
 
    
+// ************************************************************************
+// *  OutputConfigs() - Iterate through the table and output all DNS and
+// *                    DHCP configuration information. 
+// ************************************************************************
+
+procedure tDdiIpRangesTable.OutputConfigs( var DhcpdConf, DnsConf: text);
+   var
+      Slash0Str:   string;
+      Slash32Str:  string;
+      iCount:      integer;
+      i:           integer;
+      IpAddrStr:   string;
+   begin
+      // setup instance variables used by output routines
+      DynInfo:= tDynInfo.Create;
+      NetInfo:= tNetworkInfo.Create;
+      
+      // Build the SoaSerial
+      CurrentTime.Now; // Set the Current Time from the system clock.
+      Str( (CurrentTime.Epoch div 60), SoaSerial);
+
+      Str( Slash[  0], Slash0Str);
+      Str( Slash[ 32], Slash32Str);
+
+      // Query for all the subnets except those with an impossible netmask
+      Query( 'where NetMask != ' + Slash0Str + 
+                      ' and NetMask != ' + Slash32Str + 
+                      ' Order by NetMask, StartIP');
+      while( Next) do begin
+         if( Flags.GetBit( OutputDhcp)) then DhcpdConfOut( DhcpdConf);
+
+         if( Flags.GetBit( OutputDns)) then begin
+
+            // Test to makesure its a /8, /16, or /24, the only allowed size for DNS
+            NetInfo.IpAddr:= StartIP.OrigValue;
+            NetInfo.NetMask:= NetMask.OrigValue;
+            if( (NetInfo.Prefix mod 8) <> 0) then begin
+               raise SQLdbException.Create( '%s/%d is not a vaid DNS reverse zone.  The prefix must be 8, 16, or 24!', [NetInfo.IpAddrStr, NetInfo.Prefix]);
+            end;
+
+            // Construct the Forward and Reverse Net strings
+            iCount:= NetInfo.Prefix div 8;
+            IpAddrStr:= NetInfo.IpAddrStr;
+            i:= 0;
+            while( iCount > 0) do begin
+               inc( i); // move to the first character or the next character past a dot
+               while( IpAddrStr[ i] <> '.') do inc( i);
+               dec( iCount);
+            end;
+            ForwardNet:= Copy( IpAddrStr, 1, i - 1);
+            ReverseNet:= ReverseDottedOrder( ForwardNet);
+
+            DnsConfOut( DnsConf);
+         end;
+      end; // For each range
+
+      // Cleanup instance variables
+      NetInfo.Destroy;
+      DynInfo.Destroy;
+   end; // OutputConfigs();
+
 
 // =========================================================================
 // = Global functions
@@ -427,7 +662,13 @@ procedure ReadIni();
          writeln( F, 'dhcp-folder=/etc/dhcp/');
          writeln( F, 'dhcp-max-lease-secs=900');
          writeln( F, 'dhcp-def-lease-secs=900');
-         writeln( F, 'dhcp-def-domain=la-park.org');
+         writeln( F, 'dhcp-def-domain=junk.org');
+         writeln( F, 'dns-contact=junk.gmail.com');
+         writeln( F, 'dns-refresh=1200');
+         writeln( F, 'dns-retry=300');
+         writeln( F, 'dns-expire=2419200');
+         writeln( F, 'dns-min-ttl=300');
+         writeln( F, 'dns-def-ttl=600');
          writeln( F, '[testbed]');
          writeln( F, 'dhcpd-conf=dhcpd.conf');
          writeln( F, 'named-conf=named.conf.local');
@@ -435,9 +676,16 @@ procedure ReadIni();
          writeln( F, 'dhcp-folder=/etc/dhcp/');
          writeln( F, 'dhcp-max-lease-secs=900');
          writeln( F, 'dhcp-def-lease-secs=900');
-         writeln( F, 'dhcp-def-domain=la-park.org');
+         writeln( F, 'dhcp-def-domain=junk.org');
+         writeln( F, 'dns-contact=junk.gmail.com');
+         writeln( F, 'dns-refresh=1200');
+         writeln( F, 'dns-retry=300');
+         writeln( F, 'dns-expire=2419200');
+         writeln( F, 'dns-min-ttl=300');
+         writeln( F, 'dns-def-ttl=600');
          close( F);
       end;
+
 
       // Now we can finally read the ini file
       if( lbp_testbed.Testbed) then ini_section:= 'testbed' else ini_section:= 'main';
@@ -449,6 +697,12 @@ procedure ReadIni();
       dhcp_max_lease_secs:= ini_file.ReadVariable( ini_section, 'dhcp-max-lease-secs');
       dhcp_def_lease_secs:= ini_file.ReadVariable( ini_section, 'dhcp-def-lease-secs');
       dhcp_def_domain:=     ini_file.ReadVariable( ini_section, 'dhcp-def-domain');
+      dns_contact:=         ini_file.ReadVariable( ini_section, 'dns-contact');
+      dns_refresh:=         ini_file.ReadVariable( ini_section, 'dns-refresh');
+      dns_retry:=           ini_file.ReadVariable( ini_section, 'dns-retry');
+      dns_expire:=          ini_file.ReadVariable( ini_section, 'dns-expire');
+      dns_min_ttl:=         ini_file.ReadVariable( ini_section, 'dns-min-ttl');
+      dns_def_ttl:=         ini_file.ReadVariable( ini_section, 'dns-def-ttl');
    end; // ReadIni()
 
 
@@ -470,6 +724,12 @@ procedure ParseArgv();
       ParseHelper( 'dhcp-max-lease-secs', dhcp_max_lease_secs);
       ParseHelper( 'dhcp-def-lease-secs', dhcp_def_lease_secs);
       ParseHelper( 'dhcp-def-domain', dhcp_def_domain);
+      ParseHelper( 'dns-contact', dns_contact);
+      ParseHelper( 'dns-refresh', dns_refresh);
+      ParseHelper( 'dns-retry', dns_retry);
+      ParseHelper( 'dns-expire', dns_expire);
+      ParseHelper( 'dns-min-ttl', dns_min_ttl);
+      ParseHelper( 'dns-def-ttl', dns_def_ttl);
 
       // Test for missing variables
       if( (Length( dhcpd_conf) = 0) or
@@ -490,9 +750,17 @@ procedure ParseArgv();
          ini_file.SetVariable( ini_section, 'dhcp-max-lease-secs', dhcp_max_lease_secs);
          ini_file.SetVariable( ini_section, 'dhcp-def-lease-secs', dhcp_def_lease_secs);
          ini_file.SetVariable( ini_section, 'dhcp-def-domain', dhcp_def_domain);
+         ini_file.SetVariable( ini_section, 'dns-contact', dns_contact);
+         ini_file.SetVariable( ini_section, 'dns-refresh', dns_refresh);
+         ini_file.SetVariable( ini_section, 'dns-retry', dns_retry);
+         ini_file.SetVariable( ini_section, 'dns-expire', dns_expire);
+         ini_file.SetVariable( ini_section, 'dns-min-ttl', dns_min_ttl);
+         ini_file.SetVariable( ini_section, 'dns-def-ttl', dns_def_ttl);
          ini_file.write();
       end; 
       ini_file.close();
+      // writeln( 'dns_contact =     ', dns_contact);
+      // writeln( 'dhcp_def_domain = ', dhcp_def_domain);
 
       // Set our static and working folders
 //      StaticFolder:=  lbp_xdg_basedir.CacheFolder;
@@ -536,6 +804,8 @@ procedure ParseArgv();
       writeln( NamedConf, '};');
       writeln( NamedConf);
 
+      // writeln( 'dns_contact =     ', dns_contact);
+      // writeln( 'dhcp_def_domain = ', dhcp_def_domain);
       if( lbp_types.show_init) then writeln( 'ipdb2_dns_dhcp_config_classes.initialization:  end');
       if( lbp_types.show_init) then writeln( 'ipdb2_dns_dhcp_config_classes.ParseArgv(): end');
    end; // ParseArgV
@@ -559,6 +829,15 @@ initialization
       AddParam( ['dhcp-max-lease-secs'], true, '', 'The maximum lease time offered to hosts via DHCP.');
       AddParam( ['dhcp-def-lease-secs'], true, '', 'The default lease time offered to hosts via DHCP.');
       AddParam( ['dhcp-def-domain'], true, '', 'The default domain name given to hosts via DHCP.');
+      AddParam( ['dns-contact'], False, '', 'The email address of the DNS Admin with a dot');
+      AddUsage( '                                 instead of asterisk');
+      AddParam( ['dns-refresh'], False, '', 'How many seconds until the zone information');
+      AddUsage( '                                 should be refreshed.');
+      AddParam( ['dns-retry'], False, '', 'How many seconds until the client should retry.');
+      AddParam( ['dns-expire'], False, '', 'How many seconds until the data on');
+      AddUsage( '                                 secondary servers is invalid.');
+      AddParam( ['dns-min-ttl'], False, '', 'The Minimu time-to-live in seconds.');
+      AddParam( ['dns-def-ttl'], False, '', 'The default time-to-live for a record');
       AddParam( ['ipdb2-dns-dhcp-config-save'], False, '', 'Save youor changes to the ipdb2-dns-dhcp-config');
       AddUsage( '                                 settings INI file.');
       AddUsage( '   --testbed                   Set/retrieve the testbed version of these');
