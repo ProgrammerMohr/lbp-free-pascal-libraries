@@ -29,54 +29,7 @@ program ipdb2_dns_dhcp_config_out;
 
 uses
    lbp_argv,
-   lbp_types,
-   lbp_sql_db,  // SQL Exceptions
-   // ipdb2_home_config,
-   ipdb2_tables,
-   ipdb2_flags,
-   ipdb2_dns_dhcp_config_classes,
-   // lbp_xdg_basedir,
-   lbp_ip_utils,
-   lbp_generic_containers,
-   sysutils;
-
-// ************************************************************************
-// * Global Variable
-// ************************************************************************
-var
-   Zone:             text;
-
-
-/// ************************************************************************
-// * ProcessDNSPtr() Output the current FullNode record to the Zone file.
-// ************************************************************************
-
-procedure ProcessDNSPtr();
-   begin
-   end; // ProcessDNSPtr()
-
-
-// ************************************************************************
-// * ProcessSubnets() - Iterate through the subnets and process each one
-// ************************************************************************
-
-procedure ProcessSubnets();
-   var
-      Slash0Str:   string;
-      Slash32Str:  string;
-   begin
-      Str( Slash[  0], Slash0Str);
-      Str( Slash[ 32], Slash32Str);
-
-      // Query for all the subnets except those with an impossible netmask
-      IPRanges.Query( 'where NetMask != ' + Slash0Str + 
-                      ' and NetMask != ' + Slash32Str + 
-                      ' Order by NetMask, StartIP');
-      while( IPRanges.Next) do begin
-//         if( IPRanges.Flags.GetBit( OutputDNS)) then ProcessReverseZone();
-         if( IPRanges.Flags.GetBit( OutputDhcp)) then IpRanges.DhcpdConfOut( DhcpdConf);
-      end; // For each range
-   end; // ProcessSubnets()
+   ipdb2_dns_dhcp_config_classes;
 
 
 // ************************************************************************
@@ -108,6 +61,7 @@ procedure InitArgvParser();
 begin
    InitArgvParser();
 
+   Domains.OutputConfigs( NamedConf);
    IpRanges.OutputConfigs( DhcpdConf, NamedConf);
  
 end. // ipdb2_dns_dhcp_config_out program

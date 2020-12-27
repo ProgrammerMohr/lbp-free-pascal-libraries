@@ -137,6 +137,7 @@ type
          Zone:   Text;
          SoaSerial:   string;  // The serial numbers to use for the zone
          procedure DnsConfOut( var DnsConf: text); // Output a record
+         procedure OutputConfigs( var DnsConf: text);
       end; // tDdiDomainsTable class
 
 
@@ -166,6 +167,23 @@ type
 // * Global variables
 // ************************************************************************
 var
+   NodeDict:            tNodeDictionary;
+   FullNode:            tDdiFullNodeQuery;
+   FullAlias:           tDdiFullAliasQuery;
+   Domains:             tDdiDomainsTable;
+   IPRanges:            tDdiIpRangesTable;
+   NamedConf:           Text;
+   DhcpdConf:           Text;
+
+
+// *************************************************************************
+
+implementation
+
+// *************************************************************************
+// * Internal global variables
+// *************************************************************************
+var
    WorkingFolder:       string;  // The name of the working folder
 //   StaticFolder:        string;  // The name of the folder where static include data is stored.
    dhcpd_conf:          string;
@@ -181,19 +199,8 @@ var
    dns_expire:          string;
    dns_min_ttl:         string;
    dns_def_ttl:         string;
-   {$warning ===== Move this to the implementation once all the code that references it has been moved to this unit! =====}
-   NodeDict:            tNodeDictionary;
-   FullNode:            tDdiFullNodeQuery;
-   FullAlias:           tDdiFullAliasQuery;
-   Domains:             tDdiDomainsTable;
-   IPRanges:            tDdiIpRangesTable;
-   NamedConf:           Text;
-   DhcpdConf:           Text;
 
 
-// *************************************************************************
-
-implementation
 // =========================================================================
 // = tDynInfo class - Used to hold the state information about DHCP Dynamic
 // = ranges which need output
@@ -291,7 +298,7 @@ procedure tDdiFullNodeQuery.FwdZoneOut( var Zone: text);
    begin
       ShortName:= Name.OrigValue;
       if( Length( ShortName) = 0) then ShortName:= '@';
-      writeln( Zone, ShortName, '  IN  A  ', CurrentIP.GetSQLValue);
+      writeln( Zone, ShortName, '  IN  A  ', CurrentIP.GetValue);
    end; // FwdZoneOut()
 
    
@@ -325,7 +332,7 @@ procedure tDdiFullAliasQuery.FwdZoneOut( var Zone: text);
       ShortName:= AliasName.OrigValue;
       if( Length( ShortName) = 0) then ShortName:= '@';
       if( AliasFlags.GetBit( OutputARecord)) then begin
-         writeln( Zone, ShortName, '  IN  A  ', CurrentIP.GetSQLValue);
+         writeln( Zone, ShortName, '  IN  A  ', CurrentIP.GetValue);
       end else begin
          writeln( Zone, ShortName, '  IN  CNAME  ', FullNodeName, '.');
       end;
@@ -359,15 +366,22 @@ procedure tDdiFullAliasQuery.RevZoneOut( var Zone: text);
 // ************************************************************************
 
 procedure tDdiDomainsTable.DnsConfOut( var DnsConf: text);
+   var
+      SimpleNode:      tSimpleNode;
    begin
-{$ERROR this was copied from DdiIpRangesTable.DnsConfOut and needs converted!}
       // Open the reverse zone file
-      assign( Zone, WorkingFolder + 'db.' + ForwardNet);
+      assign( Zone, WorkingFolder + 'db.' + Name.OrigValue);
       rewrite( Zone);
+
+      writeln( DnsConf, 'zone "', Name.OrigValue, '" {');
+      writeln( DnsConf, '   type master;');
+      writeln( DnsConf, '   file "db.', Name.OrigValue, '";');
+      writeln( DnsConf, '};');
+      writeln( DnsConf);
 
       writeln( Zone, '$TTL ', dns_def_ttl);
       SimpleNode:= NodeDict.FindNodeInfo( DNS1.OrigValue);
-      writeln( Zone, ReverseNet, '.in-addr.arpa. IN SOA ', SimpleNode.FullName,
+      writeln( Zone, Name.OrigValue, '. IN SOA ', SimpleNode.FullName,
                '. ', dns_contact, ' (');
       writeln( Zone, '   ', SoaSerial, '  ; serial number');
       writeln( Zone, '   ', dns_refresh, '      ; refresh');
@@ -394,30 +408,48 @@ procedure tDdiDomainsTable.DnsConfOut( var DnsConf: text);
       writeln( Zone);
 
       writeln( Zone, '; ****************');
-      writeln( Zone, '; * NodeInfo PTR');
+      writeln( Zone, '; * NodeInfo A');
       writeln( Zone, '; ****************');
-      FullNode.Query( ' and CurrentIP > ' + StartIP.GetSQLValue + 
-                      ' and CurrentIP < ' + EndIP.GetSQLValue +
-                      ' order by NodeInfo.CurrentIP');
+      FullNode.Query( ' and Domains.ID =  ' + ID.GetSQLValue +
+                      ' order by NodeInfo.Name');
       while( FullNode.Next) do begin
-         FullNode.RevZoneOut( Zone);
+         FullNode.FwdZoneOut( Zone);
       end;
       writeln( Zone);
 
       writeln( Zone, '; ****************');
       writeln( Zone, '; * Aliases PTR or CNAME');
       writeln( Zone, '; ****************');
-      FullAlias.Query( ' and CurrentIP > ' + StartIP.GetSQLValue + 
-                      ' and CurrentIP < ' + EndIP.GetSQLValue +
-                      ' order by NodeInfo.CurrentIP');
+      FullAlias.Query( ' and Aliases.DomainID =  ' + ID.GetSQLValue + 
+                      ' order by Aliases.Name');
       while( FullAlias.Next) do begin
-         FullAlias.RevZoneOut( Zone);
+         FullAlias.FwdZoneOut( Zone);
       end;
       close( Zone);
    end; // DnsConfOut()
 
 
-   
+// ************************************************************************
+// *  OutputConfigs() - Iterate through the table and output all DNS
+// *                    configuration information. 
+// ************************************************************************
+
+procedure tDdiDomainsTable.OutputConfigs( var DnsConf: text);
+   begin
+      // Build the SoaSerial
+      CurrentTime.Now; // Set the Current Time from the system clock.
+      Str( (CurrentTime.Epoch div 60), SoaSerial);
+
+      Query();
+      while( Next) do begin
+         if( Flags.GetBit( OutputDns)) then begin
+            DnsConfOut( DnsConf);
+         end;
+      end; // while
+   end; // OutputConfigs()
+
+
+
 // =========================================================================
 // = tDdiIpRangesTable class
 // =========================================================================
@@ -487,6 +519,12 @@ procedure tDdiIpRangesTable.DnsConfOut( var DnsConf: text);
       // Open the reverse zone file
       assign( Zone, WorkingFolder + 'db.' + ForwardNet);
       rewrite( Zone);
+
+      writeln( DnsConf, 'zone "', ReverseNet, '.in-addr.arpa" {');
+      writeln( DnsConf, '   type master;');
+      writeln( DnsConf, '   file "db.', ForwardNet, '";');
+      writeln( DnsConf, '};');
+      writeln( DnsConf);
 
       writeln( Zone, '$TTL ', dns_def_ttl);
       SimpleNode:= NodeDict.FindNodeInfo( DNS1.OrigValue);
