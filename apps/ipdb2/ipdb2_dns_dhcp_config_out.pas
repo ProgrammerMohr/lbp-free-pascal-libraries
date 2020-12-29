@@ -65,10 +65,7 @@ begin
    Domains.OutputConfigs( NamedConf);
    IpRanges.OutputConfigs( DhcpdConf, NamedConf);
 
-   MarkDone;
-   MoveFiles;
-
-   // Restart the DHCP and DNS servers.
-   ExecuteProcess( '/bin/systemctl', ['restart', 'bind9']);
-   ExecuteProcess( '/bin/systemctl', ['restart', 'isc-dhcp-server']);
+   // The ipdb2_dns_dhcp_config_classes unit moves the files to the 
+   // production location and restarts DNS and DHCP services in its
+   // finalization section.
 end. // ipdb2_dns_dhcp_config_out program

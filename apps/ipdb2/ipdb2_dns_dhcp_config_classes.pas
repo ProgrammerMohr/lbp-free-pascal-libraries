@@ -979,6 +979,13 @@ finalization
       Close( NamedConf);
       Close( DhcpdConf);
 
+      MarkDone;
+      MoveFiles;
+
+      // Restart the DHCP and DNS servers.
+      ExecuteProcess( '/bin/systemctl', ['restart', 'bind9']);
+      ExecuteProcess( '/bin/systemctl', ['restart', 'isc-dhcp-server']);
+
       IPRanges.Destroy;
       Domains.Destroy;
       FullAlias.Destroy;
