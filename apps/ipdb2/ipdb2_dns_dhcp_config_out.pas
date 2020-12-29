@@ -29,7 +29,8 @@ program ipdb2_dns_dhcp_config_out;
 
 uses
    lbp_argv,
-   ipdb2_dns_dhcp_config_classes;
+   ipdb2_dns_dhcp_config_classes,
+   sysutils;
 
 
 // ************************************************************************
@@ -60,8 +61,14 @@ procedure InitArgvParser();
 
 begin
    InitArgvParser();
-
+   
    Domains.OutputConfigs( NamedConf);
    IpRanges.OutputConfigs( DhcpdConf, NamedConf);
- 
+
+   MarkDone;
+   MoveFiles;
+
+   // Restart the DHCP and DNS servers.
+   ExecuteProcess( '/bin/systemctl', ['restart', 'bind9']);
+   ExecuteProcess( '/bin/systemctl', ['restart', 'isc-dhcp-server']);
 end. // ipdb2_dns_dhcp_config_out program

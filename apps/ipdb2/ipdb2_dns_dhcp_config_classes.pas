@@ -77,7 +77,7 @@ type
 
 
 // ************************************************************************
-// * tDynInfo clas - Used to hold the state information about DHCP Dynamic
+// * tDynInfo class - Used to hold the state information about DHCP Dynamic
 // * ranges which need output
 // ************************************************************************
 type
@@ -176,6 +176,13 @@ var
    DhcpdConf:           Text;
 
 
+// ************************************************************************
+// * Global Functions
+// ************************************************************************
+
+procedure MarkDone();
+procedure MoveFiles(); // Move files from WorkingFolder to production locations
+
 // *************************************************************************
 
 implementation
@@ -199,6 +206,82 @@ var
    dns_expire:          string;
    dns_min_ttl:         string;
    dns_def_ttl:         string;
+
+
+// =========================================================================
+// = Global Functions
+// =========================================================================
+// *************************************************************************
+// * ClearStaleFiles() - Delete all the files in the WorkingFolder.
+// *************************************************************************
+
+procedure ClearStaleFiles();
+   var
+      SearchRec:  tSearchRec;
+      FileName:   string;
+   begin
+      if( FindFirst( WorkingFolder + '*', 0, SearchRec) = 0) then begin
+         repeat
+            FileName:= WorkingFolder + SearchRec.Name;
+            if( not DeleteFile( FileName)) then begin
+               raise lbp_exception.Create( 'Unable to delete the file %s ', [FileName]);
+            end;
+         until( FindNext( SearchRec) <> 0);
+         FindClose( SearchRec);
+      end; // If we found any files
+   end; // ClearStaleFiles()
+
+
+// *************************************************************************
+// * MarkDone() - Creates a nearly empty file named done.txt in the
+// *              WorkingFolder
+// *************************************************************************
+
+procedure MarkDone();
+
+   var
+      DoneFileName: string = 'done.txt';
+      DoneFile:     text;
+   begin
+      assign( DoneFile, WorkingFolder + DoneFileName);
+      rewrite( DoneFile);
+      writeln( DoneFile, 'The DNS/DHCP configuration output has completed.');
+      close( DoneFile);
+   end; // MarkDone()
+
+
+// *************************************************************************
+// * MoveFiles() - Move the files from the WorkingFolder to the production
+// *               location.
+// *************************************************************************
+
+procedure MoveFiles();
+   var
+      SearchRec:  tSearchRec;
+      FileName:   string;
+   begin
+      if( FindFirst( WorkingFolder + '*', 0, SearchRec) = 0) then begin
+         repeat
+            FileName:= WorkingFolder + SearchRec.Name;
+            if( pos( 'db.', SearchRec.Name) = 1) then begin
+               if( not RenameFile( FileName, dns_folder + SearchRec.Name)) then begin
+                  raise lbp_exception.Create( 'Unable to move ' + SearchRec.Name + '!');
+               end;
+            end else if( pos( 'named', SearchRec.Name) = 1) then begin
+               if( not RenameFile( WorkingFolder + SearchRec.Name, dns_folder + SearchRec.Name)) then begin
+                  raise lbp_exception.Create( 'Unable to move ' + SearchRec.Name + '!');
+               end;
+            end else if( pos( 'dhcpd', SearchRec.Name) = 1) then begin
+               if( not RenameFile( WorkingFolder + SearchRec.Name, dhcp_folder + SearchRec.Name)) then begin
+                  raise lbp_exception.Create( 'Unable to move ' + SearchRec.Name + '!');
+               end;
+            end
+   
+         until( FindNext( SearchRec) <> 0);
+         FindClose( SearchRec);
+      end; // If we found any files
+   end; // ClearStaleFiles()
+
 
 
 // =========================================================================
@@ -815,6 +898,8 @@ procedure ParseArgv();
       FullAlias:=  tDdiFullAliasQuery.Create();
       Domains:=    tDdiDomainsTable.Create();
       IPRanges:=   tDdiIPRangesTable.Create();
+
+      ClearStaleFiles; // Start with an empty working folder
 
       // Opent the DHCPd configuration file and output the global portion
       Assign( DhcpdConf, dhcpd_conf);
