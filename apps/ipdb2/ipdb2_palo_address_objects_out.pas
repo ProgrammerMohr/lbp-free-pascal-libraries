@@ -2,8 +2,8 @@
 
     Copyright (c) 2020 by Lloyd B. Park
 
-    ipdb2_dns_dhcp_config_out - Outputs the passed IPdb2 Domain's Nodes and
-    Aliases in /etc/hosts format.
+    ipdb2_palo_address_objects_out - Outputs the the passed IPdb2 Domain's 
+    Nodes in Palo CLI format.
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 *************************************************************************** *}
 
-program ipdb2_hosts_file_out;
+program ipdb2_palo_address_objects_out;
 
 {$include lbp_standard_modes.inc}
 
@@ -40,7 +40,6 @@ uses
 // ************************************************************************
 var
    FullNode:    FullNodeQuery;
-   FullAlias:   FullAliasQuery;
    Domains:     DomainsTable;
    DomainName:  string;
    DomainID:    string; // The domain ID number as a string
@@ -53,8 +52,8 @@ var
 procedure InitArgvParser();
    begin
       InsertUsage( '');
-      InsertUsage( 'ipdb2_hosts_file_out output''s the passed IPdb2 Domain''s Nodes and ');
-      InsertUsage( '         aliases in /etc/hosts format.');
+      InsertUsage( 'ipdb2_palo_address_objects_out output''s the passed IPdb2 Domain''s');
+      InsertUsage( '         Nodes in Palo Alto CLI address object format.');
       InsertUsage( 'You must pass domain name as an parameter to the program.');
       InsertUsage( '');
       InsertUsage( 'Usage:');
@@ -78,7 +77,6 @@ procedure Initialize();
 
       Domains:=   DomainsTable.Create();
       FullNode:=  FullNodeQuery.Create();
-      FullAlias:= FullAliasQuery.Create();     
    end; // Initialize()
 
 
@@ -89,7 +87,6 @@ procedure Initialize();
 procedure Finalize();
    begin
       Domains.Destroy;
-      FullAlias.Destroy;
       FullNode.Destroy;
    end; // Finalize()
 
@@ -107,13 +104,10 @@ begin
 
    FullNode.Query( 'and NodeInfo.DomainID = ' + DomainID + ' order by CurrentIP');
    while( FullNode.Next) do begin
-      writeln( FullNode.CurrentIP.GetValue, '   ', FullNode.FullName);
-   end;
-
-   FullAlias.Query( 'and Aliases.DomainID = ' + DomainID + ' order by CurrentIP');
-   while( FullAlias.Next) do begin
-      writeln( FullAlias.CurrentIP.GetValue, '   ', FullAlias.FullName);
+      writeln( 'set address ', FullNode.Name.GetValue, '-', 
+               FullNode.CurrentIP.GetValue, ' ip-netmask ',
+               FullNode.CurrentIP.GetValue, '/32'); 
    end;
 
    Finalize;
-end.  // ipdb2_hosts_file_out program
+end.  // ipdb2_palo_address_objects_out
