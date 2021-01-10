@@ -182,6 +182,7 @@ var
 
 procedure MarkDone();
 procedure MoveFiles(); // Move files from WorkingFolder to production locations
+procedure MoveFilesAndRestartServices();
 
 // *************************************************************************
 
@@ -206,7 +207,6 @@ var
    dns_expire:          string;
    dns_min_ttl:         string;
    dns_def_ttl:         string;
-
 
 // =========================================================================
 // = Global Functions
@@ -528,7 +528,7 @@ procedure tDdiDomainsTable.OutputConfigs( var DnsConf: text);
          if( Flags.GetBit( OutputDns)) then begin
             DnsConfOut( DnsConf);
          end;
-      end; // while
+      end; // while       
    end; // OutputConfigs()
 
 
@@ -687,8 +687,8 @@ procedure tDdiIpRangesTable.OutputConfigs( var DhcpdConf, DnsConf: text);
 
       // Query for all the subnets except those with an impossible netmask
       Query( 'where NetMask != ' + Slash0Str + 
-                      ' and NetMask != ' + Slash32Str + 
-                      ' Order by NetMask, StartIP');
+                     ' and NetMask != ' + Slash32Str + 
+                     ' Order by NetMask, StartIP');
       while( Next) do begin
          if( Flags.GetBit( OutputDhcp)) then DhcpdConfOut( DhcpdConf);
 
@@ -731,6 +731,35 @@ var
    ini_file_name: string;
    ini_file:      IniFileObj;
    ini_section:   string;
+
+
+// *************************************************************************
+// * MoveFilesAndRestartServices() - Closes files, Moves the DNS/DHCP files 
+// *       from the working folder to the production locations.  Then it
+// *       restarts the DNS and DHCP services.  Finally it Destory()s 
+// *       instance's of classess to properly free memory, etc.
+// *************************************************************************
+
+procedure MoveFilesAndRestartServices();
+   begin
+      Close( NamedConf);
+      Close( DhcpdConf);
+
+      MarkDone;
+      MoveFiles;
+
+      // Restart the DHCP and DNS servers.
+      ExecuteProcess( '/bin/systemctl', ['restart', 'bind9']);
+      ExecuteProcess( '/bin/systemctl', ['restart', 'isc-dhcp-server']);
+
+      IPRanges.Destroy;
+      Domains.Destroy;
+      FullAlias.Destroy;
+      FullNode.Destroy;
+
+      NodeDict.RemoveAll( True);
+      NodeDict.Destroy;
+   end; // MoveFilesAndRestartServices()
 
 
 // ************************************************************************
@@ -968,32 +997,6 @@ initialization
       AddUsage( '');
       AddPostParseProcedure( @ParseArgv);
    end; // initialization
-
-
-// *************************************************************************
-// * finalization
-// *************************************************************************
-
-finalization
-   begin
-      Close( NamedConf);
-      Close( DhcpdConf);
-
-      MarkDone;
-      MoveFiles;
-
-      // Restart the DHCP and DNS servers.
-      ExecuteProcess( '/bin/systemctl', ['restart', 'bind9']);
-      ExecuteProcess( '/bin/systemctl', ['restart', 'isc-dhcp-server']);
-
-      IPRanges.Destroy;
-      Domains.Destroy;
-      FullAlias.Destroy;
-      FullNode.Destroy;
-
-      NodeDict.RemoveAll( True);
-      NodeDict.Destroy;
-   end; // finalization
 
 
 // *************************************************************************
