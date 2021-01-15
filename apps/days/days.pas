@@ -105,7 +105,7 @@ procedure InitArgvParser();
       InsertUsage( '');
       InsertParam( ['n', 'd', 'number-of-days'], true, '', 'The number of days to print.  Defaults to 8');
       InsertParam( ['c', 'covid'], false, '', 'Print out the subject line and body for a work');
-      InsertUsage( '                                 from home message to Bob.');
+      InsertUsage( '                                 from home message to Matt.');
       AddPostParseProcedure( @ParseArgv);
       ParseParams();
    end; // InitArgvParser()
@@ -170,7 +170,7 @@ procedure PrintEmail();
                FridayStr);
       writeln;
       writeln;
-      writeln( 'Hi Bob,');
+      writeln( 'Hi Matt,');
       writeln;
       if( MondayOffset <= 0) then begin
          write( 'I''m sorry I''m late sending this to you.  I''m working ' +
